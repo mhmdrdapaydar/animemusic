@@ -111,20 +111,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
                     $imported_music = 0;
                     $imported_singers = 0;
                     $imported_seasons = 0;
-                    
+                    $skipped_anime = 0;
+                    $skipped_music = 0;
+                    $skipped_singers = 0;
+
                     // پردازش داده‌های JSON
                     foreach ($data as $anime_item) {
                         if (!isset($anime_item['name'])) continue;
-                        
+
                         // تشخیص زبان و ترجمه عنوان
-                        $title_en = $anime_item['name'];
+                        $title_en = trim($anime_item['name']);
+                        if ($title_en === '') continue;
+
                         $title_fa = $translator->translateWithDetection($title_en, 'fa');
-                        
-                        // بررسی وجود انیمه در دیتابیس
-                        $stmt = $db_content->prepare("SELECT id FROM anime_series WHERE title_en = ?");
-                        $stmt->execute([$title_en]);
+
+                        // بررسی وجود انیمه در دیتابیس (بدون حساسیت به بزرگی/کوچکی حروف)
+                        $stmt = $db_content->prepare("SELECT id FROM anime_series WHERE title_en = ? COLLATE NOCASE OR title_fa = ? COLLATE NOCASE");
+                        $stmt->execute([$title_en, $title_fa]);
                         $anime_id = $stmt->fetchColumn();
-                        
+
                         // اگر انیمه وجود ندارد، آن را اضافه کن
                         if (!$anime_id) {
                             $stmt = $db_content->prepare("
@@ -139,16 +144,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
                             ]);
                             $anime_id = $db_content->lastInsertId();
                             $imported_anime++;
+                        } else {
+                            $skipped_anime++;
                         }
-                        
+
                         // پردازش فصل‌ها
                         if (isset($anime_item['seasons']) && is_array($anime_item['seasons'])) {
                             foreach ($anime_item['seasons'] as $season_index => $season) {
                                 $imported_seasons++;
-                                
+
                                 // پردازش تم‌ها (موزیک‌ها)
                                 if (isset($season['themes']) && is_array($season['themes'])) {
                                     foreach ($season['themes'] as $theme) {
+                                        // عنوان موزیک اجباری است
+                                        if (empty($theme['title'])) continue;
+                                        $theme_title = trim($theme['title']);
+
                                         // تعیین نوع موزیک بر اساس theme type
                                         $music_type_id = 1; // پیش‌فرض
                                         if ($theme['type'] === 'OP') {
@@ -158,28 +169,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
                                         } elseif ($theme['type'] === 'IN') {
                                             $music_type_id = 3; // Insert Song
                                         }
-                                        
+
                                         // پیدا کردن خواننده یا ایجاد آن
                                         $singer_ids = [];
                                         if (!empty($theme['artist'])) {
                                             $artist_names = explode(',', $theme['artist']);
                                             foreach ($artist_names as $artist_name) {
                                                 $artist_name = trim($artist_name);
-                                                $stmt = $db_content->prepare("SELECT id FROM singers WHERE name = ?");
+                                                if ($artist_name === '') continue;
+
+                                                $stmt = $db_content->prepare("SELECT id FROM singers WHERE name = ? COLLATE NOCASE");
                                                 $stmt->execute([$artist_name]);
                                                 $singer_id = $stmt->fetchColumn();
-                                                
+
                                                 if (!$singer_id) {
                                                     $stmt = $db_content->prepare("INSERT INTO singers (name) VALUES (?)");
                                                     $stmt->execute([$artist_name]);
                                                     $singer_id = $db_content->lastInsertId();
                                                     $imported_singers++;
+                                                } else {
+                                                    $skipped_singers++;
                                                 }
-                                                
+
                                                 $singer_ids[] = $singer_id;
                                             }
                                         }
-                                        
+
                                         // پیدا کردن بهترین ویدیو (اولین ویدیو با بالاترین رزولوشن)
                                         $best_video = null;
                                         if (isset($theme['videos']) && is_array($theme['videos'])) {
@@ -191,18 +206,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
                                                 }
                                             }
                                         }
-                                        
-                                        // اضافه کردن موزیک به دیتابیس
-                                        $stmt = $db_content->prepare("
-                                            INSERT INTO anime_contents 
-                                            (anime_id, music_type_id, title, music_file_url, video_file_url, image_url, season_number, episode_number)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                        ");
-                                        
-                                        // تعیین شماره فصل
+
+                                        // تعیین شماره فصل و اپیزود
                                         $season_number = $season_index + 1;
-                                        
-                                        // تعیین شماره اپیزود بر اساس episodes
+
                                         $episode_number = 1;
                                         if (isset($theme['episodes'])) {
                                             $episodes = $theme['episodes'];
@@ -213,21 +220,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
                                                 $episode_number = intval($episodes);
                                             }
                                         }
-                                        
+
+                                        $video_url = $best_video ? $best_video['url'] : '';
+
+                                        // --- جلوگیری از محتوای تکراری (مهم‌ترین بخش) ---
+                                        // اثر انگشت ۱: همان انیمه + نوع + عنوان + فصل + قسمت
+                                        $exists = false;
+                                        $stmt = $db_content->prepare("
+                                            SELECT id FROM anime_contents
+                                            WHERE anime_id = ? AND music_type_id = ?
+                                              AND title = ? COLLATE NOCASE
+                                              AND season_number = ?
+                                              AND COALESCE(episode_number, 0) = ?
+                                            LIMIT 1
+                                        ");
+                                        $stmt->execute([$anime_id, $music_type_id, $theme_title, $season_number, (int)$episode_number]);
+                                        if ($stmt->fetchColumn()) {
+                                            $exists = true;
+                                        }
+
+                                        // اثر انگشت ۲: لینک فایل یکتا (اگر لینک‌ها برابر باشند یعنی همان موزیک است)
+                                        if (!$exists && $video_url !== '') {
+                                            $stmt = $db_content->prepare("
+                                                SELECT id FROM anime_contents
+                                                WHERE music_file_url = ? OR video_file_url = ?
+                                                LIMIT 1
+                                            ");
+                                            $stmt->execute([$video_url, $video_url]);
+                                            if ($stmt->fetchColumn()) {
+                                                $exists = true;
+                                            }
+                                        }
+
+                                        // اگر این موزیک از قبل وارد شده، از افزودن دوباره صرف‌نظر کن
+                                        if ($exists) {
+                                            $skipped_music++;
+                                            continue;
+                                        }
+
+                                        // اضافه کردن موزیک به دیتابیس
+                                        $stmt = $db_content->prepare("
+                                            INSERT INTO anime_contents 
+                                            (anime_id, music_type_id, title, music_file_url, video_file_url, image_url, season_number, episode_number)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                        ");
+
                                         $stmt->execute([
                                             $anime_id,
                                             $music_type_id,
-                                            $theme['title'],
-                                            $best_video ? $best_video['url'] : '',
-                                            $best_video ? $best_video['url'] : '',
+                                            $theme_title,
+                                            $video_url,
+                                            $video_url,
                                             $season['image_url'] ?? $season['large_image_url'] ?? $anime_item['main_image_url'] ?? '',
                                             $season_number,
                                             $episode_number
                                         ]);
-                                        
+
                                         $content_id = $db_content->lastInsertId();
                                         $imported_music++;
-                                        
+
                                         // اتصال خوانندگان به موزیک
                                         foreach ($singer_ids as $singer_id) {
                                             $stmt = $db_content->prepare("
@@ -241,14 +292,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
                             }
                         }
                     }
-                    
+
                     $db_content->commit();
-                    
+
                     $message = "واردات با موفقیت انجام شد.<br>
-                                تعداد انیمه‌های اضافه شده: $imported_anime<br>
+                                تعداد انیمه‌های اضافه شده: $imported_anime (تکراری: $skipped_anime)<br>
                                 تعداد فصل‌های پردازش شده: $imported_seasons<br>
-                                تعداد موزیک‌های اضافه شده: $imported_music<br>
-                                تعداد خوانندگان اضافه شده: $imported_singers";
+                                تعداد موزیک‌های اضافه شده: $imported_music (تکراری: $skipped_music)<br>
+                                تعداد خوانندگان اضافه شده: $imported_singers (تکراری: $skipped_singers)";
                     $message_type = 'success';
                     
                 } catch (Exception $e) {
@@ -348,6 +399,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
         <li>هر تم دارای نوع (OP/ED/IN)، عنوان، هنرمند و ویدیوها است</li>
       </ul>
       <p>سیستم به طور خودکار زبان عنوان را تشخیص داده و به فارسی ترجمه می‌کند.</p>
+      <h3 style="margin-top:14px;"><i class="fas fa-shield-alt"></i> محافظت در برابر تکراری‌ها</h3>
+      <p>
+        حتی اگر فایل JSON شامل محتوای قدیمی و جدید با هم باشد، موزیک‌هایی که از قبل در سایت
+        وجود دارند (بر اساس انیمه + نوع + عنوان + فصل/قسمت یا بر اساس لینک فایل یکسان)
+        دوباره اضافه نمی‌شوند. در پایان، تعداد موارد «تکراریِ رد شده» در پیام نتیجه نمایش داده می‌شود.
+      </p>
+      <p style="margin-top:8px;">
+        اگر از واردات‌های قبلی موزیک تکراری در سایت باقی مانده، می‌توانید با یک کلیک آن‌ها را پاک کنید:
+        <a href="clean_duplicates.php" style="color:var(--danger); font-weight:700;">
+          <i class="fas fa-broom"></i> پاکسازی تکراری‌های قبلی
+        </a>
+      </p>
     </div>
 
     <div class="footer">
