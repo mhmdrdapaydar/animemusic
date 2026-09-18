@@ -409,6 +409,32 @@ input.form-control, select.form-control { max-width: 100%; }
 
 .filter-bar .form-group { margin: 0; flex: 1 1 160px; min-width: 140px; }
 
+/* جستجوی سریع داخل هر تب */
+.search-inline {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 16px;
+  align-items: center;
+}
+
+.search-inline .form-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-inline .btn {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .search-inline {
+    flex-wrap: wrap;
+  }
+  .search-inline .form-control {
+    flex: 1 1 100%;
+  }
+}
+
 .empty-state {
   text-align: center;
   padding: 44px 16px;

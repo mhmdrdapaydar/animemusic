@@ -29,39 +29,134 @@ try {
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
 
+    // جستجو داخل بخش جاری
+    $q = trim($_GET['q'] ?? '');
+
     $totalItems = $counts[$type];
-    $totalPages = (int)ceil($totalItems / $perPage);
     $items = [];
 
     switch ($type) {
         case 'anime':
-            $stmt = $db_content->prepare("SELECT * FROM anime_series ORDER BY id DESC LIMIT :l OFFSET :o");
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_content->prepare("SELECT * FROM anime_series WHERE title_fa LIKE :q OR title_en LIKE :q OR description LIKE :q ORDER BY id DESC LIMIT :l OFFSET :o");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_content->prepare("SELECT COUNT(*) FROM anime_series WHERE title_fa LIKE :q OR title_en LIKE :q OR description LIKE :q");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $stmt = $db_content->prepare("SELECT * FROM anime_series ORDER BY id DESC LIMIT :l OFFSET :o");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
         case 'music':
-            $stmt = $db_content->prepare("
-                SELECT ac.*, asr.title_fa AS anime_title, mt.name AS music_type_name
+            $musicJoins = "
                 FROM anime_contents ac
                 JOIN anime_series asr ON ac.anime_id = asr.id
                 JOIN music_types mt ON ac.music_type_id = mt.id
-                ORDER BY ac.id DESC LIMIT :l OFFSET :o
-            ");
+            ";
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_content->prepare("
+                    SELECT ac.*, asr.title_fa AS anime_title, mt.name AS music_type_name
+                    $musicJoins
+                    WHERE ac.title LIKE :q OR asr.title_fa LIKE :q OR asr.title_en LIKE :q OR mt.name LIKE :q
+                    ORDER BY ac.id DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_content->prepare("
+                    SELECT COUNT(*) $musicJoins
+                    WHERE ac.title LIKE :q OR asr.title_fa LIKE :q OR asr.title_en LIKE :q OR mt.name LIKE :q
+                ");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $stmt = $db_content->prepare("
+                    SELECT ac.*, asr.title_fa AS anime_title, mt.name AS music_type_name
+                    $musicJoins
+                    ORDER BY ac.id DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
         case 'singer':
-            $stmt = $db_content->prepare("
-                SELECT s.*, (SELECT COUNT(*) FROM content_singers cs WHERE cs.singer_id = s.id) AS cnt
-                FROM singers s ORDER BY s.name LIMIT :l OFFSET :o
-            ");
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_content->prepare("
+                    SELECT s.*, (SELECT COUNT(*) FROM content_singers cs WHERE cs.singer_id = s.id) AS cnt
+                    FROM singers s
+                    WHERE s.name LIKE :q OR s.bio LIKE :q
+                    ORDER BY s.name LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_content->prepare("SELECT COUNT(*) FROM singers WHERE name LIKE :q OR bio LIKE :q");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $stmt = $db_content->prepare("
+                    SELECT s.*, (SELECT COUNT(*) FROM content_singers cs WHERE cs.singer_id = s.id) AS cnt
+                    FROM singers s ORDER BY s.name LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
         case 'user':
-            $stmt = $db_users->prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT :l OFFSET :o");
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_users->prepare("
+                    SELECT * FROM users
+                    WHERE username LIKE :q OR first_name LIKE :q OR last_name LIKE :q OR email LIKE :q
+                    ORDER BY created_at DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_users->prepare("SELECT COUNT(*) FROM users WHERE username LIKE :q OR first_name LIKE :q OR last_name LIKE :q OR email LIKE :q");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $stmt = $db_users->prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT :l OFFSET :o");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
     }
-    $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
-    $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
-    $stmt->execute();
-    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $base = '?type=' . urlencode($type) . '&page=';
+    $totalPages = (int)ceil($totalItems / $perPage);
+    $base = '?type=' . urlencode($type) . ($q !== '' ? '&q=' . urlencode($q) : '') . '&page=';
     $typeNames = ['anime' => 'انیمه‌ها', 'music' => 'موزیک‌ها', 'singer' => 'خوانندگان', 'user' => 'کاربران'];
 
     // ساخت صفحه‌بندی با پنجره محدود (نه همه شماره‌ها)
@@ -94,9 +189,15 @@ try {
     }
 
     $pager = am_build_pager($base, $page, $totalPages);
-    $rangeInfo = $totalItems > 0
-        ? 'نمایش ' . min($offset + 1, $totalItems) . ' تا ' . min($offset + $perPage, $totalItems) . ' از ' . number_format($totalItems) . ' مورد'
-        : 'موردی ثبت نشده است';
+    if ($q !== '') {
+        $rangeInfo = $totalItems > 0
+            ? number_format($totalItems) . ' نتیجه برای &laquo;' . htmlspecialchars($q) . '&raquo; — نمایش ' . min($offset + 1, $totalItems) . ' تا ' . min($offset + $perPage, $totalItems)
+            : 'نتیجه‌ای برای &laquo;' . htmlspecialchars($q) . '&raquo; یافت نشد';
+    } else {
+        $rangeInfo = $totalItems > 0
+            ? 'نمایش ' . min($offset + 1, $totalItems) . ' تا ' . min($offset + $perPage, $totalItems) . ' از ' . number_format($totalItems) . ' مورد'
+            : 'موردی ثبت نشده است';
+    }
 
 } catch (PDOException $e) {
     $error = 'خطا در اتصال به پایگاه داده: ' . $e->getMessage();
@@ -137,11 +238,18 @@ try {
   <div class="card" style="padding:20px;">
     <h3 class="section-title"><i class="fas fa-list"></i> لیست <?= $typeNames[$type] ?></h3>
 
+    <form method="get" action="admin_all_content.php" class="search-inline">
+      <input type="hidden" name="type" value="<?= $type ?>">
+      <input type="text" name="q" class="form-control" placeholder="جستجو در <?= $typeNames[$type] ?>…" value="<?= htmlspecialchars($q) ?>">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> جستجو</button>
+      <?php if ($q !== ''): ?><a href="admin_all_content.php?type=<?= $type ?>" class="btn btn-outline btn-delete"><i class="fas fa-times"></i> حذف</a><?php endif; ?>
+    </form>
+
     <?php if (empty($items)): ?>
       <div class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <h3>محتوایی وجود ندارد</h3>
-        <p>هنوز هیچ موردی ثبت نشده است.</p>
+        <i class="<?= $q !== '' ? 'fas fa-search' : 'fas fa-inbox' ?>"></i>
+        <h3><?= $q !== '' ? 'نتیجه‌ای یافت نشد' : 'محتوایی وجود ندارد' ?></h3>
+        <p><?= $q !== '' ? 'عبارت دیگری را امتحان کنید.' : 'هنوز هیچ موردی ثبت نشده است.' ?></p>
       </div>
     <?php else: ?>
 

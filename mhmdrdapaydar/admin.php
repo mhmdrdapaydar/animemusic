@@ -64,56 +64,143 @@ try {
     $totalItems = 0;
     $items = [];
 
+    // جستجو داخل هر تب (برای پیدا کردن سریع محتوا وقتی حجم بالاست)
+    $q = trim($_GET['q'] ?? '');
+
     switch ($activeTab) {
         case 'anime':
-            $totalItems = $animeCount;
-            $stmt = $db_content->prepare("SELECT * FROM anime_series ORDER BY id DESC LIMIT :l OFFSET :o");
-            $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_content->prepare("
+                    SELECT * FROM anime_series
+                    WHERE title_fa LIKE :q OR title_en LIKE :q OR description LIKE :q
+                    ORDER BY id DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_content->prepare("SELECT COUNT(*) FROM anime_series WHERE title_fa LIKE :q OR title_en LIKE :q OR description LIKE :q");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $totalItems = $animeCount;
+                $stmt = $db_content->prepare("SELECT * FROM anime_series ORDER BY id DESC LIMIT :l OFFSET :o");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
 
         case 'music':
-            $totalItems = $musicCount;
-            $stmt = $db_content->prepare("
-                SELECT ac.*, asr.title_fa AS anime_title, mt.name AS music_type
+            $musicJoins = "
                 FROM anime_contents ac
                 JOIN anime_series asr ON ac.anime_id = asr.id
                 JOIN music_types mt ON ac.music_type_id = mt.id
-                ORDER BY ac.id DESC LIMIT :l OFFSET :o
-            ");
-            $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            ";
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_content->prepare("
+                    SELECT ac.*, asr.title_fa AS anime_title, mt.name AS music_type
+                    $musicJoins
+                    WHERE ac.title LIKE :q OR asr.title_fa LIKE :q OR asr.title_en LIKE :q OR mt.name LIKE :q
+                    ORDER BY ac.id DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_content->prepare("
+                    SELECT COUNT(*) $musicJoins
+                    WHERE ac.title LIKE :q OR asr.title_fa LIKE :q OR asr.title_en LIKE :q OR mt.name LIKE :q
+                ");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $totalItems = $musicCount;
+                $stmt = $db_content->prepare("
+                    SELECT ac.*, asr.title_fa AS anime_title, mt.name AS music_type
+                    $musicJoins
+                    ORDER BY ac.id DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
 
         case 'singer':
-            $totalItems = $singerCount;
-            $stmt = $db_content->prepare("
-                SELECT s.*, (SELECT COUNT(*) FROM content_singers cs WHERE cs.singer_id = s.id) AS cnt
-                FROM singers s
-                ORDER BY s.name LIMIT :l OFFSET :o
-            ");
-            $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_content->prepare("
+                    SELECT s.*, (SELECT COUNT(*) FROM content_singers cs WHERE cs.singer_id = s.id) AS cnt
+                    FROM singers s
+                    WHERE s.name LIKE :q OR s.bio LIKE :q
+                    ORDER BY s.name LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_content->prepare("SELECT COUNT(*) FROM singers WHERE name LIKE :q OR bio LIKE :q");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $totalItems = $singerCount;
+                $stmt = $db_content->prepare("
+                    SELECT s.*, (SELECT COUNT(*) FROM content_singers cs WHERE cs.singer_id = s.id) AS cnt
+                    FROM singers s
+                    ORDER BY s.name LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
 
         case 'user':
-            $totalItems = $userCount;
-            $stmt = $db_users->prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT :l OFFSET :o");
-            $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($q !== '') {
+                $like = '%' . $q . '%';
+                $stmt = $db_users->prepare("
+                    SELECT * FROM users
+                    WHERE username LIKE :q OR first_name LIKE :q OR last_name LIKE :q OR email LIKE :q
+                    ORDER BY created_at DESC LIMIT :l OFFSET :o
+                ");
+                $stmt->bindValue(':q', $like);
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $st = $db_users->prepare("SELECT COUNT(*) FROM users WHERE username LIKE :q OR first_name LIKE :q OR last_name LIKE :q OR email LIKE :q");
+                $st->bindValue(':q', $like);
+                $st->execute();
+                $totalItems = (int)$st->fetchColumn();
+            } else {
+                $totalItems = $userCount;
+                $stmt = $db_users->prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT :l OFFSET :o");
+                $stmt->bindValue(':l', $perPage, PDO::PARAM_INT);
+                $stmt->bindValue(':o', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             break;
     }
 
     $totalPages = (int)ceil($totalItems / $perPage);
-    $pagerUrl = '?tab=' . urlencode($activeTab) . '&page=';
+    $pagerUrl = '?tab=' . urlencode($activeTab) . ($q !== '' ? '&q=' . urlencode($q) : '') . '&page=';
 
     // تولید لینک‌های صفحه‌بندی
     function admin_pager($base, $page, $totalPages) {
@@ -153,9 +240,15 @@ try {
     }
 
     $pagerHtml = admin_pager($pagerUrl, $page, $totalPages);
-    $rangeInfo = $totalItems > 0
-        ? 'نمایش ' . min($offset + 1, $totalItems) . ' تا ' . min($offset + $perPage, $totalItems) . ' از ' . number_format($totalItems) . ' مورد'
-        : 'موردی ثبت نشده است';
+    if ($q !== '') {
+        $rangeInfo = $totalItems > 0
+            ? number_format($totalItems) . ' نتیجه برای &laquo;' . htmlspecialchars($q) . '&raquo; — نمایش ' . min($offset + 1, $totalItems) . ' تا ' . min($offset + $perPage, $totalItems)
+            : 'نتیجه‌ای برای &laquo;' . htmlspecialchars($q) . '&raquo; یافت نشد';
+    } else {
+        $rangeInfo = $totalItems > 0
+            ? 'نمایش ' . min($offset + 1, $totalItems) . ' تا ' . min($offset + $perPage, $totalItems) . ' از ' . number_format($totalItems) . ' مورد'
+            : 'موردی ثبت نشده است';
+    }
 
 } catch (PDOException $e) {
     $error = 'خطا در اتصال به پایگاه داده: ' . $e->getMessage();
@@ -268,6 +361,12 @@ if (isset($_GET['error'])) {
 
       <h3 class="section-title"><i class="fas fa-list"></i> لیست انیمه‌ها <span class="badge badge-primary"><?= number_format($animeCount) ?></span></h3>
       <?php if ($activeTab === 'anime'): ?>
+      <form method="get" action="admin.php" class="search-inline">
+        <input type="hidden" name="tab" value="anime">
+        <input type="text" name="q" class="form-control" placeholder="جستجو در انیمه‌ها (عنوان فارسی/انگلیسی یا توضیحات)…" value="<?= htmlspecialchars($q) ?>">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> جستجو</button>
+        <?php if ($q !== ''): ?><a href="admin.php?tab=anime" class="btn btn-outline btn-delete"><i class="fas fa-times"></i> حذف</a><?php endif; ?>
+      </form>
       <div class="table-wrap"><div class="scroll-x">
         <table class="data-table">
           <thead><tr><th>ID</th><th>عنوان فارسی</th><th>عنوان انگلیسی</th><th>تاریخ</th><th>عملیات</th></tr></thead>
@@ -343,6 +442,12 @@ if (isset($_GET['error'])) {
 
       <h3 class="section-title"><i class="fas fa-list"></i> لیست موزیک‌ها <span class="badge badge-primary"><?= number_format($musicCount) ?></span></h3>
       <?php if ($activeTab === 'music'): ?>
+      <form method="get" action="admin.php" class="search-inline">
+        <input type="hidden" name="tab" value="music">
+        <input type="text" name="q" class="form-control" placeholder="جستجو در موزیک‌ها (عنوان، انیمه، نوع)…" value="<?= htmlspecialchars($q) ?>">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> جستجو</button>
+        <?php if ($q !== ''): ?><a href="admin.php?tab=music" class="btn btn-outline btn-delete"><i class="fas fa-times"></i> حذف</a><?php endif; ?>
+      </form>
       <div class="table-wrap"><div class="scroll-x">
         <table class="data-table">
           <thead><tr><th>ID</th><th>عنوان</th><th>انیمه</th><th>نوع</th><th>فصل/قسمت</th><th>عملیات</th></tr></thead>
@@ -390,6 +495,12 @@ if (isset($_GET['error'])) {
 
       <h3 class="section-title"><i class="fas fa-list"></i> لیست خوانندگان <span class="badge badge-primary"><?= number_format($singerCount) ?></span></h3>
       <?php if ($activeTab === 'singer'): ?>
+      <form method="get" action="admin.php" class="search-inline">
+        <input type="hidden" name="tab" value="singer">
+        <input type="text" name="q" class="form-control" placeholder="جستجو در خوانندگان (نام یا بیوگرافی)…" value="<?= htmlspecialchars($q) ?>">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> جستجو</button>
+        <?php if ($q !== ''): ?><a href="admin.php?tab=singer" class="btn btn-outline btn-delete"><i class="fas fa-times"></i> حذف</a><?php endif; ?>
+      </form>
       <div class="table-wrap"><div class="scroll-x">
         <table class="data-table">
           <thead><tr><th>ID</th><th>نام</th><th>تعداد آثار</th><th>عملیات</th></tr></thead>
@@ -425,6 +536,12 @@ if (isset($_GET['error'])) {
     <div class="card" style="padding:20px;">
       <h3 class="section-title"><i class="fas fa-users"></i> مدیریت کاربران <span class="badge badge-primary"><?= number_format($userCount) ?></span></h3>
       <?php if ($activeTab === 'user'): ?>
+      <form method="get" action="admin.php" class="search-inline">
+        <input type="hidden" name="tab" value="user">
+        <input type="text" name="q" class="form-control" placeholder="جستجو در کاربران (نام کاربری، نام، ایمیل)…" value="<?= htmlspecialchars($q) ?>">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> جستجو</button>
+        <?php if ($q !== ''): ?><a href="admin.php?tab=user" class="btn btn-outline btn-delete"><i class="fas fa-times"></i> حذف</a><?php endif; ?>
+      </form>
       <div class="table-wrap"><div class="scroll-x">
         <table class="data-table">
           <thead><tr><th>ID</th><th>نام کاربری</th><th>نام کامل</th><th>وضعیت</th><th>اعتبار</th><th>تاریخ عضویت</th><th>عملیات</th></tr></thead>
@@ -494,9 +611,10 @@ function switchTab(id, el) {
   if (content) content.classList.add('active');
   // فعال کردن دکمه تب کلیک‌شده
   if (el) el.classList.add('active');
-  // حفظ تب جاری و پاک کردن صفحه‌بندی قبلی
+  // حفظ تب جاری و پاک کردن صفحه‌بندی و جستجوی قبلی
   var url = new URL(window.location.href);
   url.searchParams.set('tab', id);
+  url.searchParams.delete('q');
   url.searchParams.delete('page');
   history.replaceState(null, '', url);
   window.location.href = url.toString();

@@ -370,7 +370,7 @@ if (isset($_SESSION['user_id'])) {
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=1" />
+    <link rel="stylesheet" href="assets/site.css?v=2" />
 </head>
 <body>
     <div class="header">
