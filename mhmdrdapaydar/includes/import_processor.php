@@ -260,7 +260,7 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
                         $stm->execute([
                             $anime_id, $music_type_id, $theme_title,
                             $video_url, $video_url,
-                            $season['image_url'] ?? $season['large_image_url'] ?? ($anime_item['main_image_url'] ?? ''),
+                            $season['large_image_url'] ?? $season['image_url'] ?? ($anime_item['main_image_url'] ?? ''),
                             $season_number, $episode_number
                         ]);
                         $content_id = $db->lastInsertId();
