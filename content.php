@@ -1169,10 +1169,9 @@ if (!empty($content['important_links'])) {
         </div>
         
         <div class="music-player">
-          <!-- پخش‌کننده صوتی - فقط صوت پخش می‌شود -->
-          <audio id="music-audio" preload="metadata">
-            <source src="<?= $music_file ?>" type="audio/webm">
-            <source src="<?= $music_file ?>" type="audio/mpeg">
+          <!-- پخش‌کننده صوتی - فقط صوت پخش می‌شود و هیچ ویدیویی بارگذاری نمی‌شود -->
+          <audio id="music-audio" preload="metadata" controlslist="nodownload">
+            <source src="<?= $music_file ?>">
             مرورگر شما پلیر صوتی را پشتیبانی نمی‌کند.
           </audio>
           
@@ -1265,8 +1264,8 @@ if (!empty($content['important_links'])) {
                 <a href="vip.php" class="button">خرید اشتراک VIP</a>
               </div>
             <?php endif; ?>
-            <!-- پخش‌کننده ویدیویی - کل ویدیو پخش می‌شود -->
-            <video controls playsinline style="<?= !$isVIP ? 'filter: blur(5px);' : '' ?>">
+            <!-- پخش‌کننده ویدیویی - فقط با درخواست کاربر (کلیک) لود می‌شود تا باند پخش موزیک اشغال نشود -->
+            <video controls playsinline preload="none" poster="<?= $image_url ?>" style="<?= !$isVIP ? 'filter: blur(5px);' : '' ?>">
               <source src="<?= $video_file ?>" type="video/webm">
               <source src="<?= $video_file ?>" type="video/mp4">
               مرورگر شما پلیر ویدیو را پشتیبانی نمی‌کند.
@@ -1517,13 +1516,21 @@ if (!empty($content['important_links'])) {
     
     // حالت پخش
     let isPlaying = false;
-    
+
+    // توقف هر ویدیوی فعال تا فقط «صوت موزیک» شنیده شود
+    function stopAnyVideo() {
+      document.querySelectorAll('video').forEach(function (v) {
+        try { v.pause(); } catch (e) {}
+      });
+    }
+
     // پخش/توقف
     function togglePlay() {
       if (isPlaying) {
         audio.pause();
         playBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
       } else {
+        stopAnyVideo();
         audio.play();
         playBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
       }
