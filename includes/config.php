@@ -17,6 +17,10 @@ define('AM_VISITS_FILE', AM_ROOT . '/visits.json');
 define('AM_VISITS_ADS_FILE', AM_ROOT . '/visits_ads.json');
 define('AM_ADS_FILE', AM_ROOT . '/ads.json');
 
+// تنظیمات تبلیغ برای هر زبان + آمار کلیک تبلیغ
+define('AM_AD_CONFIG_FILE', AM_ROOT . '/ad_config.json');
+define('AM_AD_CLICKS_FILE', AM_ROOT . '/ad_clicks.json');
+
 // منطقه زمانی تهران — ملاک محاسبه انقضای اشتراک VIP همین است.
 // اگر host ساعتِ دیگری داشته باشد، این تنظیم حساب تاریخ را یکسان می‌کند
 // تا کاربر «امروز» زودتر یا دیرتر از انقضا، VIP نماند.

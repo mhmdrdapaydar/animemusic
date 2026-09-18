@@ -2,8 +2,8 @@
 require_once __DIR__ . '/includes/headless.php';
 am_no_cache();
 
-// آمار بازدید (جایگزین counter.php — یک فایل مشترک)
-am_log_visit(AM_VISITS_FILE);
+// آمار بازدید (جایگزین counter.php — یک فایل مشترک) — با تفکیک زبان
+am_log_visit(AM_VISITS_FILE, am_current_lang());
 
 // اتصال به دیتابیس محتوا (و کاربران به صورت خودکار با helper)
 $db_content = am_content_db();
@@ -600,7 +600,7 @@ if (isset($_COOKIE['dark_mode'])) {
         <div class="slider-wrapper">
             <?php foreach ($specialSlides as $index => $slide): ?>
                 <div class="slider-slide <?= $index === 0 ? 'active' : '' ?>" data-index="<?= $index ?>">
-                    <a href="<?= htmlspecialchars($slide['url']) ?>" target="_blank" rel="noopener noreferrer">
+                    <a href="<?= am_e(am_localize_internal_url($slide['url'])) ?>" target="_blank" rel="noopener noreferrer">
                         <img src="<?= am_e(am_lang_asset($slide['img'])) ?>" alt="Featured" loading="lazy" />
                     </a>
                 </div>

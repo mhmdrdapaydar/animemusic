@@ -26,6 +26,21 @@ $totalVisits = $data['total'] ?? 0;
 $dailyData = array_slice($data['daily'] ?? [], -7, 7, true);
 $weeklyData = array_slice($data['weekly'] ?? [], -4, 4, true);
 $monthlyData = array_slice($data['monthly'] ?? [], -6, 6, true);
+
+// آمار تفکیک‌شده بر اساس زبان
+$langTotals = [];
+foreach (($data['langs'] ?? []) as $code => $lng) {
+    if (!is_array($lng)) continue;
+    $langTotals[$code] = $lng['total'] ?? 0;
+}
+arsort($langTotals); // از بیشترین بازدید
+
+// نام‌های نمایشی زبان‌ها برای جدول
+$langNames = [
+    'fa' => 'فارسی', 'en' => 'English', 'ja' => '日本語', 'es' => 'Español',
+    'pt' => 'Português', 'fr' => 'Français', 'de' => 'Deutsch', 'ar' => 'العربية',
+    'hi' => 'हिन्दी', 'th' => 'ไทย', 'ko' => '한국어',
+];
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -70,6 +85,43 @@ $monthlyData = array_slice($data['monthly'] ?? [], -6, 6, true);
         <div class="stat-icon"><i class="fas fa-database"></i></div>
         <div class="stat-body"><div class="stat-value"><?= number_format($totalVisits) ?></div><div class="stat-title">بازدید کل از ابتدا</div></div>
       </div>
+    </div>
+
+    <div class="chart-box">
+      <h3 class="chart-title"><i class="fas fa-language"></i> بازدید به تفکیک زبان</h3>
+      <?php if (empty($langTotals)): ?>
+        <p style="color: var(--gray);">هنوز آماری بر اساس زبان ثبت نشده است.</p>
+      <?php else: ?>
+        <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border); text-align:right;">
+              <th style="padding:8px;">زبان</th>
+              <th style="padding:8px;">کد</th>
+              <th style="padding:8px;">بازدید کل</th>
+              <th style="padding:8px;">سهم</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($langTotals as $code => $cnt): ?>
+              <?php
+                $share = $totalVisits > 0 ? round($cnt / $totalVisits * 100, 1) : 0;
+                $name = $langNames[$code] ?? $code;
+              ?>
+              <tr style="border-bottom:1px solid var(--border); text-align:right;">
+                <td style="padding:8px;"><?= htmlspecialchars($name) ?></td>
+                <td style="padding:8px; color:var(--gray);"><?= htmlspecialchars($code) ?></td>
+                <td style="padding:8px;"><?= number_format($cnt) ?></td>
+                <td style="padding:8px;">
+                  <div style="background:var(--border); border-radius:6px; height:8px; width:120px; display:inline-block; vertical-align:middle; overflow:hidden;">
+                    <div style="background:var(--primary); height:100%; width:<?= $share ?>%;"></div>
+                  </div>
+                  <span style="margin-inline-start:8px;"><?= $share ?>%</span>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
     </div>
 
     <div class="chart-box">

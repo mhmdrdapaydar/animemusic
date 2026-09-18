@@ -2,8 +2,8 @@
 require_once __DIR__ . '/includes/headless.php';
 am_no_cache();
 
-// آمار بازدید تبلیغات (جایگزین counter_ads.php)
-am_log_visit(AM_VISITS_ADS_FILE);
+// آمار بازدید تبلیغات (جایگزین counter_ads.php) — با تفکیک زبان
+am_log_visit(AM_VISITS_ADS_FILE, am_current_lang());
 
 // اعتبارسنجی پارامتر ID
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
@@ -39,6 +39,11 @@ if (isset($_SESSION['user_id'])) {
         $isVIP = true;
     }
 }
+
+// تبلیغ مربوط به زبان جاری (برای کاربران غیر VIP)
+$currentAd  = am_ad_for_lang(am_current_lang());
+$adVideoUrl = am_lang_asset(isset($currentAd['video']) && $currentAd['video'] !== '' ? $currentAd['video'] : 'assets/ads/myad.mp4');
+$adClickUrl = '/ad_click.php?lang=' . rawurlencode(am_current_lang());
 
 // بررسی وضعیت علاقه‌مندی و پلی‌لیست‌ها
 $isFavorite = false;
@@ -1157,8 +1162,8 @@ if (!empty($content['important_links'])) {
     <!-- تبلیغ - فقط برای کاربران غیر VIP نمایش داده شود -->
     <?php if (!$isVIP): ?>
     <div id="ad-section">
-      <video id="ad-video" src="/assets/ads/myad.mp4" muted playsinline preload="metadata"></video>
-      <a id="ad-link" href="#" target="_blank" rel="noopener noreferrer"><?= am_te('more_info') ?></a>
+      <video id="ad-video" src="<?= am_e($adVideoUrl) ?>" muted playsinline preload="metadata"></video>
+      <a id="ad-link" href="<?= am_e($adClickUrl) ?>" target="_blank" rel="noopener noreferrer"><?= am_te('more_info') ?></a>
       <button id="skip-btn" class="button" disabled><?= am_te('skip_ad') ?> (10)</button>
       <button id="unmute-btn" class="button"><?= am_te('enable_sound') ?></button>
     </div>
@@ -1448,29 +1453,7 @@ if (!empty($content['important_links'])) {
     const adSection = document.getElementById("ad-section");
     const mainContent = document.getElementById("main-content");
     
-    // بارگذاری لینک تبلیغ
-    fetch("assets/ads/Ads.txt?t=" + new Date().getTime())
-      .then(r => {
-        if (!r.ok) throw new Error(<?= json_encode(am_t('ad_link_error')) ?>);
-        return r.text();
-      })
-      .then(txt => {
-        let url = txt.trim();
-        if (!url) return;
-        
-        // اعتبارسنجی URL
-        try {
-          new URL(url);
-        } catch {
-          url = "http://" + url;
-        }
-        
-        document.getElementById("ad-link").href = url;
-      })
-      .catch(e => {
-        console.error(e.message);
-        document.getElementById("ad-link").href = "#";
-      });
+    // لینک تبلیغ مستقیماً به ad_click.php اشاره می‌کند که کلیک را ثبت و سپس هدایت می‌کند.
     
     // مدیریت صدا
     unmuteBtn.onclick = () => {

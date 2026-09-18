@@ -93,6 +93,62 @@ if (!defined('AM_I18N_DEFINED')) {
     }
 
     /**
+     * زبان‌دار کردن خودکار یک URL داخلی — هرچه فرمتش باشد:
+     *   - مطلق با دامنه‌ی خودمان: https://anime-music.ct.ws/categories.php?anime=404
+     *   - ریشه‌ای: /categories.php?anime=404
+     *   - نسبی: categories.php?anime=404
+     * لینک‌های دامنه‌ی خارجی، javascript:/mailto:/# بدون تغییر برمی‌گردند.
+     * کاربرد: اسلایدرهای ویژه که ادمین با دامنه ثبت می‌کند، برای هر زبان خودکار درست می‌شوند.
+     */
+    function am_localize_internal_url($url) {
+        $url = trim((string)$url);
+        if ($url === '' || $url === '#') {
+            return $url;
+        }
+        // لینک‌های غیر HTTP: بدون تغییر
+        if (preg_match('#^(javascript:|mailto:|tel:|data:)#i', $url)) {
+            return $url;
+        }
+
+        // آدرس مطلق (http/https)
+        if (preg_match('#^https?://#i', $url)) {
+            $parts = parse_url($url);
+            $host = isset($parts['host']) ? $parts['host'] : '';
+            if ($host === '') {
+                return $url;
+            }
+            $ownHost = '';
+            if (defined('AM_SITE_URL') && AM_SITE_URL !== '') {
+                $own = parse_url(AM_SITE_URL);
+                $ownHost = isset($own['host']) ? $own['host'] : '';
+            }
+            // دامنه‌ی خارجی: بدون تغییر
+            if ($ownHost !== '' && strcasecmp($host, $ownHost) !== 0) {
+                return $url;
+            }
+            $path  = isset($parts['path']) && $parts['path'] !== '' ? $parts['path'] : '/';
+            $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+            $frag  = isset($parts['fragment']) ? '#' . $parts['fragment'] : '';
+            return am_lang_url(ltrim($path, '/') . $query . $frag);
+        }
+
+        // آدرس نسبی یا ریشه‌ای
+        $remainder = $url;
+        $query = '';
+        $frag = '';
+        if (preg_match('/^([^?#]*)(\?[^#]*)?(#.*)?$/', $remainder, $m)) {
+            $remainder = $m[1];
+            $query = isset($m[2]) ? $m[2] : '';
+            $frag = isset($m[3]) ? $m[3] : '';
+        }
+        $path = ltrim($remainder, '/');
+        if ($path === '') {
+            return am_lang_url('') . $query . $frag;
+        }
+        return am_lang_url($path . $query . $frag);
+    }
+
+    /**
      * تگ <base href="/"> برای صفحات زبان (غیرفارسی) تا لینک‌های نسبی
      * (CSS، تصاویر، لینک‌ها) از زیرپوشه‌ی زبان هم از ریشه حل شوند.
      */

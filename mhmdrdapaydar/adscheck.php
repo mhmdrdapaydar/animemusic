@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/includes/admin_auth.php';
+require_once __DIR__ . '/../includes/helpers.php';
 am_admin_guard();
 
 $ads_file = __DIR__ . '/../ads.json';
@@ -11,11 +12,39 @@ if (file_exists($ads_file)) {
 }
 if (!is_array($ads)) $ads = [];
 
+// نام‌های نمایشی زبان‌ها (برای فرم تنظیم تبلیغ هر زبان)
+$langNames = [
+    'fa' => 'فارسی', 'en' => 'English', 'ja' => '日本語', 'es' => 'Español',
+    'pt' => 'Português', 'fr' => 'Français', 'de' => 'Deutsch', 'ar' => 'العربية',
+    'hi' => 'हिन्दी', 'th' => 'ไทย', 'ko' => '한국어',
+];
+
+// ============================================================
+// تنظیم تبلیغ برای هر زبان (ad_config.json)
+// ============================================================
+$adConfig = am_ad_config();
+$adConfigSaved = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_lang_ads') {
+    $newConfig = is_array($adConfig) ? $adConfig : [];
+    foreach ((array)($_POST['langs'] ?? []) as $code => $fields) {
+        $code = (string)$code;
+        if ($code === '' || !preg_match('/^[a-z]{2}$/', $code)) continue;
+        $newConfig[$code] = [
+            'url'        => trim((string)($fields['url'] ?? '')),
+            'aparat_url' => trim((string)($fields['aparat_url'] ?? '')),
+            'video'      => trim((string)($fields['video'] ?? '')),
+        ];
+    }
+    am_ad_config_save($newConfig);
+    $adConfig = am_ad_config();
+    $adConfigSaved = true;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $ad_id = $_POST['ad_id'] ?? '';
 
-    if ($action && $ad_id) {
+    if ($action && $action !== 'save_lang_ads' && $ad_id) {
         foreach ($ads as &$ad) {
             if (isset($ad['id']) && $ad['id'] === $ad_id) {
                 switch ($action) {
@@ -123,6 +152,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <a class="btn" href="logout.php"><i class="fas fa-sign-out-alt"></i> خروج</a>
     </div>
   </header>
+
+  <div class="card" style="padding:20px; margin-bottom:20px;">
+    <h3 style="font-size:16px; color:var(--dark); margin-bottom:6px;"><i class="fas fa-globe" style="color:var(--primary);"></i> تنظیم تبلیغ برای هر زبان</h3>
+    <p style="font-size:13px; color:var(--gray); margin-bottom:16px;">برای هر زبان می‌توانید لینک مقصد و ویدیوی تبلیغ اختصاصی بگذارید. اگر زبانی خالی بماند، تبلیغ فارسی برایش نمایش داده می‌شود.</p>
+    <?php if ($adConfigSaved): ?><div class="done-box" style="background:#e3f6ea;color:#1e7e34;padding:10px;border-radius:8px;margin-bottom:14px;"><i class="fas fa-check"></i> تنظیمات تبلیغ ذخیره شد.</div><?php endif; ?>
+    <form method="POST">
+      <input type="hidden" name="action" value="save_lang_ads">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border); text-align:right;">
+            <th style="padding:8px;">زبان</th>
+            <th style="padding:8px;">لینک مقصد (url)</th>
+            <th style="padding:8px;">لینک آپارات (اختیاری)</th>
+            <th style="padding:8px;">مسیر ویدیو (اختیاری)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($langNames as $code => $name): ?>
+            <?php
+              $cfg = $adConfig[$code] ?? ['url' => '', 'aparat_url' => '', 'video' => ''];
+            ?>
+            <tr style="border-bottom:1px solid var(--border); text-align:right;">
+              <td style="padding:8px; white-space:nowrap;"><strong><?= htmlspecialchars($name) ?></strong> <span style="color:var(--gray);">(<?= $code ?>)</span></td>
+              <td style="padding:6px;"><input type="url" name="langs[<?= $code ?>][url]" class="form-control" placeholder="https://..." value="<?= htmlspecialchars($cfg['url'] ?? '') ?>" style="width:100%;"></td>
+              <td style="padding:6px;"><input type="url" name="langs[<?= $code ?>][aparat_url]" class="form-control" placeholder="https://www.aparat.com/v/..." value="<?= htmlspecialchars($cfg['aparat_url'] ?? '') ?>" style="width:100%;"></td>
+              <td style="padding:6px;"><input type="text" name="langs[<?= $code ?>][video]" class="form-control" placeholder="assets/ads/myad.mp4" value="<?= htmlspecialchars($cfg['video'] ?? '') ?>" style="width:100%;"></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <button type="submit" class="btn btn-primary" style="margin-top:14px;"><i class="fas fa-save"></i> ذخیره تنظیمات تبلیغ زبان‌ها</button>
+    </form>
+  </div>
 
   <div class="card" style="padding:20px;">
     <div class="filter-pills">

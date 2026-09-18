@@ -133,23 +133,114 @@ function am_no_cache() {
     header("Expires: 0");
 }
 
-/** دریافت/افزایش آمار بازدید (ذخیره در فایل JSON) */
-function am_log_visit($file) {
-    $data = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+/** افزایش شمارنده‌های یک مجموعه آمار (total/daily/weekly/monthly) */
+function am_visit_incr(&$data, $today, $week, $month) {
+    $data['total'] = (int)($data['total'] ?? 0) + 1;
+    $data['daily'][$today]   = (int)($data['daily'][$today] ?? 0) + 1;
+    $data['weekly'][$week]   = (int)($data['weekly'][$week] ?? 0) + 1;
+    $data['monthly'][$month] = (int)($data['monthly'][$month] ?? 0) + 1;
+}
+
+/** دریافت/افزایش آمار بازدید (ذخیره در فایل JSON) — با قابلیت تفکیک زبان */
+function am_log_visit($file, $lang = null) {
+    $data = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'langs' => []];
     if (file_exists($file)) {
         $decoded = json_decode((string)file_get_contents($file), true);
         if (is_array($decoded)) {
             $data = array_merge($data, $decoded);
         }
     }
+    if (!isset($data['langs']) || !is_array($data['langs'])) {
+        $data['langs'] = [];
+    }
+
     $today  = date('Y-m-d');
     $week   = date('Y-W');
     $month  = date('Y-m');
 
-    $data['total'] = (int)($data['total'] ?? 0) + 1;
-    $data['daily'][$today]   = (int)($data['daily'][$today] ?? 0) + 1;
-    $data['weekly'][$week]   = (int)($data['weekly'][$week] ?? 0) + 1;
-    $data['monthly'][$month] = (int)($data['monthly'][$month] ?? 0) + 1;
+    am_visit_incr($data, $today, $week, $month);
+
+    if ($lang !== null && $lang !== '') {
+        $lang = (string)$lang;
+        if (!isset($data['langs'][$lang]) || !is_array($data['langs'][$lang])) {
+            $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+        }
+        am_visit_incr($data['langs'][$lang], $today, $week, $month);
+    }
+
+    @file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE));
+}
+
+/** خواندن تنظیمات تبلیغ (پیکربندی هر زبان) از فایل JSON */
+function am_ad_config() {
+    static $config = null;
+    if ($config === null) {
+        $file = defined('AM_AD_CONFIG_FILE')
+            ? AM_AD_CONFIG_FILE
+            : (defined('AM_ROOT') ? AM_ROOT . '/ad_config.json' : __DIR__ . '/../ad_config.json');
+        $config = [];
+        if (file_exists($file)) {
+            $decoded = json_decode((string)file_get_contents($file), true);
+            if (is_array($decoded)) {
+                $config = $decoded;
+            }
+        }
+    }
+    return $config;
+}
+
+/** ذخیره تنظیمات تبلیغ در فایل JSON */
+function am_ad_config_save($config) {
+    $file = defined('AM_AD_CONFIG_FILE')
+        ? AM_AD_CONFIG_FILE
+        : (defined('AM_ROOT') ? AM_ROOT . '/ad_config.json' : __DIR__ . '/../ad_config.json');
+    if (!is_array($config)) $config = [];
+    return @file_put_contents($file, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+}
+
+/** تبلیغ مربوط به یک زبان (با بازگشت به انگلیسی و سپس فارسی) */
+function am_ad_for_lang($lang = null) {
+    if ($lang === null || $lang === '') {
+        $lang = 'fa';
+    }
+    $lang = (string)$lang;
+    $config = am_ad_config();
+    if (isset($config[$lang]) && is_array($config[$lang])) {
+        return $config[$lang];
+    }
+    if (isset($config['fa']) && is_array($config['fa'])) {
+        return $config['fa'];
+    }
+    return ['url' => '', 'aparat_url' => '', 'video' => 'assets/ads/myad.mp4'];
+}
+
+/** ثبت کلیک روی تبلیغ (برای آمار کلیک) — با تفکیک زبان */
+function am_ad_click_log($lang = 'fa') {
+    $file = defined('AM_AD_CLICKS_FILE')
+        ? AM_AD_CLICKS_FILE
+        : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json');
+    $data = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'langs' => []];
+    if (file_exists($file)) {
+        $decoded = json_decode((string)file_get_contents($file), true);
+        if (is_array($decoded)) {
+            $data = array_merge($data, $decoded);
+        }
+    }
+    if (!isset($data['langs']) || !is_array($data['langs'])) {
+        $data['langs'] = [];
+    }
+
+    $today = date('Y-m-d');
+    $week  = date('Y-W');
+    $month = date('Y-m');
+
+    am_visit_incr($data, $today, $week, $month);
+
+    $lang = (string)$lang;
+    if (!isset($data['langs'][$lang]) || !is_array($data['langs'][$lang])) {
+        $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+    }
+    am_visit_incr($data['langs'][$lang], $today, $week, $month);
 
     @file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE));
 }
