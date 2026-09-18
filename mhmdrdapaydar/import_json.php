@@ -327,43 +327,26 @@ if ($cur) {
     panel.style.display = 'block';
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     tick();
-    timer = setInterval(tick, 500);
+    timer = setInterval(tick, 700);
   }
 
-  // حلقه واحد: ابتدا وضعیت را می‌خواند و اگر تمام نشده قدم اجرا می‌کند.
-  // (به پرچم busy وابسته نیستیم؛ قفل سرور کارها را سریالایز می‌کند تا لوپ نشود)
+  // حلقه واحد: وضعیت را می‌خواند؛ سرور خودش پیش می‌رود (self-advancing)
   function tick() {
-    if (shutting) return;
+    if (shutting || inFlight) return;
+    inFlight = true;
     fetch('import_worker.php?status=1&t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
+        inFlight = false;
         if (shutting) return;
-        if (d.status === 'idle') { return; }
         lastJob = d.job || lastJob;
+        // در چند لحظه‌ی اول بعد از آپلود، ممکن است current هنوز روی دیسک ثبت نشده باشد؛
+        // idle موقت را متوقف نمی‌کنیم تا وضعیت بعدی بیاید.
         render(d);
         if (d.done) { finish(d); return; }
         if (d.failed) { fail(d); return; }
-        kick();
       })
-      .catch(function () { /* خطای شبکه لحظه‌ای؛ چرخه بعدی دوباره تلاش می‌کند */ });
-  }
-
-  // اجرای یک قدم (قفل سمت سرور از اجرای موازی دو درخواست همزمان جلوگیری می‌کند)
-  function kick() {
-    if (shutting || inFlight || !lastJob) return;
-    inFlight = true;
-    fetch('import_worker.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'step=1&job=' + encodeURIComponent(lastJob)
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      inFlight = false;
-      if (shutting) return;
-      lastJob = d.job || lastJob;
-      if (d.progress >= 0) render(d);
-      if (d.done) finish(d);
-      else if (d.failed) fail(d);
-    }).catch(function () { inFlight = false; });
+      .catch(function () { inFlight = false; }); // خطای شبکه لحظه‌ای؛ چرخه بعدی
   }
 
   function fail(d) {
@@ -382,24 +365,28 @@ if ($cur) {
     render(d);
     pLabel.innerHTML = '✅ پردازش کامل شد — ' + (d.message || '') +
       '<br><a href="admin.php" class="btn btn-primary" style="margin-top:10px; display:inline-block;">بازگشت به پنل</a>';
-    // مخفی کردن دکمه لغو
     var row = document.getElementById('progress-abort-row');
     if (row) row.style.display = 'none';
   }
 
   function render(d) {
-    if (d.progress >= 0) {
+    // اگر پاسخی بدون اطلاعات باشد (idle موقت) اعداد قبلی را پاک نمی‌کنیم
+    if (typeof d.progress === 'number' && d.progress >= 0) {
       pBar.style.width = d.progress + '%';
-      pLabel.textContent = d.processed + ' از ' + d.total + ' پردازش شد (' + d.progress + '%)';
+      if (d.total > 0) {
+        pLabel.textContent = d.processed + ' از ' + d.total + ' پردازش شد (' + d.progress + '%)';
+      }
     }
-    setVal('s-new', (d.new_music || 0) + (d.new_anime || 0) + (d.new_singers || 0));
-    setVal('s-dup', (d.dup_music || 0) + (d.dup_anime || 0) + (d.dup_singers || 0));
-    setVal('s-total', d.total || 0);
-    setVal('s-proc', d.processed || 0);
-    setVal('s-rem', Math.max(0, (d.total || 0) - (d.processed || 0)));
-    setVal('s-anime', d.new_anime || 0);
-    setVal('s-singers', d.new_singers || 0);
-    setVal('s-err', d.errors || 0);
+    if (d.total > 0) {
+      setVal('s-new', (d.new_music || 0) + (d.new_anime || 0) + (d.new_singers || 0));
+      setVal('s-dup', (d.dup_music || 0) + (d.dup_anime || 0) + (d.dup_singers || 0));
+      setVal('s-total', d.total || 0);
+      setVal('s-proc', d.processed || 0);
+      setVal('s-rem', Math.max(0, (d.total || 0) - (d.processed || 0)));
+      setVal('s-anime', d.new_anime || 0);
+      setVal('s-singers', d.new_singers || 0);
+      setVal('s-err', d.errors || 0);
+    }
   }
 
   function setVal(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
