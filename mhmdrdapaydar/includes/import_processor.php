@@ -9,12 +9,27 @@ require_once __DIR__ . '/../../includes/headless.php';
 
 /**
  * ترجمه عنوان به فارسی از طریق سرویس ترجمه گوگل (بدون کلید).
- * در صورت نبود cURL یا خطای شبکه، متن اصلی برگردانده می‌شود تا واردات متوقف نشود.
+ * - ترجمه‌ی موفق به صورت دائمی روی دیسک کش می‌شود.
+ * - نتیجه‌ی منفی (قطعی موقت شبکه) فقط ۵ دقیقه کش می‌شود تا بعداً دوباره امتحان شود.
+ * - در نبود cURL یا خطای شبکه، متن اصلی برگردانده می‌شود تا واردات هرگز متوقف نشود.
  */
 function am_import_translate_fa($text) {
     $text = trim((string)$text);
     if ($text === '') return $text;
     if (!function_exists('curl_init')) return $text;
+
+    $cacheFile = AM_IMPORT_DIR . '/translate_cache/' . md5($text) . '.json';
+    if (is_file($cacheFile)) {
+        $cached = json_decode((string)@file_get_contents($cacheFile), true);
+        if (is_array($cached) && isset($cached['fa'])) {
+            if (!empty($cached['permanent']) || (time() - (int)($cached['t'] ?? 0)) < 300) {
+                return $cached['fa'] !== '' ? $cached['fa'] : $text;
+            }
+        }
+    }
+
+    $result = $text;
+    $permanent = false;
     try {
         $url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fa&dt=t&q=' . urlencode($text);
         $ch = curl_init();
@@ -22,8 +37,8 @@ function am_import_translate_fa($text) {
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => 1,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-            CURLOPT_TIMEOUT => 6,
-            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT => 4,
+            CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $response = curl_exec($ch);
@@ -35,13 +50,21 @@ function am_import_translate_fa($text) {
                 foreach ($data[0] as $segment) {
                     if (isset($segment[0])) $out .= $segment[0];
                 }
-                if ($out !== '') return $out;
+                if ($out !== '') {
+                    $result = $out;
+                    $permanent = true;
+                }
             }
         }
     } catch (Exception $e) {
         error_log('[IMPORT] translate error: ' . $e->getMessage());
     }
-    return $text; // در صورت خطا، متن اصلی
+
+    if (!is_dir(AM_IMPORT_DIR . '/translate_cache')) {
+        @mkdir(AM_IMPORT_DIR . '/translate_cache', 0755, true);
+    }
+    @file_put_contents($cacheFile, json_encode(['fa' => $result, 't' => time(), 'permanent' => $permanent]), LOCK_EX);
+    return $result;
 }
 
 /**

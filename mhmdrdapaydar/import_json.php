@@ -330,7 +330,8 @@ if ($cur) {
     timer = setInterval(tick, 500);
   }
 
-  // حلقه واحد: ابتدا وضعیت را می‌خواند و اگر پردازنده آزاد بود یک قدم اجرا می‌کند
+  // حلقه واحد: ابتدا وضعیت را می‌خواند و اگر تمام نشده قدم اجرا می‌کند.
+  // (به پرچم busy وابسته نیستیم؛ قفل سرور کارها را سریالایز می‌کند تا لوپ نشود)
   function tick() {
     if (shutting) return;
     fetch('import_worker.php?status=1&t=' + Date.now(), { cache: 'no-store' })
@@ -342,7 +343,7 @@ if ($cur) {
         render(d);
         if (d.done) { finish(d); return; }
         if (d.failed) { fail(d); return; }
-        if (!d.busy) kick();
+        kick();
       })
       .catch(function () { /* خطای شبکه لحظه‌ای؛ چرخه بعدی دوباره تلاش می‌کند */ });
   }

@@ -14,6 +14,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/includes/admin_auth.php';
 am_admin_guard();
+// آزادسازی قفل session: درخواست‌های موازی «وضعیت» و «قدم» نباید پشت هم صف شوند
+if (function_exists('session_write_close')) {
+    session_write_close();
+}
 
 // پاسخی که می‌فرستیم همیشه JSON بدون کش باشد
 header('Content-Type: application/json; charset=utf-8');
@@ -25,9 +29,11 @@ if (file_exists(__DIR__ . '/../includes/headless.php')) {
 }
 require_once __DIR__ . '/includes/import_common.php';
 
-$action = isset($_GET['step']) ? 'step'
-        : (isset($_GET['status']) ? 'status'
-        : (isset($_GET['abort']) ? 'abort' : 'none'));
+// قدم پردازش از طریق POST بدنه ارسال می‌شود (فرم urlencoded)؛ وضعیت/لغو با GET
+$isStep = !empty($_POST['step']) || !empty($_GET['step']);
+$action = $isStep ? 'step'
+        : (!empty($_GET['status']) ? 'status'
+        : (!empty($_GET['abort']) ? 'abort' : 'none'));
 
 // مدیریت زمان اجرای طولانی
 if (function_exists('set_time_limit')) @set_time_limit(60);
