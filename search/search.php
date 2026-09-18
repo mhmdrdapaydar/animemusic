@@ -1,17 +1,12 @@
 <?php
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Pragma: no-cache");
-header("Expires: 0");
+require_once __DIR__ . '/../includes/headless.php';
+am_no_cache();
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
 // اتصال به دیتابیس محتوا
-$db_content = new PDO('sqlite:../db/content.db');
-$db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db_content = am_content_db();
 
 // تابع نرمال‌سازی برای حل مشکلات رایج کاراکترهای فارسی
 function normalizePersian($string) {

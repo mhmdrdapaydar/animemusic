@@ -8,11 +8,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 // اتصال به دیتابیس‌ها
 try {
     // اتصال به دیتابیس محتوا
-    $db_content = new PDO('sqlite:../db/content.db');
+    $db_content = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
     $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // اتصال به دیتابیس کاربران
-    $db_users = new PDO('sqlite:../db/users.db');
+    $db_users = new PDO('sqlite:' . __DIR__ . '/../db/users.db');
     $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // دریافت انواع موزیک
@@ -780,6 +780,7 @@ try {
                 <th>نام کاربری</th>
                 <th>نام کامل</th>
                 <th>وضعیت</th>
+                <th>اعتبار اشتراک</th>
                 <th>تاریخ عضویت</th>
                 <th>عملیات</th>
               </tr>
@@ -794,6 +795,15 @@ try {
                     <span class="badge <?= $user['subscription_status'] === 'vip' ? 'badge-primary' : 'badge-secondary' ?>">
                       <?= $user['subscription_status'] === 'vip' ? 'VIP' : 'عادی' ?>
                     </span>
+                  </td>
+                  <td>
+                    <?php if ($user['subscription_status'] === 'vip' && !empty($user['subscription_end_date'])): ?>
+                      <?= date('Y/m/d', strtotime($user['subscription_end_date'])) ?>
+                    <?php elseif ($user['subscription_status'] === 'vip'): ?>
+                      <span class="badge badge-success">نامحدود</span>
+                    <?php else: ?>
+                      —
+                    <?php endif; ?>
                   </td>
                   <td><?= date('Y/m/d', strtotime($user['created_at'])) ?></td>
                   <td>

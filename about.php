@@ -1,20 +1,17 @@
 <?php
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Pragma: no-cache");
-header("Expires: 0");
+require_once __DIR__ . '/includes/headless.php';
+am_no_cache();
 
-// بررسی وضعیت تم کاربر (مطابق با کد قبلی)
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+// بررسی وضعیت تم کاربر
+$isDarkMode = am_theme();
 
 // داده‌های نمونه برای حامیان و تبادلات
 $sponsors = [
     ["name" => "حامی وجود ندارد", "url" => ""],
 ];
-
-
+$exchanges = [
+    ["name" => "تبادل وجود ندارد", "url" => ""],
+];
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
@@ -319,7 +316,7 @@ $sponsors = [
 </head>
 <body>
   <div class="header">
-    <img src="../image.png" alt="لوگو رسانه">
+    <img src="image.png" alt="لوگو رسانه">
     <div class="header-buttons">
       <button class="theme-toggle" id="themeToggle">
         <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
@@ -353,8 +350,8 @@ $sponsors = [
 
     <div class="social-links">
       <a href="https://t.me/Anime_Music_IRN" target="_blank"><i class="bi bi-telegram"></i></a>
-      <a href="/assets/Eror/work.html" target="_blank"><i class="bi bi-instagram"></i></a>
-      <a href="/assets/Eror/work.html" target="_blank"><i class="bi bi-camera-video-fill"></i></a>
+      <a href="assets/Eror/work.html" target="_blank"><i class="bi bi-instagram"></i></a>
+      <a href="assets/Eror/work.html" target="_blank"><i class="bi bi-camera-video-fill"></i></a>
     </div>
     
     <!-- بخش جدید رزرو تبلیغات با تم زرد/طلایی -->
@@ -398,10 +395,10 @@ $sponsors = [
   </div>
 
   <div class="navbar">
-    <a href="../index.php" class="nav-item"><i class="bi bi-house-door-fill"></i>خانه</a>
-    <a href="../categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
+    <a href="index.php" class="nav-item"><i class="bi bi-house-door-fill"></i>خانه</a>
+    <a href="categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
     <a href="search/search.php" class="nav-item"><i class="bi bi-search"></i>جستجو</a>
-    <a href="../about.php" class="nav-item active"><i class="bi bi-info-circle"></i>درباره ما</a>
+    <a href="about.php" class="nav-item active"><i class="bi bi-info-circle"></i>درباره ما</a>
   </div>
 
   <script>

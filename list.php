@@ -1,7 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/headless.php';
+
 // اتصال به پایگاه داده محتوا
-$db_content = new PDO('sqlite:db/content.db');
-$db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db_content = am_content_db();
 
 // دریافت پارامترهای فیلتر و صفحه‌بندی
 $type = $_GET['type'] ?? null;
@@ -72,10 +73,7 @@ $totalItems = $countStmt->fetchColumn();
 $totalPages = ceil($totalItems / $perPage);
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">

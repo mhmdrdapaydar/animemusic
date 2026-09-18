@@ -1,62 +1,18 @@
 <?php
-session_start();
-// اگر کاربر لاگین نکرده باشد، به صفحه ورود ریدایرکت شود
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require_once __DIR__ . '/includes/headless.php';
 
-// بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+// تنها کاربران واردشده می‌توانند این صفحه را ببینند
+am_require_login();
 
-// اتصال به دیتابیس‌ها
-$db_users = new PDO('sqlite:db/users.db');
-$db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+// دریافت کاربر جاری؛ وضعیت VIP در صورت انقضا همین‌جا اصلاح می‌شود (رفع باگ)
+$user = am_current_user();
 
-// بررسی وجود دیتابیس محتوا و اتصال به آن
-$content_db_path = 'db/content.db';
-if (!file_exists($content_db_path)) {
-    die("پایگاه داده محتوا یافت نشد. لطفاً ابتدا سیستم را راه‌اندازی کنید.");
-}
+$isDarkMode = am_theme();
+$db_users   = am_users_db();
+$db_content = am_content_db();
 
-$db_content = new PDO('sqlite:' . $content_db_path);
-$db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-// بررسی وجود جدول anime_contents
-$tableCheck = $db_content->query("SELECT name FROM sqlite_master WHERE type='table' AND name='anime_contents'");
-if ($tableCheck->fetch() === false) {
-    die("جدول anime_contents در پایگاه داده محتوا یافت نشد. لطفاً ابتدا ساختار پایگاه داده را ایجاد کنید.");
-}
-
-// دریافت اطلاعات کاربر
-$stmt = $db_users->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// بررسی و به‌روزرسانی وضعیت اشتراک در صورت انقضا
-if ($user && $user['subscription_status'] == 'vip' && !empty($user['subscription_end_date'])) {
-    $subscriptionEnd = new DateTime($user['subscription_end_date']);
-    $today = new DateTime();
-    
-    // اگر تاریخ امروز از تاریخ پایان اشتراک گذشته باشد
-    if ($today > $subscriptionEnd) {
-        // غیرفعال کردن وضعیت VIP
-        $updateStmt = $db_users->prepare("UPDATE users SET subscription_status = 'free' WHERE id = ?");
-        $updateStmt->execute([$user['id']]);
-        
-        // به‌روزرسانی وضعیت کاربر در آرایه
-        $user['subscription_status'] = 'free';
-        
-        // به‌روزرسانی وضعیت در session
-        $_SESSION['subscription_status'] = 'free';
-    }
-}
-
-// بررسی وضعیت VIP کاربر
-$isVIP = $user && $user['subscription_status'] === 'vip';
+// بررسی وضعیت VIP کاربر (موتور مرکزی همیشه حرف آخر را می‌زند)
+$isVIP = ($user && $user['subscription_status'] === 'vip');
 
 // دریافت لیست پخش کاربر (فقط برای کاربران VIP)
 $user_playlists = [];
@@ -239,11 +195,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// تابع تبدیل تاریخ
+// تابع تبدیل تاریخ (نمایش شمسی)
 function format_date($date) {
-    $persian_numbers = array('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹');
-    $english_numbers = range(0, 9);
-    return str_replace($english_numbers, $persian_numbers, date('Y/m/d', strtotime($date)));
+    return am_format_date($date);
 }
 ?>
 

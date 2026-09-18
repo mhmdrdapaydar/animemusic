@@ -1,10 +1,9 @@
 <?php
-session_start();
-include_once 'counter_ads.php';
-// تنظیمات کش برای جلوگیری از ذخیره‌سازی نسخه‌های قدیمی
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Pragma: no-cache");
-header("Expires: 0");
+require_once __DIR__ . '/includes/headless.php';
+am_no_cache();
+
+// آمار بازدید تبلیغات (جایگزین counter_ads.php)
+am_log_visit(AM_VISITS_ADS_FILE);
 
 // اعتبارسنجی پارامتر ID
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
@@ -16,32 +15,25 @@ $id = (int)$_GET['id'];
 
 // اتصال به دیتابیس‌ها با مدیریت خطا
 try {
-    $db_content = new PDO('sqlite:db/content.db');
-    $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db_content = am_content_db();
     $db_content->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-    
-    $db_users = new PDO('sqlite:db/users.db');
-    $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db_users = am_users_db();
 } catch (PDOException $e) {
     error_log("DB Error: " . $e->getMessage());
     die("خطا در اتصال به پایگاه داده");
 }
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
-// بررسی وضعیت کاربر (VIP یا عادی) از session
+// بررسی وضعیت کاربر (VIP یا عادی) — موتور مرکزی انقضا اینجا هم اعمال می‌شود (رفع باگ)
 $isVIP = false;
 $userData = null;
 $userId = null;
 if (isset($_SESSION['user_id'])) {
     $userId = (int)$_SESSION['user_id'];
-    $stmt = $db_users->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+    // am_current_user وضعیت منقضی‌شده را خودکار به free برمی‌گرداند
+    $userData = am_current_user();
     
     if ($userData && $userData['subscription_status'] === 'vip') {
         $isVIP = true;

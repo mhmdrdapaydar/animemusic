@@ -3,7 +3,7 @@ session_start();
 // پاک کردن تمامی متغیرهای session
 $_SESSION = array();
 
-// اگر می‌خواهید session را کاملاً نابود کنید، cookie session را نیز پاک کنید
+// اگر کوکی session وجود دارد، آن را پاک کن
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', time() - 42000,
@@ -18,4 +18,3 @@ session_destroy();
 // هدایت به صفحه اصلی
 header("Location: index.php");
 exit;
-?>

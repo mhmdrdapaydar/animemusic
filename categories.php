@@ -1,13 +1,11 @@
 <?php
+require_once __DIR__ . '/includes/headless.php';
+
 // اتصال به دیتابیس محتوا
-$db_content = new PDO('sqlite:db/content.db');
-$db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db_content = am_content_db();
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
 // گرفتن انواع موزیک به همراه تعداد آثار
 $musicTypes = $db_content->query("

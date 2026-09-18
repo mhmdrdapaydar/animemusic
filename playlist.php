@@ -1,14 +1,5 @@
 <?php
-session_start();
-// اگر کاربر لاگین نکرده باشد، به صفحه ورود ریدایرکت شود
-if (!isset($_SESSION['user_id'])) {
-    // برای پلی‌لیست‌های عمومی، اجازه مشاهده بدون لاگین می‌دهیم
-    // اما برای پلی‌لیست‌های خصوصی نیاز به لاگین است
-    if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
-        header("Location: login.php");
-        exit;
-    }
-}
+require_once __DIR__ . '/includes/headless.php';
 
 // بررسی پارامتر ID
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
@@ -19,36 +10,20 @@ if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
 $playlistId = (int)$_GET['id'];
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
 // اتصال به دیتابیس‌ها
-$db_users = new PDO('sqlite:db/users.db');
-$db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db_users   = am_users_db();
+$db_content = am_content_db();
 
-// بررسی وضعیت VIP کاربر
+// بررسی وضعیت VIP کاربر — موتور مرکزی انقضا (رفع باگ)
 $isVIP = false;
 if (isset($_SESSION['user_id'])) {
-    $userId = (int)$_SESSION['user_id'];
-    $stmt = $db_users->prepare("SELECT subscription_status FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $userData = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+    $userData = am_current_user();
     if ($userData && $userData['subscription_status'] === 'vip') {
         $isVIP = true;
     }
 }
-
-// بررسی وجود دیتابیس محتوا و اتصال به آن
-$content_db_path = 'db/content.db';
-if (!file_exists($content_db_path)) {
-    die("پایگاه داده محتوا یافت نشد. لطفاً ابتدا سیستم را راه‌اندازی کنید.");
-}
-
-$db_content = new PDO('sqlite:' . $content_db_path);
-$db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // دریافت اطلاعات پلی‌لیست
 $stmt = $db_users->prepare("
@@ -138,11 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// تابع تبدیل تاریخ
+// تابع تبدیل تاریخ (شمسی)
 function format_date($date) {
-    $persian_numbers = array('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹');
-    $english_numbers = range(0, 9);
-    return str_replace($english_numbers, $persian_numbers, date('Y/m/d', strtotime($date)));
+    return am_format_date($date);
 }
 
 // تولید لینک اشتراک‌گذاری

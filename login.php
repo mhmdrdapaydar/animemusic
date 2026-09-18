@@ -1,14 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/headless.php';
+
 // اتصال به دیتابیس کاربران
-$db_users = new PDO('sqlite:db/users.db');
-$db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db_users = am_users_db();
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
 $error = '';
 
@@ -25,21 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($user && password_verify($password, $user['password'])) {
-            // بررسی و به‌روزرسانی وضعیت اشتراک در صورت انقضا
-            if ($user['subscription_status'] == 'vip' && !empty($user['subscription_end_date'])) {
-                $subscriptionEnd = new DateTime($user['subscription_end_date']);
-                $today = new DateTime();
-                
-                // اگر تاریخ امروز از تاریخ پایان اشتراک گذشته باشد
-                if ($today > $subscriptionEnd) {
-                    // غیرفعال کردن وضعیت VIP
-                    $updateStmt = $db_users->prepare("UPDATE users SET subscription_status = 'free' WHERE id = ?");
-                    $updateStmt->execute([$user['id']]);
-                    
-                    // به‌روزرسانی وضعیت کاربر در آرایه
-                    $user['subscription_status'] = 'free';
-                }
-            }
+            // بررسی و اصلاح وضعیت اشتراک در صورت انقضا (موتور مرکزی)
+            $user['subscription_status'] = am_is_vip($user) ? 'vip' : 'free';
             
             // ثبت اطلاعات کاربر در session
             $_SESSION['user_id'] = $user['id'];

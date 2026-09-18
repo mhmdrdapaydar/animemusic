@@ -1,10 +1,17 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/headless.php';
 header('Content-Type: application/json');
 
 // بررسی اینکه کاربر لاگین کرده است
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'لطفاً ابتدا وارد حساب کاربری خود شوید']);
+    exit;
+}
+
+// علاقه‌مندی‌ها فقط برای کاربران VIP (باید در همه‌جا یکسان اجرا شود)
+$user = am_current_user();
+if (!$user || $user['subscription_status'] !== 'vip') {
+    echo json_encode(['success' => false, 'message' => 'مدیریت علاقه‌مندی‌ها مخصوص کاربران VIP است']);
     exit;
 }
 
@@ -18,19 +25,11 @@ $userId = (int)$_SESSION['user_id'];
 $contentId = (int)$_POST['content_id'];
 $action = $_POST['action'];
 
-// اتصال به دیتابیس
-try {
-    $db = new PDO('sqlite:db/users.db');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در اتصال به پایگاه داده']);
-    exit;
-}
+$db = am_users_db();
 
 // بررسی وجود محتوا در دیتابیس محتوا
 try {
-    $contentDb = new PDO('sqlite:db/content.db');
-    $contentDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $contentDb = am_content_db();
     
     $stmt = $contentDb->prepare("SELECT id FROM anime_contents WHERE id = ?");
     $stmt->execute([$contentId]);

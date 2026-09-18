@@ -15,7 +15,7 @@ $anime_id = (int)$_GET['id'];
 
 try {
     // اتصال به دیتابیس محتوا
-    $db_content = new PDO('sqlite:../db/content.db');
+    $db_content = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
     $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // دریافت اطلاعات انیمه

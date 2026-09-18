@@ -1,14 +1,14 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/headless.php';
+
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
 // اتصال به دیتابیس کاربران
-$db_users = new PDO('sqlite:db/users.db');
-$db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db_users = am_users_db();
+
+// سقف ثبت‌نام اختیاری برای جلوگیری از ثبت انبوه ربات‌ها (قابل حذف توسط صاحب سایت)
+define('AM_MAX_USERS', 10000);
 
 $error = '';
 $success = '';
@@ -36,19 +36,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetch()) {
             $error = 'نام کاربری قبلا انتخاب شده است';
         } else {
-            // ثبت کاربر جدید
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $db_users->prepare("
-                INSERT INTO users (first_name, last_name, username, password, email, subscription_status, created_at)
-                VALUES (?, ?, ?, ?, ?, 'free', datetime('now'))
-            ");
-            
-            if ($stmt->execute([$firstName, $lastName, $username, $hashedPassword, $email])) {
-                // هدایت به صفحه login.php پس از ثبت‌نام موفق
-                header("Location: login.php");
-                exit();
+            // کنترل حد نصاب کاربران
+            $userCount = (int)$db_users->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            if ($userCount >= AM_MAX_USERS) {
+                $error = 'ظرفیت ثبت‌نام تکمیل شده است. لطفاً با پشتیبانی تماس بگیرید.';
             } else {
-                $error = 'خطا در ثبت‌نام. لطفا دوباره تلاش کنید.';
+                // ثبت کاربر جدید
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $db_users->prepare("
+                    INSERT INTO users (first_name, last_name, username, password, email, subscription_status, created_at)
+                    VALUES (?, ?, ?, ?, ?, 'free', datetime('now'))
+                ");
+                
+                if ($stmt->execute([$firstName, $lastName, $username, $hashedPassword, $email])) {
+                    // هدایت به صفحه login.php پس از ثبت‌نام موفق
+                    header("Location: login.php");
+                    exit();
+                } else {
+                    $error = 'خطا در ثبت‌نام. لطفا دوباره تلاش کنید.';
+                }
             }
         }
     }

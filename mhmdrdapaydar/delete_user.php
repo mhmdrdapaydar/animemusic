@@ -15,7 +15,7 @@ $user_id = (int)$_GET['id'];
 
 try {
     // اتصال به دیتابیس کاربران
-    $db_users = new PDO('sqlite:../db/users.db');
+    $db_users = new PDO('sqlite:' . __DIR__ . '/../db/users.db');
     $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // شروع تراکنش

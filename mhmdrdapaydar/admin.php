@@ -8,11 +8,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 // اتصال به دیتابیس‌ها
 try {
     // اتصال به دیتابیس محتوا
-    $db_content = new PDO('sqlite:../db/content.db');
+    $db_content = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
     $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // اتصال به دیتابیس کاربران
-    $db_users = new PDO('sqlite:../db/users.db');
+    $db_users = new PDO('sqlite:' . __DIR__ . '/../db/users.db');
     $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // دریافت آمار از دیتابیس محتوا
@@ -22,7 +22,31 @@ try {
     
     // دریافت آمار از دیتابیس کاربران
     $userCount = $db_users->query("SELECT COUNT(*) FROM users")->fetchColumn();
-    $vipCount = $db_users->query("SELECT COUNT(*) FROM users WHERE subscription_status = 'vip'")->fetchColumn();
+
+    // گزارش VIP های منقضی (برای آگاهی ادمین)
+    $expiredVipCount = $db_users->query("
+        SELECT COUNT(*) FROM users
+        WHERE subscription_status = 'vip'
+          AND subscription_end_date IS NOT NULL
+          AND subscription_end_date <> ''
+          AND subscription_end_date < date('now')
+    ")->fetchColumn();
+
+    // اصلاح خودکار: همه کاربران منقضی به free برگردند (همگام‌سازی پنل با سایت)
+    $db_users->exec("
+        UPDATE users SET subscription_status = 'free'
+        WHERE subscription_status = 'vip'
+          AND subscription_end_date IS NOT NULL
+          AND subscription_end_date <> ''
+          AND subscription_end_date < date('now')
+    ");
+
+    // تعداد VIP های واقعاً فعال (تاریخ پایان نگذشته یا نامحدود)
+    $vipCount = $db_users->query("
+        SELECT COUNT(*) FROM users
+        WHERE subscription_status = 'vip'
+          AND (subscription_end_date IS NULL OR subscription_end_date = '' OR subscription_end_date >= date('now'))
+    ")->fetchColumn();
     
     // دریافت آخرین انیمه‌ها
     $latestAnime = $db_content->query("SELECT * FROM anime_series ORDER BY id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
@@ -39,9 +63,9 @@ try {
     // دریافت انواع موزیک
     $musicTypes = $db_content->query("SELECT * FROM music_types")->fetchAll(PDO::FETCH_ASSOC);
     
-    // محاسبه آمار سیستمی
-    $dbSize = file_exists('../db/content.db') ? filesize('../db/content.db') : 0;
-    $dbSize += file_exists('../db/users.db') ? filesize('../db/users.db') : 0;
+    // محاسبه آمار سیستمی (مسیر مطلق — مستقل از پوشه اجرا)
+    $dbSize = file_exists(__DIR__ . '/../db/content.db') ? filesize(__DIR__ . '/../db/content.db') : 0;
+    $dbSize += file_exists(__DIR__ . '/../db/users.db') ? filesize(__DIR__ . '/../db/users.db') : 0;
     $memoryUsage = memory_get_usage(true);
     
 } catch (PDOException $e) {
@@ -672,6 +696,32 @@ try {
           </div>
         </div>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div>
+            <div class="stat-value" style="color: #ffc107;"><?= $vipCount ?></div>
+            <div class="stat-title">کاربران VIP فعال</div>
+          </div>
+          <div class="stat-icon icon-singer">
+            <i class="fas fa-crown"></i>
+          </div>
+        </div>
+      </div>
+
+      <?php if (isset($expiredVipCount) && $expiredVipCount > 0): ?>
+      <div class="stat-card" style="border: 1px solid rgba(220, 53, 69, 0.3);">
+        <div class="stat-header">
+          <div>
+            <div class="stat-value" style="color: #dc3545;"><?= $expiredVipCount ?></div>
+            <div class="stat-title">VIP منقضی (به‌تازگی آزاد شدند)</div>
+          </div>
+          <div class="stat-icon icon-music">
+            <i class="fas fa-hourglass-end"></i>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
     </div>
 
     <?php
@@ -1085,6 +1135,7 @@ try {
                 <th>نام کاربری</th>
                 <th>نام کامل</th>
                 <th>وضعیت</th>
+                <th>اعتبار اشتراک</th>
                 <th>تاریخ عضویت</th>
                 <th>عملیات</th>
               </tr>
@@ -1098,6 +1149,15 @@ try {
                     <span class="badge <?= $user['subscription_status'] === 'vip' ? 'badge-primary' : 'badge-secondary' ?>">
                       <?= $user['subscription_status'] === 'vip' ? 'VIP' : 'عادی' ?>
                     </span>
+                  </td>
+                  <td>
+                    <?php if ($user['subscription_status'] === 'vip' && !empty($user['subscription_end_date'])): ?>
+                      <?= date('Y/m/d', strtotime($user['subscription_end_date'])) ?>
+                    <?php elseif ($user['subscription_status'] === 'vip'): ?>
+                      <span class="badge badge-success">نامحدود</span>
+                    <?php else: ?>
+                      —
+                    <?php endif; ?>
                   </td>
                   <td><?= date('Y/m/d', strtotime($user['created_at'])) ?></td>
                   <td>
@@ -1187,7 +1247,7 @@ try {
     </div>
     
     <footer>
-      <p>پنل مدیریت انیمه موزیک | نسخه ۳.۰</p>
+      <p>پنل مدیریت انیمه موزیک | نسخه ۴.۰</p>
       <p>کلیه حقوق برای این پلتفرم محفوظ است © <?= date('Y') ?></p>
     </footer>
   </div>

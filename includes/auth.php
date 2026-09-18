@@ -1,0 +1,29 @@
+<?php
+/**
+ * انیمه موزیک — محافظ ورود برای صفحات کاربری
+ * صفحاتی که نیاز به ورود دارند این فایل را include می‌کنند.
+ */
+
+if (file_exists(__DIR__ . '/helpers.php')) {
+    require_once __DIR__ . '/helpers.php';
+}
+if (file_exists(__DIR__ . '/vip.php')) {
+    require_once __DIR__ . '/vip.php';
+}
+
+function am_require_login() {
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: login.php');
+        exit;
+    }
+}
+
+function am_require_vip() {
+    am_require_login();
+    $user = am_current_user();
+    if (!$user || $user['subscription_status'] !== 'vip') {
+        header('Location: vip.php');
+        exit;
+    }
+    return $user;
+}

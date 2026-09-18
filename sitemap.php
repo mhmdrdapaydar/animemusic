@@ -1,12 +1,13 @@
 <?php
-// تنظیمات
-$base_url = 'https://anime-music.ct.ws'; // دامنه سایت شما
+require_once __DIR__ . '/includes/headless.php';
+
+// تنظیمات (دامنه از فایل پیکربندی مرکزی خوانده می‌شود)
+$base_url = defined('AM_SITE_URL') ? AM_SITE_URL : 'https://anime-music.ct.ws';
 $per_page = 1000; // تعداد پست در هر صفحه سایت‌مپ
 
 // اتصال به دیتابیس محتوا
 try {
-    $db = new PDO('sqlite:db/content.db');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db = am_content_db();
 } catch (PDOException $e) {
     header('Content-Type: application/xml; charset=utf-8');
     echo '<?xml version="1.0" encoding="UTF-8"?>';
@@ -29,7 +30,10 @@ if (isset($_GET['page'])) {
 
     // دریافت شناسه‌ها و تاریخ ایجاد (بدون نیاز به ستون updated_at)
     try {
-        $stmt = $db->query("SELECT id, created_at FROM anime_contents ORDER BY id LIMIT $offset, $per_page");
+        $stmt = $db->prepare("SELECT id, created_at FROM anime_contents ORDER BY id LIMIT :limit OFFSET :offset");
+        $stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $rows = [];

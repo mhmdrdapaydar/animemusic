@@ -7,7 +7,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 // اتصال به دیتابیس
 try {
-    $db_content = new PDO('sqlite:../db/content.db');
+    $db_content = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
     $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("خطا در اتصال به پایگاه داده: " . $e->getMessage());

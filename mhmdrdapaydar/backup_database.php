@@ -12,11 +12,11 @@ header('Content-Disposition: attachment; filename="anime_music_backup_' . date('
 // ایجاد پشتیبان از دیتابیس‌ها
 try {
     // اتصال به دیتابیس محتوا
-    $db_content = new PDO('sqlite:../db/content.db');
+    $db_content = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
     $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // اتصال به دیتابیس کاربران
-    $db_users = new PDO('sqlite:../db/users.db');
+    $db_users = new PDO('sqlite:' . __DIR__ . '/../db/users.db');
     $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // شروع تولید پشتیبان

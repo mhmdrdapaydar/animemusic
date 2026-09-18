@@ -5,7 +5,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
-$ads_file = '../ads.json';
+$ads_file = __DIR__ . '/../ads.json';
 $ads = [];
 
 if (file_exists($ads_file)) {

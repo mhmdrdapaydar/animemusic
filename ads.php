@@ -11,9 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
         'timestamp' => date('Y-m-d H:i:s')
     ];
 
-    // خواندن فایل موجود
+    // خواندن فایل موجود (مسیر مطلق برای اطمینان در همه شرایط)
     $ads = [];
-    $ads_file = 'ads.json';
+    $ads_file = __DIR__ . '/ads.json';
     
     if (file_exists($ads_file)) {
         $ads = json_decode(file_get_contents($ads_file), true);

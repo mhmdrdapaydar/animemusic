@@ -1,57 +1,20 @@
 <?php
-session_start();
-include_once 'counter.php';
-// تنظیمات هدر برای جلوگیری از کش شدن
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Pragma: no-cache");
-header("Expires: 0");
+require_once __DIR__ . '/includes/headless.php';
+am_no_cache();
 
-// اتصال به دیتابیس محتوا
-$db_content = new PDO('sqlite:db/content.db');
-$db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+// آمار بازدید (جایگزین counter.php — یک فایل مشترک)
+am_log_visit(AM_VISITS_FILE);
 
-// اتصال به دیتابیس کاربران
-$db_users = new PDO('sqlite:db/users.db');
-$db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+// اتصال به دیتابیس محتوا (و کاربران به صورت خودکار با helper)
+$db_content = am_content_db();
+$db_users   = am_users_db();
 
-// بررسی و به‌روزرسانی وضعیت اشتراک کاربر اگر لاگین کرده باشد
-if (isset($_SESSION['user_id'])) {
-    $user_id = $_SESSION['user_id'];
-    
-    // دریافت اطلاعات کاربر
-    $stmt = $db_users->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // بررسی و به‌روزرسانی وضعیت اشتراک در صورت انقضا
-    if ($user && $user['subscription_status'] == 'vip' && !empty($user['subscription_end_date'])) {
-        $subscriptionEnd = new DateTime($user['subscription_end_date']);
-        $today = new DateTime();
-        
-        // اگر تاریخ امروز از تاریخ پایان اشتراک گذشته باشد
-        if ($today > $subscriptionEnd) {
-            // غیرفعال کردن وضعیت VIP
-            $updateStmt = $db_users->prepare("UPDATE users SET subscription_status = 'free' WHERE id = ?");
-            $updateStmt->execute([$user_id]);
-            
-            // به‌روزرسانی وضعیت در session
-            $_SESSION['subscription_status'] = 'free';
-        }
-    }
-}
+// اصلاح خودکار وضعیت VIP کاربر در صورت انقضا (رفع باگ)
+am_current_user();
 
-// تابع برای افزودن نسخه به فایل‌های استاتیک
+// نام کوتاه برای افزودن نسخه به فایل‌های استاتیک
 function asset($path) {
-    static $cache = [];
-    if (isset($cache[$path])) {
-        return $cache[$path];
-    }
-    
-    $filePath = __DIR__ . '/' . ltrim($path, '/');
-    $result = file_exists($filePath) ? $path . '?v=' . filemtime($filePath) : $path;
-    $cache[$path] = $result;
-    
-    return $result;
+    return am_asset($path);
 }
 
 // دریافت محبوب‌ترین محتواها

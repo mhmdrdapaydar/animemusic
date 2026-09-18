@@ -15,7 +15,7 @@ $user_id = (int)$_GET['id'];
 
 try {
     // اتصال به دیتابیس کاربران
-    $db_users = new PDO('sqlite:../db/users.db');
+    $db_users = new PDO('sqlite:' . __DIR__ . '/../db/users.db');
     $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // دریافت اطلاعات کاربر
@@ -40,32 +40,55 @@ try {
         }
         
         if (!isset($error)) {
-            // به‌روزرسانی اطلاعات کاربر
-            $stmt = $db_users->prepare("
-                UPDATE users 
-                SET first_name = ?, last_name = ?, username = ?, 
-                    subscription_status = ?, subscription_end_date = ?
-                WHERE id = ?
-            ");
-            
-            $stmt->execute([
-                $_POST['first_name'],
-                $_POST['last_name'],
-                $_POST['username'],
-                $_POST['subscription_status'],
-                $_POST['subscription_end_date'] ?: null,
-                $user_id
-            ]);
-            
-            // اگر رمز عبور جدید وارد شده باشد
-            if (!empty($_POST['password'])) {
-                $hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-                $db_users->prepare("UPDATE users SET password = ? WHERE id = ?")
-                         ->execute([$hashed_password, $user_id]);
+            // اعتبارسنجی وضعیت اشتراک
+            $subStatus = ($_POST['subscription_status'] === 'vip') ? 'vip' : 'free';
+            $subEnd = trim($_POST['subscription_end_date'] ?? '');
+
+            // اگر تاریخ پایان نامعتبر است، مقدار null قرار بده
+            if ($subEnd === '') {
+                $subEnd = null;
+            } else {
+                $ts = strtotime($subEnd);
+                if ($ts === false) {
+                    $error = 'تاریخ پایان اشتراک نامعتبر است';
+                } else {
+                    $subEnd = date('Y-m-d', $ts);
+                }
             }
-            
-            header("Location: admin.php?success=content_updated");
-            exit;
+
+            if (!isset($error)) {
+                // قاعده: اگر وضعیت عادی است، تاریخ پایان را خالی کن
+                if ($subStatus === 'free') {
+                    $subEnd = null;
+                }
+
+                // به‌روزرسانی اطلاعات کاربر
+                $stmt = $db_users->prepare("
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, username = ?, 
+                        subscription_status = ?, subscription_end_date = ?
+                    WHERE id = ?
+                ");
+                
+                $stmt->execute([
+                    $_POST['first_name'],
+                    $_POST['last_name'],
+                    $_POST['username'],
+                    $subStatus,
+                    $subEnd,
+                    $user_id
+                ]);
+                
+                // اگر رمز عبور جدید وارد شده باشد
+                if (!empty($_POST['password'])) {
+                    $hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                    $db_users->prepare("UPDATE users SET password = ? WHERE id = ?")
+                             ->execute([$hashed_password, $user_id]);
+                }
+                
+                header("Location: admin.php?success=content_updated");
+                exit;
+            }
         }
     }
     

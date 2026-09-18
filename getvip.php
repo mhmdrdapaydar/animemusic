@@ -1,25 +1,14 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/headless.php';
+
 // اگر کاربر لاگین نکرده باشد، به صفحه ورود ریدایرکت شود
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
+am_require_login();
 
 // بررسی وضعیت تم کاربر
-$isDarkMode = false;
-if (isset($_COOKIE['dark_mode'])) {
-    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
-}
+$isDarkMode = am_theme();
 
-// اتصال به دیتابیس کاربران
-$db_users = new PDO('sqlite:db/users.db');
-$db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-// دریافت اطلاعات کاربر
-$stmt = $db_users->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+// دریافت کاربر جاری + اصلاح خودکار VIP منقضی
+$user = am_current_user();
 
 // دریافت اطلاعات پلن از URL
 $plan = $_GET['plan'] ?? '';
@@ -48,13 +37,9 @@ switch($plan) {
         exit;
 }
 
-// تابع تبدیل تاریخ میلادی به شمسی (ساده)
+// تابع تبدیل تاریخ میلادی به شمسی (الگوریتم استاندارد)
 function jdate($format, $timestamp = '') {
-    $date = date($format, strtotime($timestamp));
-    // تبدیل اعداد انگلیسی به فارسی
-    $persian_numbers = array('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹');
-    $english_numbers = range(0, 9);
-    return str_replace($english_numbers, $persian_numbers, $date);
+    return am_jdate($format, $timestamp);
 }
 ?>
 
