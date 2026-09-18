@@ -1098,8 +1098,8 @@ function format_date($date) {
     <div class="navbar">
         <a href="<?= am_lang_url('index.php') ?>"><i class="bi bi-house"></i> <?= am_te('home') ?></a>
         <a href="<?= am_lang_url('categories.php') ?>"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
-        <a href="<?= am_lang_url('vip.php') "><i class="bi bi-star"></i> VIP</a>
-        <a href="<?= am_lang_url('profile.php')  class="active""><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
+        <a href="<?= am_lang_url('vip.php') ?>"><i class="bi bi-star"></i> VIP</a>
+        <a href="<?= am_lang_url('profile.php') ?>" class="active"><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
     </div>
     
     <script>
