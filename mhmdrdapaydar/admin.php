@@ -593,7 +593,7 @@ if (isset($_GET['error'])) {
       <div class="system-card"><h3><i class="fas fa-broom" style="color:var(--danger)"></i> پاکسازی تکراری‌ها</h3><p>حذف موزیک‌های دوباره واردشده از قبل</p><a href="clean_duplicates.php" class="btn btn-light btn-block"><i class="fas fa-broom"></i> پاکسازی تکراری‌ها</a></div>
       <div class="system-card"><h3><i class="fas fa-chart-pie" style="color:var(--success)"></i> آمار بازدید</h3><p>آمار بازدید صفحات سایت</p><a href="admin_stats.php" class="btn btn-light btn-block"><i class="fas fa-chart-pie"></i> آمار سایت</a></div>
       <div class="system-card"><h3><i class="fas fa-ad" style="color:var(--info)"></i> آمار تبلیغات</h3><p>آمار بازدید بخش تبلیغات</p><a href="admin_ads.php" class="btn btn-light btn-block"><i class="fas fa-ad"></i> آمار تبلیغات</a></div>
-      <div class="system-card"><h3><i class="fas fa-bullhorn" style="color:var(--danger)"></i> رزرو تبلیغات</h3><p>وضعیت رزروهای تبلیغاتی</p><a href="adscheck.php" class="btn btn-light btn-block"><i class="fas fa-bullhorn"></i> رزرو تبلیغات</a></div>
+      <div class="system-card"><h3><i class="fas fa-bullhorn" style="color:var(--danger)"></i> مدیریت تبلیغات</h3><p>تبلیغِ هر زبان + وضعیت رزروهای تبلیغاتی</p><a href="adscheck.php" class="btn btn-light btn-block"><i class="fas fa-bullhorn"></i> مدیریت تبلیغات</a></div>
     </div>
   </div>
 
