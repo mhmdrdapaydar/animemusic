@@ -1,9 +1,7 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once __DIR__ . '/includes/admin_auth.php';
+am_admin_guard();
 
 // اتصال به دیتابیس
 try {
@@ -287,265 +285,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
   <title>واردات JSON - پنل مدیریت انیمه موزیک</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css?v=4">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    :root {
-      --primary: #00aa6f;
-      --primary-dark: #007d52;
-      --secondary: #4361ee;
-      --light: #f8f9fa;
-      --dark: #212529;
-      --gray: #6c757d;
-      --light-gray: #e9ecef;
-      --danger: #dc3545;
-      --success: #28a745;
-      --warning: #ffc107;
-      --info: #17a2b8;
-      --border-radius: 10px;
-      --box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      --transition: all 0.3s ease;
-    }
-    
-    body {
-      font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-      color: var(--dark);
-      direction: rtl;
-      min-height: 100vh;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      background: white;
-      border-radius: var(--border-radius);
-      box-shadow: var(--box-shadow);
-      padding: 30px;
-    }
-    
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--light-gray);
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .logo i {
-      font-size: 28px;
-      color: var(--primary);
-    }
-    
-    .logo h1 {
-      font-size: 24px;
-      color: var(--dark);
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 20px;
-      border-radius: var(--border-radius);
-      border: none;
-      cursor: pointer;
-      font-weight: 500;
-      transition: var(--transition);
-      font-family: inherit;
-      font-size: 15px;
-      text-decoration: none;
-    }
-    
-    .btn i {
-      font-size: 16px;
-    }
-    
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: var(--primary-dark);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0, 170, 111, 0.3);
-    }
-    
-    .btn-secondary {
-      background: var(--secondary);
-      color: white;
-    }
-    
-    .btn-secondary:hover {
-      background: #3651d8;
-      transform: translateY(-2px);
-    }
-    
-    .btn-danger {
-      background: var(--danger);
-      color: white;
-    }
-    
-    .btn-danger:hover {
-      background: #bd2130;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
-    }
-    
-    .upload-area {
-      border: 2px dashed var(--primary);
-      border-radius: var(--border-radius);
-      padding: 40px;
-      text-align: center;
-      margin-bottom: 30px;
-      background: rgba(0, 170, 111, 0.05);
-      transition: var(--transition);
-    }
-    
-    .upload-area:hover {
-      background: rgba(0, 170, 111, 0.1);
-    }
-    
-    .upload-icon {
-      font-size: 48px;
-      color: var(--primary);
-      margin-bottom: 15px;
-    }
-    
-    .upload-text {
-      margin-bottom: 20px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-control {
-      width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #ced4da;
-      border-radius: var(--border-radius);
-      font-family: inherit;
-      font-size: 15px;
-      transition: var(--transition);
-    }
-    
-    .form-control:focus {
-      border-color: var(--primary);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(0, 170, 111, 0.2);
-    }
-    
-    .message {
-      padding: 15px;
-      border-radius: var(--border-radius);
-      margin-bottom: 25px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .success-message {
-      background: rgba(40, 167, 69, 0.1);
-      color: var(--success);
-      border-left: 4px solid var(--success);
-    }
-    
-    .error-message {
-      background: rgba(220, 53, 69, 0.1);
-      color: var(--danger);
-      border-left: 4px solid var(--danger);
-    }
-    
-    .info-message {
-      background: rgba(23, 162, 184, 0.1);
-      color: var(--info);
-      border-left: 4px solid var(--info);
-    }
-    
-    .message i {
-      font-size: 22px;
-    }
-    
-    .instructions {
-      background: var(--light);
-      border-radius: var(--border-radius);
-      padding: 20px;
-      margin-top: 30px;
-    }
-    
-    .instructions h3 {
-      margin-bottom: 15px;
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .instructions ul {
-      padding-right: 20px;
-      margin-bottom: 15px;
-    }
-    
-    .instructions li {
-      margin-bottom: 8px;
-    }
-    
-    .footer {
-      text-align: center;
-      padding: 20px;
-      color: var(--gray);
-      font-size: 14px;
-      margin-top: 30px;
-      border-top: 1px solid var(--light-gray);
-    }
-    
-    @media (max-width: 768px) {
-      .container {
-        padding: 20px;
-      }
-      
-      .upload-area {
-        padding: 20px;
-      }
-      
-      .header {
-        flex-direction: column;
-        gap: 20px;
-        text-align: center;
-      }
-    }
+    .upload-area { border: 2px dashed var(--primary); border-radius: var(--radius); padding: 26px; text-align: center; background: var(--surface); transition: var(--transition); cursor: pointer; margin-bottom: 14px; }
+    .upload-area:hover { background: var(--primary-soft); }
+    .upload-icon i { font-size: 44px; color: var(--primary); margin-bottom: 10px; }
+    .upload-text h3 { font-size: 16px; margin: 8px 0 4px; color: var(--dark); }
+    .upload-text p { color: var(--gray); font-size: 13px; }
+    .upload-area .form-group { max-width: 420px; margin: 14px auto 0; }
+    .instructions { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-top: 18px; box-shadow: var(--shadow); }
+    .instructions h3 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
+    .instructions p, .instructions li { color: var(--gray); font-size: 13.5px; line-height: 1.9; }
+    .instructions ul { padding-right: 20px; }
+    footer { text-align: center; color: var(--gray); font-size: 13px; margin-top: 20px; line-height: 1.8; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">
-        <i class="fas fa-file-import"></i>
-        <h1>واردات داده از فایل JSON</h1>
+<div class="container">
+    <header class="admin-header">
+      <div class="brand"><i class="fas fa-file-import"></i><span>واردات داده از فایل JSON</span></div>
+      <div class="header-actions">
+        <a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> پنل اصلی</a>
+        <a class="btn" href="logout.php"><i class="fas fa-sign-out-alt"></i> خروج</a>
       </div>
-      <div>
-        <a href="admin.php" class="btn btn-secondary">
-          <i class="fas fa-arrow-right"></i>
-          بازگشت به پنل مدیریت
-        </a>
-      </div>
-    </div>
+    </header>
 
     <?php if (!empty($message)): ?>
       <div class="message <?= $message_type === 'success' ? 'success-message' : 'error-message' ?>">

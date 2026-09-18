@@ -1,0 +1,126 @@
+/**
+ * انیمه موزیک — استایل مشترک و بهبود یافته سایت (نسخه ۱)
+ *
+ * این فایل بعد از استایل‌های داخلی هر صفحه لود می‌شود و چند هدف را دنبال می‌کند:
+ *   ۱) یکدست‌سازی ریتم و فواصل کلی در تمام صفحات
+ *   ۲) بهبودهای بصری (اسکرول‌بار، انتخاب متن، فوکوس، هدر، کارت‌ها)
+ *   ۳) بهینه‌سازی موبایل (safe-area آیفون، لمس بهتر، اسکرول نرم)
+ *   ۴) متحرک‌سازی‌های سبک و بدون وابستگی
+ *
+ * تمام رنگ‌ها از متغیرهای موجود در صفحات گرفته می‌شود تا با هر دو تم
+ * (روشن و تیره) سازگار بماند.
+ */
+
+/* ---------- پایه ---------- */
+html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+img {
+    max-width: 100%;
+}
+
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    font-family: inherit;
+}
+
+/* انتخاب متن به رنگ اصلی سایت */
+::selection {
+    background: var(--primary-color, #00ff6a);
+    color: #000;
+}
+
+/* اسکرول‌بار یکدست در کل سایت */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary, #0a0a0a);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color, #444);
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color, #00ff6a);
+}
+
+/* ---------- هدر ---------- */
+.header {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background-color: color-mix(in srgb, var(--bg-card, #1a1a1a) 85%, transparent);
+}
+
+/* ---------- کارت‌های محتوا ---------- */
+.content-card {
+    transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+                box-shadow 0.25s ease, filter 0.25s ease;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+}
+
+.content-card:hover {
+    filter: brightness(1.03);
+}
+
+.image-container img {
+    display: block;
+}
+
+/* ---------- نوار ناوبری پایین ---------- */
+.navbar {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.28);
+    border-top: 1px solid var(--border-color, transparent);
+    z-index: 1100;
+}
+
+.nav-item {
+    padding: 8px 0 calc(6px + env(safe-area-inset-bottom, 0));
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:active {
+    transform: scale(0.92);
+}
+
+/* ---------- حالت کم‌حرکت برای کاربران حساس ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ---------- موبایل‌های بدون هوم‌ایندیکیتور ---------- */
+@media (max-width: 480px) {
+    .horizontal-scroll {
+        scroll-padding-inline-start: 6px;
+    }
+}
+
+/* ---------- بهبود لمس روی نوارهای اسکرول افقی ---------- */
+.horizontal-scroll {
+    -webkit-overflow-scrolling: touch;
+}

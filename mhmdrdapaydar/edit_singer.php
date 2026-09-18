@@ -71,37 +71,29 @@ try {
   <title>ویرایش خواننده</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
-  <style>
-    /* استایل‌ها مشابه edit_anime.php */
-  </style>
+  <link rel="stylesheet" href="assets/admin.css?v=4">
 </head>
 <body>
-  <div class="container">
-    <h1><i class="fas fa-edit"></i> ویرایش خواننده</h1>
-    
+<div class="container">
+  <header class="admin-header">
+    <div class="brand"><i class="fas fa-edit"></i><span>ویرایش خواننده</span></div>
+    <div class="header-actions"><a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> بازگشت</a></div>
+  </header>
+
+  <div class="card" style="padding:20px;">
     <?php if (isset($error)): ?>
-      <div class="error"><?= $error ?></div>
+      <div class="message error-message"><i class="fas fa-exclamation-circle"></i><div><?= htmlspecialchars($error) ?></div></div>
     <?php endif; ?>
-    
+
     <form method="post">
-      <div class="form-group">
-        <label>نام خواننده:</label>
-        <input type="text" name="name" value="<?= htmlspecialchars($singer['name']) ?>" required>
+      <div class="form-grid">
+        <div class="form-group"><label>نام خواننده</label><input type="text" name="name" class="form-control" value="<?= htmlspecialchars($singer['name']) ?>" required></div>
+        <div class="form-group"><label>لینک تصویر (اختیاری)</label><input type="text" name="image_url" class="form-control" value="<?= htmlspecialchars($singer['image_url'] ?? '') ?>"></div>
       </div>
-      
-      <div class="form-group">
-        <label>لینک تصویر (اختیاری):</label>
-        <input type="text" name="image_url" value="<?= htmlspecialchars($singer['image_url'] ?? '') ?>">
-      </div>
-      
-      <div class="form-group">
-        <label>بیوگرافی (اختیاری):</label>
-        <textarea name="bio" rows="4"><?= htmlspecialchars($singer['bio'] ?? '') ?></textarea>
-      </div>
-      
-      <button type="submit">ذخیره تغییرات</button>
-      <a href="admin.php" style="margin-right: 15px;">بازگشت</a>
+      <div class="form-group"><label>بیوگرافی (اختیاری)</label><textarea name="bio" class="form-control" rows="4"><?= htmlspecialchars($singer['bio'] ?? '') ?></textarea></div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> ذخیره تغییرات</button>
     </form>
   </div>
+</div>
 </body>
 </html>

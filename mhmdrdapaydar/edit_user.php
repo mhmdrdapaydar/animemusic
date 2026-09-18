@@ -108,55 +108,37 @@ try {
   <title>ویرایش کاربر</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
-  <style>
-    /* استایل‌ها مشابه edit_anime.php */
-  </style>
+  <link rel="stylesheet" href="assets/admin.css?v=4">
 </head>
 <body>
-  <div class="container">
-    <h1><i class="fas fa-edit"></i> ویرایش کاربر</h1>
-    
+<div class="container">
+  <header class="admin-header">
+    <div class="brand"><i class="fas fa-edit"></i><span>ویرایش کاربر</span></div>
+    <div class="header-actions"><a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> بازگشت</a></div>
+  </header>
+
+  <div class="card" style="padding:20px;">
     <?php if (isset($error)): ?>
-      <div class="error"><?= $error ?></div>
+      <div class="message error-message"><i class="fas fa-exclamation-circle"></i><div><?= htmlspecialchars($error) ?></div></div>
     <?php endif; ?>
-    
+
     <form method="post">
-      <div class="form-group">
-        <label>نام:</label>
-        <input type="text" name="first_name" value="<?= htmlspecialchars($user['first_name']) ?>" required>
+      <div class="form-grid">
+        <div class="form-group"><label>نام</label><input type="text" name="first_name" class="form-control" value="<?= htmlspecialchars($user['first_name']) ?>" required></div>
+        <div class="form-group"><label>نام خانوادگی</label><input type="text" name="last_name" class="form-control" value="<?= htmlspecialchars($user['last_name']) ?>" required></div>
+        <div class="form-group"><label>نام کاربری</label><input type="text" name="username" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" required></div>
+        <div class="form-group"><label>رمز عبور جدید (اختیاری)</label><input type="password" name="password" class="form-control"></div>
+        <div class="form-group"><label>وضعیت اشتراک</label>
+          <select name="subscription_status" class="form-control">
+            <option value="free" <?= $user['subscription_status'] === 'free' ? 'selected' : '' ?>>عادی</option>
+            <option value="vip" <?= $user['subscription_status'] === 'vip' ? 'selected' : '' ?>>VIP</option>
+          </select>
+        </div>
+        <div class="form-group"><label>تاریخ پایان اشتراک (اختیاری)</label><input type="date" name="subscription_end_date" class="form-control" value="<?= htmlspecialchars($user['subscription_end_date']) ?>"></div>
       </div>
-      
-      <div class="form-group">
-        <label>نام خانوادگی:</label>
-        <input type="text" name="last_name" value="<?= htmlspecialchars($user['last_name']) ?>" required>
-      </div>
-      
-      <div class="form-group">
-        <label>نام کاربری:</label>
-        <input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>" required>
-      </div>
-      
-      <div class="form-group">
-        <label>رمز عبور جدید (اختیاری):</label>
-        <input type="password" name="password">
-      </div>
-      
-      <div class="form-group">
-        <label>وضعیت اشتراک:</label>
-        <select name="subscription_status">
-          <option value="free" <?= $user['subscription_status'] === 'free' ? 'selected' : '' ?>>عادی</option>
-          <option value="vip" <?= $user['subscription_status'] === 'vip' ? 'selected' : '' ?>>VIP</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label>تاریخ پایان اشتراک (اختیاری):</label>
-        <input type="date" name="subscription_end_date" value="<?= $user['subscription_end_date'] ?>">
-      </div>
-      
-      <button type="submit">ذخیره تغییرات</button>
-      <a href="admin.php" style="margin-right: 15px;">بازگشت</a>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> ذخیره تغییرات</button>
     </form>
   </div>
+</div>
 </body>
 </html>

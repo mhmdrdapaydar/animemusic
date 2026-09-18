@@ -1,9 +1,7 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once __DIR__ . '/includes/admin_auth.php';
+am_admin_guard();
 
 $ads_file = __DIR__ . '/../ads.json';
 $ads = [];
@@ -11,14 +9,15 @@ $ads = [];
 if (file_exists($ads_file)) {
     $ads = json_decode(file_get_contents($ads_file), true);
 }
+if (!is_array($ads)) $ads = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $ad_id = $_POST['ad_id'] ?? '';
-    
+
     if ($action && $ad_id) {
         foreach ($ads as &$ad) {
-            if ($ad['id'] === $ad_id) {
+            if (isset($ad['id']) && $ad['id'] === $ad_id) {
                 switch ($action) {
                     case 'accept':
                         $ad['status'] = 'accepted';
@@ -34,32 +33,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $ad['completed_notes'] = $_POST['completed_notes'] ?? '';
                         break;
                     case 'edit':
-                        $ad['name'] = $_POST['name'] ?? $ad['name'];
-                        $ad['description'] = $_POST['description'] ?? $ad['description'];
-                        $ad['url'] = $_POST['url'] ?? $ad['url'];
-                        $ad['aparat_url'] = $_POST['aparat_url'] ?? $ad['aparat_url'];
-                        if ($ad['status'] === 'completed') {
-                            $ad['completed_views'] = $_POST['completed_views'] ?? $ad['completed_views'] ?? 0;
-                            $ad['completed_notes'] = $_POST['completed_notes'] ?? $ad['completed_notes'] ?? '';
+                        if (isset($_POST['name'])) $ad['name'] = $_POST['name'];
+                        if (isset($_POST['description'])) $ad['description'] = $_POST['description'];
+                        if (isset($_POST['url'])) $ad['url'] = $_POST['url'];
+                        if (array_key_exists('aparat_url', $_POST)) $ad['aparat_url'] = $_POST['aparat_url'];
+                        if (isset($ad['status']) && $ad['status'] === 'completed') {
+                            if (array_key_exists('completed_views', $_POST)) $ad['completed_views'] = $_POST['completed_views'];
+                            if (array_key_exists('completed_notes', $_POST)) $ad['completed_notes'] = $_POST['completed_notes'];
                         }
                         break;
                     case 'delete':
-                        $ads = array_filter($ads, function($item) use ($ad_id) {
-                            return $item['id'] !== $ad_id;
-                        });
+                        $ads = array_values(array_filter($ads, function ($item) use ($ad_id) {
+                            return isset($item['id']) && $item['id'] !== $ad_id;
+                        }));
                         break;
                 }
                 break;
             }
         }
-        
+        unset($ad);
+
+        if ($action === 'delete') {
+            $ads = array_values($ads);
+        }
+
         file_put_contents($ads_file, json_encode(array_values($ads), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -67,619 +70,200 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>پنل مدیریت تبلیغات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    :root {
-      --primary-color: #a8e12e;
-      --secondary-color: #ffd700;
-      --accent-color: #ff6b00;
-      --bg-dark: #121212;
-      --card-bg: #1e1e1e;
-      --text-light: #f0f0f0;
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css?v=4">
+  <style>
+    .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+    .ad-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); border-right: 4px solid var(--primary); }
+    .ad-card h3 { font-size: 15px; color: var(--dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .ad-card h3 i { color: var(--primary); }
+    .ad-meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--gray); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .ad-detail { font-size: 13.5px; margin-bottom: 10px; line-height: 1.8; }
+    .ad-link { display: block; margin: 6px 0; color: var(--secondary); text-decoration: none; font-size: 13px; word-break: break-all; }
+    .ad-link:hover { text-decoration: underline; }
+    .status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-top: 8px; }
+    .st-pending { background: #fff4d6; color: #9a6b00; border: 1px solid #ffc107; }
+    .st-accepted { background: #e3f6ea; color: #1e7e34; border: 1px solid #28a745; }
+    .st-rejected { background: #fdecec; color: #bd2130; border: 1px solid #dc3545; }
+    .st-completed { background: #e6f0ff; color: #0056c9; border: 1px solid #007bff; }
+    .ad-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .date-note { font-size: 12px; color: var(--gray); margin-top: 8px; }
+    .done-box { margin-top: 10px; padding: 10px; background: var(--primary-soft); border-radius: 8px; font-size: 13px; }
+    .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .pill { background: var(--surface); border: 1px solid var(--border); color: var(--dark); padding: 7px 16px; border-radius: 30px; cursor: pointer; font-size: 13px; font-weight: 600; transition: var(--transition); font-family: inherit; }
+    .pill:hover { border-color: var(--primary); color: var(--primary-dark); }
+    .pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .modal-mask { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-card { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; padding: 22px; box-shadow: var(--shadow); position: relative; }
+    .modal-card h3 { font-size: 16px; margin-bottom: 16px; color: var(--dark); }
+    .close-x { position: absolute; top: 12px; left: 14px; font-size: 22px; color: var(--gray); cursor: pointer; background: none; border: none; }
+    .btn-soft { border: 1px solid transparent; background: var(--light-gray); color: var(--dark); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; font-family: inherit; flex: 1; min-width: 110px; transition: var(--transition); }
+    .btn-acc { background: #e3f6ea; color: #1e7e34; border-color: #c8ecd3; }
+    .btn-acc:hover { background: #d2efdb; }
+    .btn-rej { background: #fdecec; color: #bd2130; border-color: #f5c6cb; }
+    .btn-rej:hover { background: #f9d1d5; }
+    .btn-cmp { background: #e6f0ff; color: #0056c9; border-color: #c6e0ff; }
+    .btn-cmp:hover { background: #d3e5ff; }
+    .btn-edt { background: #fff4d6; color: #9a6b00; border-color: #ffe1a8; }
+    .btn-edt:hover { background: #ffecbf; }
+    .btn-del { background: var(--light-gray); color: var(--gray); border-color: var(--border); }
+    .btn-del:hover { background: #e3e7ec; color: var(--danger); }
+    @media (max-width: 640px) {
+      .ads-grid { grid-template-columns: 1fr; }
+      .ad-actions .btn-soft { flex: 1 1 100%; }
     }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      background: var(--bg-dark);
-      color: var(--text-light);
-      font-family: 'Vazirmatn', sans-serif;
-      line-height: 1.6;
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .header {
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-      padding: 12px 20px;
-      text-align: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      margin-bottom: 30px;
-      border-radius: 8px;
-    }
-    
-    .page-title {
-      text-align: center;
-      margin: 20px 0 30px;
-      font-size: 2rem;
-      color: var(--secondary-color);
-      padding: 0 15px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 15px;
-    }
-    
-    .status-filters {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
-    }
-    
-    .status-btn {
-      background: var(--card-bg);
-      border: 1px solid #444;
-      color: #ddd;
-      padding: 8px 20px;
-      border-radius: 30px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .status-btn.active {
-      background: var(--primary-color);
-      color: #000;
-      border-color: var(--primary-color);
-    }
-    
-    .ads-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 25px;
-      margin-top: 20px;
-    }
-    
-    .ad-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 25px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      border-left: 4px solid var(--primary-color);
-      position: relative;
-    }
-    
-    .ad-card h3 {
-      color: var(--primary-color);
-      margin-bottom: 15px;
-      font-size: 1.4rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .ad-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #333;
-    }
-    
-    .ad-detail {
-      margin-bottom: 15px;
-      line-height: 1.7;
-    }
-    
-    .ad-link {
-      display: block;
-      margin: 10px 0;
-      color: var(--accent-color);
-      text-decoration: none;
-      word-break: break-all;
-    }
-    
-    .ad-link:hover {
-      text-decoration: underline;
-    }
-    
-    .status-badge {
-      display: inline-block;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: bold;
-      margin-top: 10px;
-    }
-    
-    .status-pending {
-      background: rgba(255, 193, 7, 0.2);
-      color: #ffc107;
-      border: 1px solid #ffc107;
-    }
-    
-    .status-accepted {
-      background: rgba(40, 167, 69, 0.2);
-      color: #28a745;
-      border: 1px solid #28a745;
-    }
-    
-    .status-rejected {
-      background: rgba(220, 53, 69, 0.2);
-      color: #dc3545;
-      border: 1px solid #dc3545;
-    }
-    
-    .status-completed {
-      background: rgba(0, 123, 255, 0.2);
-      color: #007bff;
-      border: 1px solid #007bff;
-    }
-    
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-    
-    .action-btn {
-      flex: 1;
-      min-width: 120px;
-      padding: 8px 15px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.3s;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-    
-    .btn-accept {
-      background: rgba(40, 167, 69, 0.2);
-      color: #28a745;
-      border: 1px solid #28a745;
-    }
-    
-    .btn-accept:hover {
-      background: rgba(40, 167, 69, 0.3);
-    }
-    
-    .btn-reject {
-      background: rgba(220, 53, 69, 0.2);
-      color: #dc3545;
-      border: 1px solid #dc3545;
-    }
-    
-    .btn-reject:hover {
-      background: rgba(220, 53, 69, 0.3);
-    }
-    
-    .btn-complete {
-      background: rgba(0, 123, 255, 0.2);
-      color: #007bff;
-      border: 1px solid #007bff;
-    }
-    
-    .btn-complete:hover {
-      background: rgba(0, 123, 255, 0.3);
-    }
-    
-    .btn-edit {
-      background: rgba(255, 193, 7, 0.2);
-      color: #ffc107;
-      border: 1px solid #ffc107;
-    }
-    
-    .btn-edit:hover {
-      background: rgba(255, 193, 7, 0.3);
-    }
-    
-    .btn-delete {
-      background: rgba(108, 117, 125, 0.2);
-      color: #6c757d;
-      border: 1px solid #6c757d;
-    }
-    
-    .btn-delete:hover {
-      background: rgba(108, 117, 125, 0.3);
-    }
-    
-    .date-info {
-      font-size: 0.85rem;
-      color: #aaa;
-      margin-top: 10px;
-    }
-    
-    /* استایل‌های مودال */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-    
-    .modal-content {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 30px;
-      width: 100%;
-      max-width: 500px;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.5);
-      position: relative;
-    }
-    
-    .close-modal {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      font-size: 1.5rem;
-      color: #aaa;
-      cursor: pointer;
-    }
-    
-    .modal-title {
-      text-align: center;
-      margin-bottom: 20px;
-      color: var(--primary-color);
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #ddd;
-    }
-    
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 10px 15px;
-      border-radius: 6px;
-      background: #2d2d2d;
-      border: 1px solid #444;
-      color: #fff;
-      font-family: inherit;
-    }
-    
-    .form-group textarea {
-      min-height: 100px;
-    }
-    
-    .submit-btn {
-      background: var(--primary-color);
-      color: #000;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      width: 100%;
-      font-size: 1rem;
-    }
-    
-    .completed-info {
-      margin: 10px 0;
-      padding: 10px;
-      background: rgba(0, 123, 255, 0.1);
-      border-radius: 6px;
-      border-left: 3px solid #007bff;
-    }
-    
-    @media (max-width: 768px) {
-      .ads-grid {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      }
-      
-      .modal-content {
-        padding: 20px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .status-filters {
-        gap: 8px;
-      }
-      
-      .status-btn {
-        padding: 6px 15px;
-        font-size: 0.9rem;
-      }
-      
-      .ad-card {
-        padding: 20px;
-      }
-      
-      .actions {
-        flex-direction: column;
-      }
-      
-      .action-btn {
-        width: 100%;
-      }
-    }
-</style>
+  </style>
 </head>
 <body>
-  
-  <div class="header">
-    <h1>پنل مدیریت تبلیغات</h1>
-  </div>
-
-  <div class="container">
-    <h2 class="page-title">مدیریت درخواست‌های تبلیغات</h2>
-    
-    <div class="status-filters">
-      <button class="status-btn active" data-status="all">همه</button>
-      <button class="status-btn" data-status="pending">در انتظار بررسی</button>
-      <button class="status-btn" data-status="accepted">پذیرفته شده</button>
-      <button class="status-btn" data-status="rejected">رد شده</button>
-      <button class="status-btn" data-status="completed">تکمیل شده</button>
+<div class="container">
+  <header class="admin-header">
+    <div class="brand"><i class="fas fa-ad"></i><span>مدیریت درخواست‌های تبلیغات</span></div>
+    <div class="header-actions">
+      <a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> پنل اصلی</a>
+      <a class="btn" href="logout.php"><i class="fas fa-sign-out-alt"></i> خروج</a>
     </div>
-    
+  </header>
+
+  <div class="card" style="padding:20px;">
+    <div class="filter-pills">
+      <button class="pill active" data-status="all">همه (<?= count($ads) ?>)</button>
+      <button class="pill" data-status="pending">در انتظار بررسی</button>
+      <button class="pill" data-status="accepted">پذیرفته شده</button>
+      <button class="pill" data-status="rejected">رد شده</button>
+      <button class="pill" data-status="completed">تکمیل شده</button>
+    </div>
+
     <div class="ads-grid">
       <?php foreach ($ads as $ad): ?>
         <?php
-          $status_class = '';
-          $status_text = '';
-          switch ($ad['status']) {
-            case 'pending':
-              $status_class = 'status-pending';
-              $status_text = 'در انتظار بررسی';
-              break;
-            case 'accepted':
-              $status_class = 'status-accepted';
-              $status_text = 'پذیرفته شده';
-              break;
-            case 'rejected':
-              $status_class = 'status-rejected';
-              $status_text = 'رد شده';
-              break;
-            case 'completed':
-              $status_class = 'status-completed';
-              $status_text = 'تکمیل شده';
-              break;
-          }
+          $st = $ad['status'] ?? 'pending';
+          $map = [
+            'pending'   => ['st-pending', 'در انتظار بررسی'],
+            'accepted'  => ['st-accepted', 'پذیرفته شده'],
+            'rejected'  => ['st-rejected', 'رد شده'],
+            'completed' => ['st-completed', 'تکمیل شده'],
+          ];
+          list($stClass, $stText) = $map[$st] ?? $map['pending'];
         ?>
-        <div class="ad-card" data-status="<?= $ad['status'] ?>">
-          <h3><i class="fas fa-ad"></i> <?= htmlspecialchars($ad['name']) ?></h3>
-          
+        <div class="ad-card" data-status="<?= htmlspecialchars($st) ?>">
+          <h3><i class="fas fa-ad"></i> <?= htmlspecialchars($ad['name'] ?? 'بدون نام') ?></h3>
+
           <div class="ad-meta">
-            <div>
-              <strong>شناسه:</strong> <?= substr($ad['id'], 0, 8) ?>
-            </div>
-            <div>
-              <strong>تاریخ ثبت:</strong> <?= $ad['timestamp'] ?>
-            </div>
+            <span>شناسه: <?= htmlspecialchars(substr($ad['id'] ?? '', 0, 8)) ?></span>
+            <span>ثبت: <?= htmlspecialchars($ad['timestamp'] ?? '—') ?></span>
           </div>
-          
-          <div class="ad-detail">
-            <strong>توضیحات:</strong><br>
-            <?= nl2br(htmlspecialchars($ad['description'])) ?>
-          </div>
-          
-          <a href="<?= htmlspecialchars($ad['url']) ?>" class="ad-link" target="_blank">
-            <i class="fas fa-link"></i> <?= htmlspecialchars($ad['url']) ?>
-          </a>
-          
-          <a href="<?= htmlspecialchars($ad['aparat_url']) ?>" class="ad-link" target="_blank">
-            <i class="fab fa-youtube"></i> لینک آپارات
-          </a>
-          
-          <div class="status-badge <?= $status_class ?>">
-            <?= $status_text ?>
-          </div>
-          
-          <?php if (isset($ad['accepted_date'])): ?>
-            <div class="date-info">
-              <i class="fas fa-calendar-check"></i> تاریخ پذیرش: <?= $ad['accepted_date'] ?>
+
+          <div class="ad-detail"><strong>توضیحات:</strong><br><?= nl2br(htmlspecialchars($ad['description'] ?? '—')) ?></div>
+
+          <?php if (!empty($ad['url'])): ?>
+            <a href="<?= htmlspecialchars($ad['url']) ?>" class="ad-link" target="_blank" rel="noopener"><i class="fas fa-link"></i> <?= htmlspecialchars($ad['url']) ?></a>
+          <?php endif; ?>
+          <?php if (!empty($ad['aparat_url'])): ?>
+            <a href="<?= htmlspecialchars($ad['aparat_url']) ?>" class="ad-link" target="_blank" rel="noopener"><i class="fa-brands fa-youtube"></i> لینک آپارات</a>
+          <?php endif; ?>
+
+          <span class="status-pill <?= $stClass ?>"><?= $stText ?></span>
+
+          <?php if (!empty($ad['accepted_date'])): ?>
+            <div class="date-note"><i class="fas fa-calendar-check"></i> تاریخ پذیرش: <?= htmlspecialchars($ad['accepted_date']) ?></div>
+          <?php endif; ?>
+          <?php if (!empty($ad['completed_date'])): ?>
+            <div class="date-note"><i class="fas fa-calendar-check"></i> تاریخ تکمیل: <?= htmlspecialchars($ad['completed_date']) ?></div>
+          <?php endif; ?>
+          <?php if ($st === 'completed'): ?>
+            <div class="done-box"><strong>بازدید انجام شده:</strong> <?= htmlspecialchars($ad['completed_views'] ?? 0) ?>
+              <?php if (!empty($ad['completed_notes'])): ?><br><strong>توضیحات:</strong> <?= nl2br(htmlspecialchars($ad['completed_notes'])) ?><?php endif; ?>
             </div>
           <?php endif; ?>
-          
-          <?php if (isset($ad['completed_date'])): ?>
-            <div class="date-info">
-              <i class="fas fa-calendar-check"></i> تاریخ تکمیل: <?= $ad['completed_date'] ?>
-            </div>
-          <?php endif; ?>
-          
-          <?php if ($ad['status'] === 'completed' && isset($ad['completed_views'])): ?>
-            <div class="completed-info">
-              <strong>بازدید انجام شده:</strong> <?= $ad['completed_views'] ?>
-            </div>
-          <?php endif; ?>
-          
-          <?php if ($ad['status'] === 'completed' && isset($ad['completed_notes'])): ?>
-            <div class="completed-info">
-              <strong>توضیحات تکمیل:</strong><br>
-              <?= nl2br(htmlspecialchars($ad['completed_notes'])) ?>
-            </div>
-          <?php endif; ?>
-          
-          <div class="actions">
-            <form method="POST" style="width: 100%;">
-              <input type="hidden" name="ad_id" value="<?= $ad['id'] ?>">
-              
-              <?php if ($ad['status'] === 'pending'): ?>
-                <button type="submit" name="action" value="accept" class="action-btn btn-accept">
-                  <i class="fas fa-check"></i> پذیرش
-                </button>
-                <button type="submit" name="action" value="reject" class="action-btn btn-reject">
-                  <i class="fas fa-times"></i> رد درخواست
-                </button>
+
+          <div class="ad-actions">
+            <form method="POST" style="width:100%; display:contents;">
+              <input type="hidden" name="ad_id" value="<?= htmlspecialchars($ad['id'] ?? '') ?>">
+              <?php if ($st === 'pending'): ?>
+                <button type="submit" name="action" value="accept" class="btn-soft btn-acc"><i class="fas fa-check"></i> پذیرش</button>
+                <button type="submit" name="action" value="reject" class="btn-soft btn-rej"><i class="fas fa-times"></i> رد درخواست</button>
               <?php endif; ?>
-              
-              <?php if ($ad['status'] === 'accepted'): ?>
-                <button type="button" onclick="openCompleteModal('<?= $ad['id'] ?>')" class="action-btn btn-complete">
-                  <i class="fas fa-flag-checkered"></i> تکمیل شده
-                </button>
+              <?php if ($st === 'accepted'): ?>
+                <button type="button" onclick="openCompleteModal('<?= htmlspecialchars($ad['id'] ?? '') ?>')" class="btn-soft btn-cmp"><i class="fas fa-flag-checkered"></i> تکمیل شد</button>
               <?php endif; ?>
-              
-              <?php if ($ad['status'] === 'completed'): ?>
-                <button type="button" onclick="openEditModal(
-                  '<?= $ad['id'] ?>',
-                  `<?= htmlspecialchars($ad['name'], ENT_QUOTES) ?>`,
-                  `<?= htmlspecialchars($ad['description'], ENT_QUOTES) ?>`,
-                  `<?= htmlspecialchars($ad['url'], ENT_QUOTES) ?>`,
-                  `<?= htmlspecialchars($ad['aparat_url'], ENT_QUOTES) ?>`,
-                  '<?= $ad['completed_views'] ?? 0 ?>',
-                  `<?= htmlspecialchars($ad['completed_notes'] ?? '', ENT_QUOTES) ?>`
-                )" class="action-btn btn-edit">
-                  <i class="fas fa-edit"></i> ویرایش
-                </button>
+              <?php if ($st === 'completed'): ?>
+                <button type="button" onclick="openEditModal(<?= htmlspecialchars(json_encode($ad, JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)" class="btn-soft btn-edt"><i class="fas fa-edit"></i> ویرایش</button>
               <?php endif; ?>
-              
-              <button type="submit" name="action" value="delete" class="action-btn btn-delete">
-                <i class="fas fa-trash"></i> حذف
-              </button>
+              <button type="submit" name="action" value="delete" class="btn-soft btn-del" onclick="return confirm('حذف این تبلیغ؟')"><i class="fas fa-trash"></i> حذف</button>
             </form>
           </div>
         </div>
       <?php endforeach; ?>
-      
+
       <?php if (empty($ads)): ?>
-        <div class="ad-card">
-          <h3><i class="fas fa-info-circle"></i> هیچ تبلیغی یافت نشد</h3>
-          <p>در حال حاضر هیچ درخواست تبلیغاتی برای نمایش وجود ندارد.</p>
-        </div>
+        <div class="empty-state"><i class="fas fa-ad"></i><h3>هیچ تبلیغی یافت نشد</h3><p>درخواست تبلیغاتی جدیدی ثبت نشده است.</p></div>
       <?php endif; ?>
     </div>
   </div>
-  
-  <!-- مودال تکمیل تبلیغ -->
-  <div id="completeModal" class="modal">
-    <div class="modal-content">
-      <span class="close-modal" onclick="closeModal('completeModal')">&times;</span>
-      <h3 class="modal-title">تکمیل تبلیغ</h3>
-      <form method="POST" id="completeForm">
-        <input type="hidden" name="ad_id" id="complete_ad_id">
-        <input type="hidden" name="action" value="complete_with_details">
-        
-        <div class="form-group">
-          <label for="completed_views">تعداد بازدید انجام شده:</label>
-          <input type="number" id="completed_views" name="completed_views" required min="1">
-        </div>
-        
-        <div class="form-group">
-          <label for="completed_notes">توضیحات تکمیل تبلیغ:</label>
-          <textarea id="completed_notes" name="completed_notes" required></textarea>
-        </div>
-        
-        <button type="submit" class="submit-btn">ثبت اطلاعات</button>
-      </form>
-    </div>
+</div>
+
+<!-- مودال تکمیل تبلیغ -->
+<div id="completeModal" class="modal-mask">
+  <div class="modal-card">
+    <button type="button" class="close-x" onclick="closeModal('completeModal')">&times;</button>
+    <h3>تکمیل تبلیغ</h3>
+    <form method="POST" id="completeForm">
+      <input type="hidden" name="ad_id" id="complete_ad_id">
+      <input type="hidden" name="action" value="complete_with_details">
+      <div class="form-group"><label>تعداد بازدید انجام شده</label><input type="number" id="completed_views" name="completed_views" class="form-control" required min="1"></div>
+      <div class="form-group"><label>توضیحات تکمیل تبلیغ</label><textarea id="completed_notes" name="completed_notes" class="form-control" required></textarea></div>
+      <button type="submit" class="btn btn-primary btn-block">ثبت اطلاعات</button>
+    </form>
   </div>
-  
-  <!-- مودال ویرایش تبلیغ -->
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <span class="close-modal" onclick="closeModal('editModal')">&times;</span>
-      <h3 class="modal-title">ویرایش تبلیغ</h3>
-      <form method="POST" id="editForm">
-        <input type="hidden" name="ad_id" id="edit_ad_id">
-        <input type="hidden" name="action" value="edit">
-        
-        <div class="form-group">
-          <label for="edit_name">نام تبلیغ:</label>
-          <input type="text" id="edit_name" name="name" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="edit_description">توضیحات:</label>
-          <textarea id="edit_description" name="description" required></textarea>
-        </div>
-        
-        <div class="form-group">
-          <label for="edit_url">لینک وبسایت:</label>
-          <input type="url" id="edit_url" name="url" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="edit_aparat_url">لینک آپارات:</label>
-          <input type="url" id="edit_aparat_url" name="aparat_url" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="edit_completed_views">تعداد بازدید انجام شده:</label>
-          <input type="number" id="edit_completed_views" name="completed_views" required min="1">
-        </div>
-        
-        <div class="form-group">
-          <label for="edit_completed_notes">توضیحات تکمیل تبلیغ:</label>
-          <textarea id="edit_completed_notes" name="completed_notes" required></textarea>
-        </div>
-        
-        <button type="submit" class="submit-btn">ذخیره تغییرات</button>
-      </form>
-    </div>
+</div>
+
+<!-- مودال ویرایش تبلیغ -->
+<div id="editModal" class="modal-mask">
+  <div class="modal-card">
+    <button type="button" class="close-x" onclick="closeModal('editModal')">&times;</button>
+    <h3>ویرایش تبلیغ</h3>
+    <form method="POST" id="editForm">
+      <input type="hidden" name="ad_id" id="edit_ad_id">
+      <input type="hidden" name="action" value="edit">
+      <div class="form-group"><label>نام تبلیغ</label><input type="text" id="edit_name" name="name" class="form-control" required></div>
+      <div class="form-group"><label>توضیحات</label><textarea id="edit_description" name="description" class="form-control" required></textarea></div>
+      <div class="form-group"><label>لینک وبسایت</label><input type="url" id="edit_url" name="url" class="form-control" required></div>
+      <div class="form-group"><label>لینک آپارات</label><input type="url" id="edit_aparat_url" name="aparat_url" class="form-control" required></div>
+      <div class="form-group"><label>تعداد بازدید انجام شده</label><input type="number" id="edit_completed_views" name="completed_views" class="form-control" required min="1"></div>
+      <div class="form-group"><label>توضیحات تکمیل تبلیغ</label><textarea id="edit_completed_notes" name="completed_notes" class="form-control"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-block">ذخیره تغییرات</button>
+    </form>
   </div>
-  
-  <script>
-    // مدیریت فیلتر وضعیت‌ها
-    const statusBtns = document.querySelectorAll('.status-btn');
-    const adCards = document.querySelectorAll('.ad-card');
-    
-    statusBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const status = btn.dataset.status;
-        
-        statusBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        adCards.forEach(card => {
-          if (status === 'all') {
-            card.style.display = 'block';
-          } else {
-            card.style.display = card.dataset.status === status ? 'block' : 'none';
-          }
-        });
-      });
+</div>
+
+<script>
+  const pills = document.querySelectorAll('.pill');
+  const cards = document.querySelectorAll('.ad-card[data-status]');
+  pills.forEach(p => {
+    p.addEventListener('click', () => {
+      const s = p.dataset.status;
+      pills.forEach(b => b.classList.remove('active'));
+      p.classList.add('active');
+      cards.forEach(c => { c.style.display = (s === 'all' || c.dataset.status === s) ? '' : 'none'; });
     });
-    
-    // مدیریت مودال‌ها
-    function openCompleteModal(adId) {
-      document.getElementById('complete_ad_id').value = adId;
-      document.getElementById('completeModal').style.display = 'flex';
-    }
-    
-    function openEditModal(adId, name, description, url, aparatUrl, views, notes) {
-      document.getElementById('edit_ad_id').value = adId;
-      document.getElementById('edit_name').value = name;
-      document.getElementById('edit_description').value = description;
-      document.getElementById('edit_url').value = url;
-      document.getElementById('edit_aparat_url').value = aparatUrl;
-      document.getElementById('edit_completed_views').value = views;
-      document.getElementById('edit_completed_notes').value = notes;
-      document.getElementById('editModal').style.display = 'flex';
-    }
-    
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = 'none';
-    }
-    
-    // بستن مودال با کلیک خارج از آن
-    window.addEventListener('click', (e) => {
-      if (e.target.classList.contains('modal')) {
-        e.target.style.display = 'none';
-      }
-    });
-  </script>
+  });
+
+  function openCompleteModal(adId) {
+    document.getElementById('complete_ad_id').value = adId;
+    document.getElementById('completeModal').style.display = 'flex';
+  }
+  function openEditModal(ad) {
+    document.getElementById('edit_ad_id').value = ad.id || '';
+    document.getElementById('edit_name').value = ad.name || '';
+    document.getElementById('edit_description').value = ad.description || '';
+    document.getElementById('edit_url').value = ad.url || '';
+    document.getElementById('edit_aparat_url').value = ad.aparat_url || '';
+    document.getElementById('edit_completed_views').value = ad.completed_views || 0;
+    document.getElementById('edit_completed_notes').value = ad.completed_notes || '';
+    document.getElementById('editModal').style.display = 'flex';
+  }
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+  window.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('modal-mask')) e.target.style.display = 'none'; });
+</script>
 </body>
 </html>

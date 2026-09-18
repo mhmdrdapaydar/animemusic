@@ -78,103 +78,31 @@ try {
   <title>ویرایش انیمه</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
-  <style>
-    /* استایل‌ها مشابه admin.php */
-    body {
-      font-family: 'Vazirmatn', sans-serif;
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-      color: #212529;
-      direction: rtl;
-      padding: 20px;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    }
-    
-    h1 {
-      color: #00aa6f;
-      margin-bottom: 20px;
-    }
-    
-    .form-group {
-      margin-bottom: 15px;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-    
-    input[type="text"], textarea, select {
-      width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #ced4da;
-      border-radius: 10px;
-      font-family: inherit;
-      font-size: 15px;
-    }
-    
-    button {
-      background: #00aa6f;
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 16px;
-    }
-    
-    .error {
-      color: #dc3545;
-      margin-bottom: 15px;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/admin.css?v=4">
 </head>
 <body>
-  <div class="container">
-    <h1><i class="fas fa-edit"></i> ویرایش انیمه</h1>
-    
+<div class="container">
+  <header class="admin-header">
+    <div class="brand"><i class="fas fa-edit"></i><span>ویرایش انیمه</span></div>
+    <div class="header-actions"><a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> بازگشت</a></div>
+  </header>
+
+  <div class="card" style="padding:20px;">
     <?php if (isset($error)): ?>
-      <div class="error"><?= $error ?></div>
+      <div class="message error-message"><i class="fas fa-exclamation-circle"></i><div><?= htmlspecialchars($error) ?></div></div>
     <?php endif; ?>
-    
+
     <form method="post">
-      <div class="form-group">
-        <label>عنوان فارسی:</label>
-        <input type="text" name="title_fa" value="<?= htmlspecialchars($anime['title_fa']) ?>" required>
+      <div class="form-grid">
+        <div class="form-group"><label>عنوان فارسی</label><input type="text" name="title_fa" class="form-control" value="<?= htmlspecialchars($anime['title_fa']) ?>" required></div>
+        <div class="form-group"><label>عنوان انگلیسی</label><input type="text" name="title_en" class="form-control" value="<?= htmlspecialchars($anime['title_en']) ?>" required></div>
+        <div class="form-group"><label>لینک تصویر پست</label><input type="text" name="poster_image_url" class="form-control" value="<?= htmlspecialchars($anime['poster_image_url']) ?>" required></div>
       </div>
-      
-      <div class="form-group">
-        <label>عنوان انگلیسی:</label>
-        <input type="text" name="title_en" value="<?= htmlspecialchars($anime['title_en']) ?>" required>
-      </div>
-      
-      <div class="form-group">
-        <label>لینک تصویر پست:</label>
-        <input type="text" name="poster_image_url" value="<?= htmlspecialchars($anime['poster_image_url']) ?>" required>
-      </div>
-      
-      <div class="form-group">
-        <label>توضیحات:</label>
-        <textarea name="description" rows="4"><?= htmlspecialchars($anime['description'] ?? '') ?></textarea>
-      </div>
-      
-      <div class="form-group">
-        <label>لینک‌های مهم (فرمت: نام=لینک, نام۲=لینک۲):</label>
-        <textarea name="important_links" rows="2"><?= htmlspecialchars($anime['important_links'] ?? '') ?></textarea>
-      </div>
-      
-      <button type="submit">ذخیره تغییرات</button>
-      <a href="admin.php" style="margin-right: 15px;">بازگشت</a>
+      <div class="form-group"><label>توضیحات</label><textarea name="description" class="form-control" rows="4"><?= htmlspecialchars($anime['description'] ?? '') ?></textarea></div>
+      <div class="form-group"><label>لینک‌های مهم (فرمت: نام=لینک, نام۲=لینک۲)</label><textarea name="important_links" class="form-control" rows="2"><?= htmlspecialchars($anime['important_links'] ?? '') ?></textarea></div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> ذخیره تغییرات</button>
     </form>
   </div>
+</div>
 </body>
 </html>

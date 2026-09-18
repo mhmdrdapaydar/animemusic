@@ -1,9 +1,7 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once __DIR__ . '/includes/admin_auth.php';
+am_admin_guard();
 
 // مسیر دقیق فایل JSON (یک سطح بالاتر از پوشه admin)
 $dataFile = __DIR__ . '/../visits.json';
@@ -37,153 +35,53 @@ $monthlyData = array_slice($data['monthly'] ?? [], -6, 6, true);
   <title>پنل آمار بازدیدها</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="assets/admin.css?v=4">
   <style>
-    /* استایل‌ها مشابه کد قبلی با کمی تغییرات */
-    :root {
-      --primary: #00aa6f;
-      --primary-dark: #007d52;
-      --secondary: #4361ee;
-      --light: #f8f9fa;
-      --dark: #212529;
-      --gray: #6c757d;
-      --light-gray: #e9ecef;
-      --danger: #dc3545;
-      --success: #28a745;
-      --warning: #ffc107;
-      --info: #17a2b8;
-      --border-radius: 10px;
-      --box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      --transition: all 0.3s ease;
-    }
-    
-    body {
-      font-family: 'Vazir', 'Segoe UI', Tahoma, sans-serif;
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-      color: var(--dark);
-      direction: rtl;
-      min-height: 100vh;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .stat-card {
-      background: white;
-      border-radius: var(--border-radius);
-      padding: 20px;
-      box-shadow: var(--box-shadow);
-      text-align: center;
-      transition: var(--transition);
-    }
-    
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-    }
-    
-    .stat-value {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: var(--primary);
-      margin: 15px 0;
-    }
-    
-    .stat-title {
-      color: var(--gray);
-      font-size: 1.1rem;
-    }
-    
-    .chart-container {
-      background: white;
-      border-radius: var(--border-radius);
-      padding: 20px;
-      box-shadow: var(--box-shadow);
-      margin-bottom: 30px;
-    }
-    
-    .chart-title {
-      font-size: 1.3rem;
-      margin-bottom: 20px;
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .chart-title { font-size: 15px; margin-bottom: 16px; color: var(--dark); display: flex; align-items: center; gap: 8px; }
+    .chart-title i { color: var(--primary); }
+    .chart-box canvas { max-height: 320px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <div class="logo">
-        <i class="fas fa-chart-bar"></i>
-        <h1>پنل آمار بازدیدها</h1>
-      </div>
-      <div class="user-actions">
-        <a href="admin.php" class="btn btn-secondary">
-          <i class="fas fa-arrow-right"></i>
-          بازگشت به پنل
-        </a>
+    <header class="admin-header">
+      <div class="brand"><i class="fas fa-chart-bar"></i><span>پنل آمار بازدیدها</span></div>
+      <div class="header-actions">
+        <a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> پنل اصلی</a>
+        <a class="btn" href="logout.php"><i class="fas fa-sign-out-alt"></i> خروج</a>
       </div>
     </header>
-    
+
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-title">بازدید امروز</div>
-        <div class="stat-value"><?= number_format($dailyVisits) ?></div>
-        <div class="stat-meta"><?= $today ?></div>
+        <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($dailyVisits) ?></div><div class="stat-title">بازدید امروز · <?= $today ?></div></div>
       </div>
-      
       <div class="stat-card">
-        <div class="stat-title">بازدید این هفته</div>
-        <div class="stat-value"><?= number_format($weeklyVisits) ?></div>
-        <div class="stat-meta">هفته <?= explode('-', $thisWeek)[1] ?></div>
+        <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($weeklyVisits) ?></div><div class="stat-title">بازدید این هفته · هفته <?= explode('-', $thisWeek)[1] ?></div></div>
       </div>
-      
       <div class="stat-card">
-        <div class="stat-title">بازدید این ماه</div>
-        <div class="stat-value"><?= number_format($monthlyVisits) ?></div>
-        <div class="stat-meta"><?= $thisMonth ?></div>
+        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($monthlyVisits) ?></div><div class="stat-title">بازدید این ماه · <?= $thisMonth ?></div></div>
       </div>
-      
       <div class="stat-card">
-        <div class="stat-title">بازدید کل</div>
-        <div class="stat-value"><?= number_format($totalVisits) ?></div>
-        <div class="stat-meta">از ابتدا</div>
+        <div class="stat-icon"><i class="fas fa-database"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($totalVisits) ?></div><div class="stat-title">بازدید کل از ابتدا</div></div>
       </div>
     </div>
-    
-    <div class="chart-container">
-      <h3 class="chart-title">
-        <i class="fas fa-chart-line"></i>
-        آمار بازدید روزانه (7 روز اخیر)
-      </h3>
+
+    <div class="chart-box">
+      <h3 class="chart-title"><i class="fas fa-chart-line"></i> آمار بازدید روزانه (۷ روز اخیر)</h3>
       <canvas id="dailyChart"></canvas>
     </div>
-    
-    <div class="chart-container">
-      <h3 class="chart-title">
-        <i class="fas fa-chart-area"></i>
-        آمار بازدید هفتگی (4 هفته اخیر)
-      </h3>
+    <div class="chart-box">
+      <h3 class="chart-title"><i class="fas fa-chart-area"></i> آمار بازدید هفتگی (۴ هفته اخیر)</h3>
       <canvas id="weeklyChart"></canvas>
     </div>
-    
-    <div class="chart-container">
-      <h3 class="chart-title">
-        <i class="fas fa-chart-bar"></i>
-        آمار بازدید ماهانه (6 ماه اخیر)
-      </h3>
+    <div class="chart-box">
+      <h3 class="chart-title"><i class="fas fa-chart-bar"></i> آمار بازدید ماهانه (۶ ماه اخیر)</h3>
       <canvas id="monthlyChart"></canvas>
     </div>
   </div>

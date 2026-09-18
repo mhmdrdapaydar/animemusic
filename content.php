@@ -1097,6 +1097,10 @@ if (!empty($content['important_links'])) {
       }
     }
   </style>
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="assets/site.css?v=1" />
 </head>
 <body>
   

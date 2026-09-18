@@ -2,14 +2,13 @@
 /**
  * انیمه موزیک — موتور مرکزی وضعیت VIP
  *
- * *** اصلاح باگ اصلی ***
- * پیش‌تر وضعیت VIP فقط در صفحه‌هایی مثل index/profile/login بررسی و تمدید
- * می‌شد؛ نتیجه این بود که اگر اشتراک کاربر تمام می‌شد و کاربر وارد صفحه‌ای مثل
- * content.php یا playlist.php می‌شد، وضعیت vip در دیتابیس می‌ماند و کاربر
- * همچنان «ویژه» دیده می‌شد.
+ * *** رفع باگ اصلی ***
+ * پیش‌تر بررسی انقضای اشتراک فقط در چند صفحه انجام می‌شد؛ به همین دلیل اگر
+ * اشتراک کاربر تمام می‌شد و او وارد content.php یا playlist.php می‌شد،
+ * در دیتابیس هنوز vip بود و امکانات ویژه فعال می‌ماند.
  *
- * حالا تابع am_refresh_vip() در هر صفحه‌ای که به وضعیت کاربر نیاز دارد صدا زده
- * می‌شود و اگر تاریخ پایان گذشته باشد، SUBSCRIPTION_STATUS را به free برمی‌گرداند.
+ * حالا هر جایی که «وضعیت کاربر» خوانده شود، تابع am_is_vip() تاریخ پایان را
+ * بررسی می‌کند و در صورت گذشته بودن، همان لحظه رکورد را به free برمی‌گرداند.
  */
 
 if (file_exists(__DIR__ . '/db.php')) {
@@ -17,26 +16,33 @@ if (file_exists(__DIR__ . '/db.php')) {
 }
 
 /**
- * مقایسه‌ی صحیح تاریخ انقضای اشتراک (بر اساس «تاریخ» نه ساعت روز).
- * مقادیر: 1 = هنوز معتبر، 0 = امروز تمام می‌شود (تا پایان امروز معتبر)، -1 = منقضی شده
+ * مقایسه صحیح تاریخ انقضای اشتراک (بر اساس «تاریخ» نه ساعت روز).
+ * خروجی:
+ *   >= 0 : هنوز معتبر است (0 یعنی تا پایان امروز اعتبار دارد)
+ *   -1    : منقضی شده
  */
 function am_subscription_days_left($endDate) {
     if (empty($endDate)) {
         return -1;
     }
-    $end = new DateTime($endDate);
-    $today = new DateTime('today'); // ساعت ۰۰:۰۰ امروز
+    try {
+        $end = new DateTime($endDate);
+    } catch (Exception $e) {
+        return -1;
+    }
+    $today = new DateTime('today');
     if ($end < $today) {
-        return -1; // منقضی
+        return -1;
     }
     $diff = (int)$today->diff($end)->format('%r%a');
     return $diff < 0 ? -1 : $diff;
 }
 
 /**
- * اعلام اینکه کاربر باید از دید سیستم VIP حساب شود یا نه.
- * vip بدون تاریخ پایان = ویژهٔ نامحدود (توسط ادمین)
- * vip با تاریخ پایان = فقط اگر امروز <= تاریخ پایان
+ * تشخیص صحیح VIP بودن یک کاربر.
+ * - بدون تاریخ پایان = VIP نامحدود (توسط ادمین)
+ * - با تاریخ پایان = فقط تا روز مشخص
+ * - در صورت انقضا، فوراً رکورد را به free برمی‌گرداند (حالت سخت‌گیرانه)
  */
 function am_is_vip(array $user, $autoRefresh = true) {
     $status = $user['subscription_status'] ?? 'free';
@@ -47,8 +53,8 @@ function am_is_vip(array $user, $autoRefresh = true) {
 
     $end = $user['subscription_end_date'] ?? null;
 
-    // VIP نامحدود (ادمین تاریخ نگذاشته)
-    if (empty($end)) {
+    // VIP نامحدود
+    if ($end === null || $end === '') {
         return true;
     }
 
@@ -57,7 +63,7 @@ function am_is_vip(array $user, $autoRefresh = true) {
         return true;
     }
 
-    // منقضی شده — اگر اجازه داشته باشیم، وضعیت را در دیتابیس اصلاح می‌کنیم
+    // منقضی — اصلاح فوری در دیتابیس (تا دیگر هیچ صفحه‌ای کاربر را VIP نبیند)
     if ($autoRefresh) {
         am_demote_expired_vip((int)($user['id'] ?? 0));
     }
@@ -65,7 +71,8 @@ function am_is_vip(array $user, $autoRefresh = true) {
 }
 
 /**
- * کاربر منقضی‌شده را از VIP به free برمی‌گرداند و session را به‌روز می‌کند.
+ * تغییر وضعیت یک کاربر منقضی از vip به free.
+ * شرط subscription_status='vip' در UPDATE مانع تداخل‌های همزمان می‌شود.
  */
 function am_demote_expired_vip($userId) {
     if (!$userId) {
@@ -78,16 +85,15 @@ function am_demote_expired_vip($userId) {
     } catch (PDOException $e) {
         error_log('[VIP] demote error: ' . $e->getMessage());
     }
-    // به‌روزرسانی session برای ماندگاری فوری تغییر
+    // هماهنگ‌سازی session
     if (isset($_SESSION['subscription_status'])) {
         $_SESSION['subscription_status'] = 'free';
     }
 }
 
 /**
- * دریافت کاربر جاری (لاگین‌کرده) به همراه اعمال منطق انقضا.
- * اگر کاربر vip منقضی داشته باشد، همین‌جا به free تبدیل می‌شود.
- * خروجی: آرایه کاربر یا null
+ * دریافت کاربر جاری (واردشده) به همراه اجرای منطق انقضا.
+ * به خاطر حافظه‌ی استاتیک، در هر درخواست فقط یک بار کاربر خوانده می‌شود.
  */
 function am_current_user() {
     static $cached = null;
@@ -108,9 +114,8 @@ function am_current_user() {
         if (!$user) {
             return $cached;
         }
-        // اصلاح خودکار وضعیت در صورت انقضا
+        // اصلاح خودکار (و دائمی) در صورت انقضا
         $user['subscription_status'] = am_is_vip($user) ? 'vip' : 'free';
-        // هماهنگ‌سازی session
         $_SESSION['subscription_status'] = $user['subscription_status'];
         $cached = $user;
     } catch (PDOException $e) {

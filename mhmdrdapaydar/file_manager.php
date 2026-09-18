@@ -1,16 +1,16 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+require_once __DIR__ . '/includes/admin_auth.php';
+am_admin_guard();
+
+$page_title = 'مدیریت فایل‌ها';
 
 // مسیر ریشه پروژه
 $root_path = realpath(__DIR__ . '/../');
 $current_path = isset($_GET['path']) ? realpath($root_path . '/' . $_GET['path']) : $root_path;
 
 // اطمینان از اینکه مسیر جاری در محدوده مجاز است
-if (strpos($current_path, $root_path) !== 0) {
+if ($current_path === false || strpos($current_path, $root_path) !== 0) {
     $current_path = $root_path;
 }
 
@@ -20,7 +20,7 @@ if (isset($_GET['action'])) {
         case 'delete':
             if (isset($_GET['file'])) {
                 $file_path = realpath($current_path . '/' . $_GET['file']);
-                if (strpos($file_path, $root_path) === 0 && file_exists($file_path)) {
+                if ($file_path && strpos($file_path, $root_path) === 0 && file_exists($file_path)) {
                     if (is_dir($file_path)) {
                         rmdir($file_path);
                     } else {
@@ -31,25 +31,23 @@ if (isset($_GET['action'])) {
                 }
             }
             break;
-            
+
         case 'create_folder':
             if (isset($_POST['folder_name'])) {
                 $folder_name = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['folder_name']);
                 if (!empty($folder_name)) {
-                    mkdir($current_path . '/' . $folder_name);
+                    @mkdir($current_path . '/' . $folder_name);
                     header("Location: file_manager.php?path=" . urlencode(str_replace($root_path, '', $current_path)));
                     exit;
                 }
             }
             break;
-            
+
         case 'upload':
-            if (isset($_FILES['file'])) {
-                $file_name = $_FILES['file']['name'];
-                $file_tmp = $_FILES['file']['tmp_name'];
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                $file_name = basename($_FILES['file']['name']);
                 $file_path = $current_path . '/' . $file_name;
-                
-                if (move_uploaded_file($file_tmp, $file_path)) {
+                if (move_uploaded_file($_FILES['file']['tmp_name'], $file_path)) {
                     header("Location: file_manager.php?path=" . urlencode(str_replace($root_path, '', $current_path)));
                     exit;
                 }
@@ -69,11 +67,15 @@ if (is_dir($current_path)) {
                 'name' => $item,
                 'path' => $file_path,
                 'is_dir' => is_dir($file_path),
-                'size' => is_dir($file_path) ? '-' : format_size(filesize($file_path)),
+                'size' => is_dir($file_path) ? '-' : format_size((int)@filesize($file_path)),
                 'modified' => date('Y-m-d H:i:s', filemtime($file_path))
             ];
         }
     }
+    usort($files, function ($a, $b) {
+        if ($a['is_dir'] !== $b['is_dir']) return $a['is_dir'] ? -1 : 1;
+        return strcmp($a['name'], $b['name']);
+    });
 }
 
 // تابع فرمت‌بندی اندازه فایل
@@ -92,222 +94,129 @@ $relative_path = str_replace($root_path, '', $current_path);
 if (empty($relative_path)) {
     $relative_path = '/';
 }
+$escaped_rel = ltrim($relative_path, '/');
 ?>
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدیریت فایل‌ها</title>
+  <title><?= htmlspecialchars($page_title) ?></title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/admin.css?v=4">
   <style>
-    body {
-      font-family: 'Vazirmatn', sans-serif;
-      background: #f8f9fa;
-      color: #212529;
-      direction: rtl;
-      padding: 20px;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    }
-    
-    h1 {
-      color: #00aa6f;
-      margin-bottom: 20px;
-    }
-    
-    .breadcrumb {
-      margin-bottom: 20px;
-      padding: 10px;
-      background: #e9ecef;
-      border-radius: 5px;
-    }
-    
-    .breadcrumb a {
-      color: #00aa6f;
-      text-decoration: none;
-    }
-    
-    .file-list {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    
-    .file-list th, .file-list td {
-      padding: 12px;
-      text-align: right;
-      border-bottom: 1px solid #dee2e6;
-    }
-    
-    .file-list th {
-      background: #00aa6f;
-      color: white;
-    }
-    
-    .file-list tr:hover {
-      background: #f8f9fa;
-    }
-    
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-      color: white;
-      background: #00aa6f;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    
-    .btn-danger {
-      background: #dc3545;
-    }
-    
-    .btn i {
-      font-size: 14px;
-    }
-    
-    .upload-form {
-      margin-top: 20px;
-      padding: 20px;
-      background: #e9ecef;
-      border-radius: 5px;
-    }
+    .crumbs { display:flex; align-items:center; flex-wrap:wrap; gap:4px; font-size:14px; margin-bottom:16px; }
+    .crumbs a { color: var(--primary); text-decoration:none; }
+    .crumbs a:hover { text-decoration:underline; }
+    .file-icon.folder { color:#ffb020; }
+    .file-icon.file { color:#8a97a5; }
+    .modal-mask { display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:1000; align-items:center; justify-content:center; padding:16px; }
+    .modal-card { background:var(--surface); border-radius:var(--radius); width:100%; max-width:420px; padding:20px; box-shadow:var(--shadow); }
+    .modal-card h3 { font-size:16px; margin-bottom:14px; }
+    .modal-actions { display:flex; gap:8px; margin-top:14px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1><i class="fas fa-folder-open"></i> مدیریت فایل‌ها</h1>
-    
-    <div class="breadcrumb">
-      <a href="file_manager.php">صفحه اصلی</a>
+<div class="container">
+  <header class="admin-header">
+    <div class="brand"><i class="fas fa-folder-open"></i><span>مدیریت فایل‌ها</span></div>
+    <div class="header-actions">
+      <a class="btn" href="admin.php"><i class="fas fa-arrow-right"></i> پنل اصلی</a>
+      <a class="btn" href="logout.php"><i class="fas fa-sign-out-alt"></i> خروج</a>
+    </div>
+  </header>
+
+  <div class="card" style="padding:20px;">
+    <div class="crumbs">
+      <a href="file_manager.php"><i class="fas fa-home"></i> ریشه</a>
       <?php
-      $path_parts = explode('/', trim($relative_path, '/'));
+      $path_parts = explode('/', trim($escaped_rel, '/'));
       $current_path_link = '';
       foreach ($path_parts as $part) {
           if (!empty($part)) {
               $current_path_link .= '/' . $part;
-              echo ' / <a href="file_manager.php?path=' . urlencode($current_path_link) . '">' . $part . '</a>';
+              echo '<span>/</span> <a href="file_manager.php?path=' . urlencode($current_path_link) . '">' . htmlspecialchars($part) . '</a>';
           }
       }
       ?>
     </div>
-    
-    <div class="actions">
-      <button type="button" onclick="document.getElementById('createFolderModal').style.display='block'" class="btn">
-        <i class="fas fa-folder-plus"></i> ایجاد پوشه جدید
-      </button>
-      
-      <button type="button" onclick="document.getElementById('uploadModal').style.display='block'" class="btn">
-        <i class="fas fa-upload"></i> آپلود فایل
-      </button>
-      
-      <a href="admin.php" class="btn">
-        <i class="fas fa-arrow-left"></i> بازگشت به پنل
-      </a>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+      <button type="button" onclick="document.getElementById('createFolderModal').style.display='flex'" class="btn btn-primary"><i class="fas fa-folder-plus"></i> پوشه جدید</button>
+      <button type="button" onclick="document.getElementById('uploadModal').style.display='flex'" class="btn btn-primary"><i class="fas fa-upload"></i> آپلود فایل</button>
     </div>
-    
-    <table class="file-list">
+
+    <div class="table-wrap"><div class="scroll-x"><table class="data-table">
       <thead>
-        <tr>
-          <th>نام</th>
-          <th>نوع</th>
-          <th>اندازه</th>
-          <th>تاریخ تغییر</th>
-          <th>عملیات</th>
-        </tr>
+        <tr><th>نام</th><th>نوع</th><th>اندازه</th><th>تاریخ تغییر</th><th>عملیات</th></tr>
       </thead>
       <tbody>
         <?php if (!empty($files)): ?>
           <?php foreach ($files as $file): ?>
             <tr>
-              <td>
+              <td style="white-space:nowrap;">
                 <?php if ($file['is_dir']): ?>
-                  <i class="fas fa-folder" style="color: #ffc107;"></i>
-                  <a href="file_manager.php?path=<?= urlencode($relative_path . '/' . $file['name']) ?>">
+                  <i class="fas fa-folder file-icon folder"></i>
+                  <a href="file_manager.php?path=<?= urlencode($escaped_rel . '/' . $file['name']) ?>" style="font-weight:600; color:var(--dark);">
                     <?= htmlspecialchars($file['name']) ?>
                   </a>
                 <?php else: ?>
-                  <i class="fas fa-file" style="color: #6c757d;"></i>
+                  <i class="fas fa-file file-icon file"></i>
                   <?= htmlspecialchars($file['name']) ?>
                 <?php endif; ?>
               </td>
               <td><?= $file['is_dir'] ? 'پوشه' : 'فایل' ?></td>
-              <td><?= $file['size'] ?></td>
-              <td><?= $file['modified'] ?></td>
-              <td>
+              <td style="white-space:nowrap;"><?= $file['size'] ?></td>
+              <td style="white-space:nowrap;"><?= $file['modified'] ?></td>
+              <td style="white-space:nowrap;">
                 <?php if (!$file['is_dir']): ?>
-                  <a href="<?= str_replace($root_path, '', $file['path']) ?>" target="_blank" class="btn">
-                    <i class="fas fa-download"></i> دانلود
-                  </a>
+                  <a href="<?= htmlspecialchars(str_replace($root_path, '', $file['path'])) ?>" target="_blank" class="btn btn-sm btn-outline btn-secondary"><i class="fas fa-download"></i> دانلود</a>
                 <?php endif; ?>
-                <a href="file_manager.php?path=<?= urlencode($relative_path) ?>&action=delete&file=<?= urlencode($file['name']) ?>" 
-                   onclick="return confirm('آیا مطمئن هستید؟')" class="btn btn-danger">
-                  <i class="fas fa-trash"></i> حذف
-                </a>
+                <a href="file_manager.php?path=<?= urlencode($escaped_rel) ?>&action=delete&file=<?= urlencode($file['name']) ?>" onclick="return confirm('حذف «<?= htmlspecialchars($file['name']) ?>»؟')" class="btn btn-sm btn-outline btn-delete"><i class="fas fa-trash"></i> حذف</a>
               </td>
             </tr>
           <?php endforeach; ?>
         <?php else: ?>
-          <tr>
-            <td colspan="5" style="text-align: center;">پوشه خالی است</td>
-          </tr>
+          <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--gray);">پوشه خالی است</td></tr>
         <?php endif; ?>
       </tbody>
-    </table>
-    
-    <!-- مودال ایجاد پوشه -->
-    <div id="createFolderModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; width: 400px;">
-        <h2>ایجاد پوشه جدید</h2>
-        <form method="post" action="file_manager.php?path=<?= urlencode($relative_path) ?>&action=create_folder">
-          <div style="margin-bottom: 15px;">
-            <label>نام پوشه:</label>
-            <input type="text" name="folder_name" required style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 5px;">
-          </div>
-          <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn">ایجاد</button>
-            <button type="button" onclick="document.getElementById('createFolderModal').style.display='none'" class="btn btn-danger">لغو</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    
-    <!-- مودال آپلود فایل -->
-    <div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; width: 400px;">
-        <h2>آپلود فایل</h2>
-        <form method="post" action="file_manager.php?path=<?= urlencode($relative_path) ?>&action=upload" enctype="multipart/form-data">
-          <div style="margin-bottom: 15px;">
-            <label>انتخاب فایل:</label>
-            <input type="file" name="file" required style="width: 100%; padding: 8px;">
-          </div>
-          <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn">آپلود</button>
-            <button type="button" onclick="document.getElementById('uploadModal').style.display='none'" class="btn btn-danger">لغو</button>
-          </div>
-        </form>
-      </div>
+    </table></div></div>
+  </div>
+
+  <!-- مودال ایجاد پوشه -->
+  <div id="createFolderModal" class="modal-mask">
+    <div class="modal-card">
+      <h3><i class="fas fa-folder-plus"></i> ایجاد پوشه جدید</h3>
+      <form method="post" action="file_manager.php?path=<?= urlencode($escaped_rel) ?>&action=create_folder">
+        <div class="form-group">
+          <label>نام پوشه</label>
+          <input type="text" name="folder_name" class="form-control" required pattern="[a-zA-Z0-9_-]+">
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">ایجاد</button>
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('createFolderModal').style.display='none'">لغو</button>
+        </div>
+      </form>
     </div>
   </div>
+
+  <!-- مودال آپلود فایل -->
+  <div id="uploadModal" class="modal-mask">
+    <div class="modal-card">
+      <h3><i class="fas fa-upload"></i> آپلود فایل</h3>
+      <form method="post" action="file_manager.php?path=<?= urlencode($escaped_rel) ?>&action=upload" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>انتخاب فایل</label>
+          <input type="file" name="file" class="form-control" required>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">آپلود</button>
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('uploadModal').style.display='none'">لغو</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 </body>
 </html>
