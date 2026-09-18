@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/headless.php';
 // ذخیره اطلاعات در فایل JSON هنگام ثبت فرم
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
     $ad_data = [
