@@ -1,0 +1,22 @@
+# ============================================================
+#  انیمه موزیک — تنظیمات سرور (Apache .htaccess)
+#  این فایل خطاهای سرور را به صفحات اختصاصی خود سایت هدایت می‌کند
+#  تا کاربران هرگز به صفحات پیش‌فرض هاست (یا سایتی دیگر) نروند.
+# ============================================================
+
+# --- صفحات خطای سفارشی ---
+ErrorDocument 400 /assets/Eror/400.html
+ErrorDocument 401 /assets/Eror/401.html
+ErrorDocument 403 /assets/Eror/403.html
+ErrorDocument 404 /assets/Eror/404.html
+ErrorDocument 500 /assets/Eror/500.html
+ErrorDocument 503 /assets/Eror/503.html
+
+# --- جلوگیری از نمایش لیست پوشه‌ها ---
+Options -Indexes
+
+# --- صفحه‌ی پیش‌فرض دایرکتوری ---
+DirectoryIndex index.php index.html
+
+# --- رمزنگاری کاراکترها ---
+AddDefaultCharset UTF-8
