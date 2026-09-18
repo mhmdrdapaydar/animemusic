@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>در حال ساخت شاهکار | Coming Soon</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --gold: #FFD700;
+            --dark-gold: #daa520;
+            --black: #000000;
+            --rich-black: #0A0A0A;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Yekan', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: var(--gold);
+            height: 100vh;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+        
+        .cosmic-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .black-hole {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, 
+                          transparent 0%, 
+                          transparent 60%, 
+                          var(--black) 70%,
+                          var(--rich-black) 100%);
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.3);
+            animation: blackHolePulse 8s infinite alternate;
+        }
+        
+        @keyframes blackHolePulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+        }
+        
+        .gold-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 350px;
+            height: 350px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--gold);
+            animation: rotateRing 20s linear infinite;
+        }
+        
+        @keyframes rotateRing {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .particle {
+            position: absolute;
+            background-color: var(--gold);
+            border-radius: 50%;
+            filter: blur(1px);
+            animation: spiralFall linear infinite;
+        }
+        
+        @keyframes spiralFall {
+            0% { 
+                transform: rotate(0deg) translateX(200px) rotate(0deg);
+                opacity: 1;
+            }
+            100% { 
+                transform: rotate(720deg) translateX(200px) rotate(-720deg);
+                opacity: 0;
+                top: 50%;
+                left: 50%;
+            }
+        }
+        
+        .main-content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            backdrop-filter: blur(2px);
+        }
+        
+        .logo {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 3rem;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            animation: logoFloat 6s ease-in-out infinite;
+        }
+        
+        .logo::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                transparent 0deg, 
+                transparent 180deg, 
+                var(--gold) 180deg, 
+                var(--gold) 270deg, 
+                transparent 270deg, 
+                transparent 360deg
+            );
+            animation: rotateBorder 4s linear infinite;
+        }
+        
+        @keyframes rotateBorder {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .logo-inner {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: var(--rich-black);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+        
+        .logo i {
+            font-size: 5rem;
+            background: linear-gradient(to bottom, var(--gold), var(--dark-gold));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: hammerBeat 4s infinite;
+        }
+        
+        @keyframes hammerBeat {
+            0%, 40%, 80%, 100% { transform: scale(1); }
+            20%, 60% { transform: scale(1.1); }
+        }
+        
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, var(--gold), var(--dark-gold), var(--gold));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            letter-spacing: 3px;
+            position: relative;
+            animation: textGlow 3s infinite alternate;
+        }
+        
+        @keyframes textGlow {
+            0% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+            100% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.7); }
+        }
+        
+        .tagline {
+            font-size: 1.8rem;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+            max-width: 700px;
+            position: relative;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+        }
+        
+        .tagline::after {
+            content: "";
+            display: block;
+            width: 150px;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--gold), transparent);
+            margin: 2rem auto;
+            animation: linePulse 3s infinite;
+        }
+        
+        @keyframes linePulse {
+            0%, 100% { opacity: 0.5; width: 100px; }
+            50% { opacity: 1; width: 200px; }
+        }
+        
+        .construction-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .construction-item {
+            background: rgba(10, 10, 10, 0.5);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            min-width: 150px;
+        }
+        
+        .construction-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.2);
+            border-color: var(--gold);
+        }
+        
+        .construction-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(to bottom, var(--gold), var(--dark-gold));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .construction-text {
+            font-size: 1rem;
+            color: rgba(255, 215, 0, 0.9);
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .social-link {
+            color: var(--gold);
+            font-size: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .social-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gold);
+            transition: width 0.3s ease;
+        }
+        
+        .social-link:hover {
+            color: white;
+            text-shadow: 0 0 15px var(--gold);
+        }
+        
+        .social-link:hover::after {
+            width: 100%;
+        }
+        
+        .floating-tools {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .tool {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.3;
+            animation: floatTool linear infinite;
+        }
+        
+        @keyframes floatTool {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translate(100px, 100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .tagline {
+                font-size: 1.2rem;
+            }
+            
+            .construction-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .logo {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .logo-inner {
+                width: 110px;
+                height: 110px;
+            }
+            
+            .logo i {
+                font-size: 3.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cosmic-container">
+        <div class="black-hole"></div>
+        <div class="gold-ring"></div>
+        <div id="particles"></div>
+    </div>
+    
+    <div class="floating-tools" id="floatingTools"></div>
+    
+    <div class="main-content">
+        <div class="logo">
+            <div class="logo-inner">
+                <i class="fas fa-hammer"></i>
+            </div>
+        </div>
+        
+        <h1>در حال ساخت شاهکار</h1>
+        
+        <p class="tagline">
+            ما در حال خلق یک تجربه منحصر به فرد هستیم. این بخش از سایت به زودی با طراحی خیره‌کننده و امکانات فوق‌العاده راه‌اندازی خواهد شد.
+        </p>
+        
+        
+    </div>
+
+    <script>
+        // ایجاد ذرات در حال سقوط به سمت سیاهچاله
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                const size = Math.random() * 5 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // موقعیت تصادفی در صفحه
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.top = `${Math.random() * 100}vh`;
+                
+                // مدت زمان انیمیشن تصادفی
+                const duration = Math.random() * 10 + 5;
+                particle.style.animationDuration = `${duration}s`;
+                
+                // تاخیر تصادفی
+                const delay = Math.random() * 10;
+                particle.style.animationDelay = `${delay}s`;
+                
+                container.appendChild(particle);
+            }
+        }
+        
+        // ایجاد ابزارهای شناور
+        function createFloatingTools() {
+            const container = document.getElementById('floatingTools');
+            const toolCount = 15;
+            const tools = ['🛠️', '🔧', '⚙️', '🔨', '🏗️', '📐', '🧰', '🔩', '⛏️', '🪚'];
+            
+            for (let i = 0; i < toolCount; i++) {
+                const tool = document.createElement('div');
+                tool.classList.add('tool');
+                tool.textContent = tools[Math.floor(Math.random() * tools.length)];
+                
+                const size = Math.random() * 30 + 20;
+                tool.style.fontSize = `${size}px`;
+                
+                // موقعیت تصادفی
+                tool.style.left = `${Math.random() * 100}vw`;
+                tool.style.top = `${-100}px`;
+                
+                // مدت زمان و تاخیر
+                const duration = Math.random() * 20 + 10;
+                tool.style.animationDuration = `${duration}s`;
+                
+                const delay = Math.random() * 15;
+                tool.style.animationDelay = `${delay}s`;
+                
+                container.appendChild(tool);
+            }
+        }
+        
+        // اجرای اسکریپت‌ها پس از لود صفحه
+        window.addEventListener('load', () => {
+            createParticles();
+            createFloatingTools();
+            
+            // ایجاد ذرات جدید هر 5 ثانیه
+            setInterval(() => {
+                const particles = document.querySelectorAll('.particle');
+                if (particles.length < 100) {
+                    createParticles();
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

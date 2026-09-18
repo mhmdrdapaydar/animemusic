@@ -1,0 +1,1755 @@
+<?php
+session_start();
+include_once 'counter_ads.php';
+// تنظیمات کش برای جلوگیری از ذخیره‌سازی نسخه‌های قدیمی
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+// اعتبارسنجی پارامتر ID
+if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
+    http_response_code(404);
+    die("محتوا یافت نشد");
+}
+
+$id = (int)$_GET['id'];
+
+// اتصال به دیتابیس‌ها با مدیریت خطا
+try {
+    $db_content = new PDO('sqlite:db/content.db');
+    $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db_content->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+    
+    $db_users = new PDO('sqlite:db/users.db');
+    $db_users->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    error_log("DB Error: " . $e->getMessage());
+    die("خطا در اتصال به پایگاه داده");
+}
+
+// بررسی وضعیت تم کاربر
+$isDarkMode = false;
+if (isset($_COOKIE['dark_mode'])) {
+    $isDarkMode = $_COOKIE['dark_mode'] === 'true';
+}
+
+// بررسی وضعیت کاربر (VIP یا عادی) از session
+$isVIP = false;
+$userData = null;
+$userId = null;
+if (isset($_SESSION['user_id'])) {
+    $userId = (int)$_SESSION['user_id'];
+    $stmt = $db_users->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($userData && $userData['subscription_status'] === 'vip') {
+        $isVIP = true;
+    }
+}
+
+// بررسی وضعیت علاقه‌مندی و پلی‌لیست‌ها
+$isFavorite = false;
+$userPlaylists = [];
+
+if ($userId) {
+    // بررسی آیا این محتوا در علاقه‌مندی‌های کاربر است
+    $stmt = $db_users->prepare("SELECT * FROM user_favorites WHERE user_id = ? AND content_id = ?");
+    $stmt->execute([$userId, $id]);
+    $isFavorite = $stmt->fetch() !== false;
+    
+    // دریافت پلی‌لیست‌های کاربر
+    $stmt = $db_users->prepare("SELECT * FROM playlists WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt->execute([$userId]);
+    $userPlaylists = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// دریافت محتوا از دیتابیس
+try {
+    $stmt = $db_content->prepare("
+        SELECT ac.*, asr.title_fa, asr.title_en, asr.description, asr.important_links, 
+               mt.name as music_type, mt.id as music_type_id
+        FROM anime_contents ac 
+        JOIN anime_series asr ON ac.anime_id = asr.id 
+        JOIN music_types mt ON ac.music_type_id = mt.id 
+        WHERE ac.id = ?
+    ");
+    $stmt->execute([$id]);
+    $content = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$content) {
+        http_response_code(404);
+        die("محتوا وجود ندارد");
+    }
+    
+    // دریافت همه محتواهای این انیمه از همان نوع برای dropdown
+    $stmt = $db_content->prepare("
+        SELECT ac.id, ac.title, ac.music_file_url, ac.video_file_url, ac.image_url
+        FROM anime_contents ac 
+        WHERE ac.anime_id = ? AND ac.music_type_id = ?
+        ORDER BY ac.season_number, ac.episode_number
+    ");
+    $stmt->execute([$content['anime_id'], $content['music_type_id']]);
+    $relatedMusic = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // دریافت خوانندگان این محتوا
+    $stmt = $db_content->prepare("
+        SELECT s.* FROM singers s 
+        JOIN content_singers cs ON s.id = cs.singer_id 
+        WHERE cs.content_id = ?
+    ");
+    $stmt->execute([$id]);
+    $singers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // دریافت محتواهای مرتبط (از همان انیمه) برای بخش پایین صفحه
+    $stmt = $db_content->prepare("
+        SELECT ac.*, mt.name as music_type 
+        FROM anime_contents ac 
+        JOIN music_types mt ON ac.music_type_id = mt.id 
+        WHERE ac.anime_id = ? AND ac.id != ? 
+        ORDER BY ac.created_at DESC 
+        LIMIT 5
+    ");
+    $stmt->execute([$content['anime_id'], $id]);
+    $relatedContents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // افزایش تعداد بازدیدها
+    $stmt = $db_content->prepare("UPDATE anime_contents SET view_count = view_count + 1 WHERE id = ?");
+    $stmt->execute([$id]);
+    
+} catch (PDOException $e) {
+    error_log("Query Error: " . $e->getMessage());
+    die("خطا در دریافت اطلاعات");
+}
+
+// بستن اتصال به دیتابیس
+$db_content = null;
+$db_users = null;
+
+// تنظیم متغیرها
+$title = htmlspecialchars($content['title'], ENT_QUOTES, 'UTF-8');
+$title_fa = htmlspecialchars($content['title_fa'], ENT_QUOTES, 'UTF-8');
+$title_en = htmlspecialchars($content['title_en'], ENT_QUOTES, 'UTF-8');
+$description = !empty($content['description']) ? nl2br(htmlspecialchars($content['description'], ENT_QUOTES, 'UTF-8')) : '';
+$music_type = htmlspecialchars($content['music_type']);
+$music_type_fa = $music_type;
+switch (strtolower($music_type)) {
+    case 'opening':
+        $music_type_fa = 'اوپنینگ';
+        break;
+    case 'ending':
+        $music_type_fa = 'اندینگ';
+        break;
+    case 'ost':
+        $music_type_fa = 'موسیقی متن';
+        break;
+}
+$image_url = htmlspecialchars($content['image_url'] ?? 'assets/image/placeholder.jpg');
+$music_file = htmlspecialchars($content['music_file_url']);
+$video_file = !empty($content['video_file_url']) ? htmlspecialchars($content['video_file_url']) : null;
+$lyrics_text = !empty($content['lyrics_text']) ? nl2br(htmlspecialchars($content['lyrics_text'], ENT_QUOTES, 'UTF-8')) : null;
+$lyrics_translation = !empty($content['lyrics_translation']) ? nl2br(htmlspecialchars($content['lyrics_translation'], ENT_QUOTES, 'UTF-8')) : null;
+$season_number = !empty($content['season_number']) ? $content['season_number'] : null;
+$episode_number = !empty($content['episode_number']) ? $content['episode_number'] : null;
+
+// استخراج لینک‌های مهم
+$important_links = [];
+if (!empty($content['important_links'])) {
+    $links = explode(',', $content['important_links']);
+    foreach ($links as $link) {
+        if (strpos($link, '=') !== false) {
+            list($name, $url) = explode('=', $link, 2);
+            $important_links[] = [
+                'name' => trim($name),
+                'url' => trim($url)
+            ];
+        }
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<head>
+  <meta charset="UTF-8" />
+  <title>دانلود <?= $music_type_fa ?> <?= $title_fa ?> | <?= $title_en ?> | <?= $title ?></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="دانلود <?= $music_type_fa ?> <?= $title_fa ?> با کیفیت بالا و لینک مستقیم. <?= $title_en ?> - <?= $title ?>" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --primary-color: #00ff6a;
+      --secondary-color: #00ffc3;
+      --accent-color: #ff00aa;
+      --bg-dark: #0a0a0a;
+      --bg-light: #f5f5f5;
+      --card-bg-dark: #1a1a1a;
+      --card-bg-light: #ffffff;
+      --text-dark: #eee;
+      --text-light: #333;
+      --text-gray-dark: #bbb;
+      --text-gray-light: #777;
+      --border-radius: 14px;
+      --border-color-dark: #333;
+      --border-color-light: #e0e0e0;
+    }
+    
+    [data-theme="light"] {
+      --bg-primary: var(--bg-light);
+      --bg-card: var(--card-bg-light);
+      --text-primary: var(--text-light);
+      --text-secondary: var(--text-gray-light);
+      --border-color: var(--border-color-light);
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: var(--bg-dark);
+      --bg-card: var(--card-bg-dark);
+      --text-primary: var(--text-dark);
+      --text-secondary: var(--text-gray-dark);
+      --border-color: var(--border-color-dark);
+    }
+    
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Vazirmatn', sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .header {
+      background: var(--bg-card);
+      padding: 12px 20px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .header img {
+      height: 48px;
+      max-width: 160px;
+      object-fit: contain;
+    }
+    
+    .theme-toggle {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 50%;
+      transition: background-color 0.3s;
+    }
+    
+    .theme-toggle:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .user-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    .vip-badge {
+      background: linear-gradient(135deg, #ffd700, #ff9800);
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    
+    h2 {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 1.8rem;
+      color: var(--secondary-color);
+      padding: 0 15px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 15px;
+      padding-bottom: 80px; /* اضافه کردن padding برای ناوبری پایین */
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid var(--primary-color);
+      border: 1px solid var(--border-color);
+    }
+
+    .card h3 {
+      color: var(--primary-color);
+      margin-bottom: 12px;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card p, .card li {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .media-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--border-radius);
+      margin: 20px auto;
+      max-width: 100%;
+      background: var(--bg-card);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+    }
+
+    video, img, audio {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .video-poster {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .video-poster img {
+      width: 100%;
+      height: auto;
+    }
+
+    .play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      transition: all 0.3s;
+    }
+
+    .play-button::before {
+      content: "";
+      display: block;
+      width: 0;
+      height: 0;
+      border-top: 18px solid transparent;
+      border-left: 30px solid var(--primary-color);
+      border-bottom: 18px solid transparent;
+      margin-left: 8px;
+    }
+
+    .play-button:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    .button, .quality-button {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: #000;
+      border: none;
+      padding: 10px 18px;
+      margin: 8px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .button:hover, .quality-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    a.button-link {
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    ul.links {
+      list-style: none;
+      padding: 0;
+      margin-top: 15px;
+    }
+
+    ul.links li {
+      margin-bottom: 12px;
+      position: relative;
+      padding-right: 20px;
+    }
+
+    ul.links li:before {
+      content: "→";
+      position: absolute;
+      right: 0;
+      color: var(--accent-color);
+      font-size: 1.2rem;
+    }
+
+    ul.links a {
+      color: var(--accent-color);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    ul.links a:hover {
+      color: var(--secondary-color);
+      text-decoration: underline;
+    }
+
+    #main-content {
+      <?php if (!$isVIP): ?>
+        display: none;
+      <?php else: ?>
+        display: block;
+      <?php endif; ?>
+    }
+
+    #ad-section {
+      position: relative;
+      margin: 20px auto;
+      max-width: 800px;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background: var(--bg-card);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      <?php if ($isVIP): ?>
+        display: none;
+      <?php endif; ?>
+    }
+
+    #skip-btn, #unmute-btn, #ad-link {
+      position: absolute;
+      z-index: 10;
+      font-size: 0.9rem;
+      opacity: 0.9;
+      font-weight: bold;
+    }
+
+    #skip-btn {
+      top: 10px;
+      right: 10px;
+      padding: 8px 15px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #unmute-btn {
+      top: 10px;
+      left: 10px;
+      padding: 8px 15px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #ad-link {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      background: var(--accent-color);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    #ad-link:hover {
+      background: #ff8c00;
+      transform: translateY(-2px);
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 25px;
+      color: var(--primary-color);
+      font-size: 1.2rem;
+    }
+
+    .quality-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 15px 0;
+    }
+
+    .loading-placeholder {
+      width: 100%;
+      height: 200px;
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      animation: pulse 1.5s infinite ease-in-out;
+      border: 1px solid var(--border-color);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 0.3; }
+    }
+    
+    /* استایل‌های جدید برای پخش‌کننده موزیک */
+    .music-section {
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-primary));
+      border-radius: 16px;
+      padding: 25px;
+      margin: 30px 0;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .music-cover {
+      width: 250px;
+      height: 250px;
+      border-radius: 12px;
+      margin: 0 auto 25px;
+      overflow: hidden;
+      border: 4px solid var(--primary-color);
+      box-shadow: 0 0 30px rgba(0, 255, 106, 0.3);
+    }
+    
+    .music-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .music-player {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .player-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 25px;
+      margin-bottom: 25px;
+    }
+    
+    .control-btn {
+      background: transparent;
+      border: none;
+      color: var(--primary-color);
+      font-size: 1.8rem;
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid var(--primary-color);
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 255, 106, 0.1);
+      transform: scale(1.1);
+    }
+    
+    .play-btn {
+      background: var(--primary-color);
+      color: #000;
+      width: 80px;
+      height: 80px;
+      font-size: 2rem;
+      box-shadow: 0 0 20px rgba(0, 255, 106, 0.5);
+    }
+    
+    .play-btn:hover {
+      background: var(--secondary-color);
+      transform: scale(1.1);
+    }
+    
+    .progress-container {
+      margin: 30px 0;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 5px;
+      position: relative;
+      cursor: pointer;
+      direction: rtl;
+    }
+    
+    .progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+      border-radius: 5px;
+      width: 0%;
+      position: absolute;
+      right: 0;
+      top: 0;
+      transition: width 0.1s linear;
+    }
+    
+    .progress::after {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 15px var(--primary-color);
+    }
+    
+    .time-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+    
+    .volume-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 25px;
+      max-width: 300px;
+      margin: 25px auto 0;
+    }
+    
+    .volume-slider {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 5px;
+      outline: none;
+    }
+    
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--secondary-color);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 255, 195, 0.5);
+    }
+    
+    .additional-controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+    
+    .speed-control, .download-btn, .favorite-btn, .playlist-btn {
+      background: rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--primary-color);
+      border-radius: 30px;
+      color: var(--text-primary);
+      padding: 10px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+    
+    .speed-control:hover, .download-btn:hover, .favorite-btn:hover, .playlist-btn:hover {
+      background: rgba(0, 255, 106, 0.2);
+      transform: translateY(-3px);
+    }
+    
+    .favorite-btn.active {
+      background: rgba(255, 0, 0, 0.2);
+      border-color: #ff0000;
+      color: #ff0000;
+    }
+    
+    .vip-only {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .vip-only::after {
+      content: 'VIP';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: linear-gradient(135deg, #ffd700, #ff9800);
+      color: #000;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      z-index: 2;
+    }
+    
+    .vip-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      z-index: 5;
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .vip-overlay .button {
+      margin-top: 15px;
+    }
+    
+    .lyrics-section {
+      margin: 30px 0;
+    }
+    
+    .lyrics-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    @media (min-width: 768px) {
+      .lyrics-container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .lyrics-box {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+    
+    .lyrics-box h4 {
+      color: var(--primary-color);
+      margin-top: 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary-color);
+    }
+    
+    .lyrics-text {
+      white-space: pre-line;
+      line-height: 1.8;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    /* محتوای ترجمه برای کاربران غیر VIP تار و غیرقابل خواندن باشد */
+    .lyrics-box.non-vip .lyrics-text {
+      filter: blur(8px);
+      user-select: none;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    
+    .related-section {
+      margin: 40px 0;
+    }
+    
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .related-item {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 1px solid var(--border-color);
+    }
+    
+    .related-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0, 255, 100, 0.2);
+    }
+    
+    .related-item img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    
+    .related-info {
+      padding: 12px;
+    }
+    
+    .related-info h4 {
+      font-size: 14px;
+      margin: 0 0 5px;
+      color: var(--primary-color);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+    }
+    
+    .related-info p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background-color: var(--accent-color);
+      color: white;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      z-index: 2;
+    }
+    
+    /* مودال پلی‌لیست */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal-content {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 2px solid var(--primary-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+      color: var(--primary-color);
+    }
+    
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    
+    .close-modal:hover {
+      color: var(--accent-color);
+    }
+    
+    .playlist-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .playlist-item {
+      padding: 15px;
+      border-radius: var(--border-radius);
+      margin-bottom: 10px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .playlist-item:hover {
+      background: rgba(0, 255, 106, 0.1);
+      transform: translateX(-5px);
+    }
+    
+    .playlist-item h4 {
+      margin: 0 0 5px;
+      color: var(--text-primary);
+    }
+    
+    .playlist-item p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    .create-playlist-btn {
+      background: var(--primary-color);
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .create-playlist-btn:hover {
+      background: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+    
+    /* نوار پایین صفحه - مشابه کد قبلی */
+    .navbar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: var(--bg-card);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      text-align: center;
+      padding: 12px 0 10px;
+      border-top: 1px solid var(--border-color);
+      z-index: 999;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .navbar a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: 0.3s;
+    }
+    
+    .navbar a i {
+      font-size: 22px;
+      margin-bottom: -3px;
+      transition: 0.3s;
+    }
+    
+    .navbar a.active {
+      color: var(--primary-color);
+    }
+    
+    .navbar a:hover {
+      color: var(--primary-color);
+      transform: translateY(-3px);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+        padding-bottom: 70px; /* padding-bottom برای موبایل */
+      }
+      
+      h2 {
+        font-size: 1.6rem;
+      }
+      
+      .button, .quality-button {
+        padding: 9px 16px;
+        font-size: 0.95rem;
+      }
+      
+      .play-button {
+        width: 60px;
+        height: 60px;
+      }
+      
+      .player-controls {
+        gap: 15px;
+      }
+      
+      .control-btn {
+        width: 55px;
+        height: 55px;
+        font-size: 1.5rem;
+      }
+      
+      .play-btn {
+        width: 70px;
+        height: 70px;
+      }
+      
+      .additional-controls {
+        flex-wrap: wrap;
+      }
+      
+      .music-cover {
+        width: 200px;
+        height: 200px;
+      }
+      
+      .lyrics-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header {
+        padding: 10px;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .music-cover {
+        width: 180px;
+        height: 180px;
+      }
+      
+      .control-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.4rem;
+      }
+      
+      .play-btn {
+        width: 65px;
+        height: 65px;
+      }
+      
+      .related-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="header">
+    <img src="image.png" alt="لوگو رسانه" />
+    <div>
+      <button class="theme-toggle" id="themeToggle">
+        <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
+      </button>
+      <div class="user-status">
+        <?php if (isset($_SESSION['user_id'])): ?>
+          <?php if ($isVIP): ?>
+            <span class="vip-badge">VIP</span>
+          <?php else: ?>
+            <a href="vip.php" style="color: var(--secondary-color); text-decoration: none;">ارتقاء به VIP</a>
+          <?php endif; ?>
+        <?php else: ?>
+          <a href="login.php" style="color: var(--secondary-color); text-decoration: none;">ورود / ثبت‌نام</a>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <h2><?= $title ?></h2>
+  <?php if (!empty($title_fa)): ?>
+    <h3 style="text-align: center; color: var(--text-secondary); margin-top: 5px;"><?= $title_fa ?></h3>
+  <?php endif; ?>
+  
+  <div class="container">
+    <?php if (!empty($description)): ?>
+      <div class="card">
+        <h3><i class="bi bi-journal-text"></i> خلاصه توضیحات</h3>
+        <p><?= $description ?></p>
+      </div>
+    <?php endif; ?>
+    
+    <!-- تبلیغ - فقط برای کاربران غیر VIP نمایش داده شود -->
+    <?php if (!$isVIP): ?>
+    <div id="ad-section">
+      <video id="ad-video" src="assets/ads/myad.mp4" muted playsinline preload="metadata"></video>
+      <a id="ad-link" href="#" target="_blank" rel="noopener noreferrer">اطلاعات بیشتر</a>
+      <button id="skip-btn" class="button" disabled>رد کردن تبلیغ (10)</button>
+      <button id="unmute-btn" class="button">🔊 فعال کردن صدا</button>
+    </div>
+    <?php endif; ?>
+    
+    <!-- محتوای اصلی -->
+    <div id="main-content">
+      <!-- dropdown برای انتخاب موزیک‌های دیگر از همین انیمه و نوع -->
+      <?php if (count($relatedMusic) > 1): ?>
+      <div class="card">
+        <h3><i class="bi bi-list"></i> انتخاب <?= $music_type ?></h3>
+        <select id="music-selector" class="form-control">
+          <?php foreach ($relatedMusic as $music): ?>
+            <option value="<?= $music['id'] ?>" <?= $music['id'] == $id ? 'selected' : '' ?>>
+              <?= htmlspecialchars($music['title']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
+      
+      <div class="music-section">
+        <div class="music-cover">
+          <img src="<?= $image_url ?>" alt="کاور <?= $title ?>" loading="lazy">
+        </div>
+        
+        <div class="music-player">
+          <!-- پخش‌کننده صوتی - فقط صوت پخش می‌شود -->
+          <audio id="music-audio" preload="metadata">
+            <source src="<?= $music_file ?>" type="audio/webm">
+            <source src="<?= $music_file ?>" type="audio/mpeg">
+            مرورگر شما پلیر صوتی را پشتیبانی نمی‌کند.
+          </audio>
+          
+          <div class="player-controls">
+            <button class="control-btn" id="forward-btn">
+              <i class="bi bi-skip-forward-fill"></i>
+            </button>
+            <button class="control-btn play-btn" id="play-btn">
+              <i class="bi bi-play-fill"></i>
+            </button>
+            <button class="control-btn" id="rewind-btn">
+              <i class="bi bi-skip-backward-fill"></i>
+            </button>
+          </div>
+          
+          <div class="progress-container">
+            <div class="progress-bar" id="progress-bar">
+              <div class="progress" id="progress"></div>
+            </div>
+            <div class="time-info">
+              <span id="current-time">00:00</span>
+              <span id="duration">00:00</span>
+            </div>
+          </div>
+          
+          <div class="volume-container">
+            <i class="bi bi-volume-up-fill" style="color: var(--primary-color); font-size: 1.3rem;"></i>
+            <input type="range" min="0" max="100" value="80" class="volume-slider" id="volume-slider">
+          </div>
+          
+          <div class="additional-controls">
+            <select class="speed-control" id="speed-control">
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+            
+            <?php if ($isVIP): ?>
+              <a href="<?= $music_file ?>" download class="download-btn">
+                <i class="bi bi-download"></i> دانلود موزیک
+              </a>
+            <?php else: ?>
+              <div class="vip-only">
+                <a href="vip.php" class="download-btn">
+                  <i class="bi bi-download"></i> دانلود (VIP)
+                </a>
+              </div>
+            <?php endif; ?>
+            
+            <!-- دکمه مورد علاقه -->
+            <?php if ($isVIP): ?>
+              <button class="favorite-btn <?= $isFavorite ? 'active' : '' ?>" id="favorite-btn">
+                <i class="bi bi-heart<?= $isFavorite ? '-fill' : '' ?>"></i>
+                <?= $isFavorite ? 'حذف از علاقه‌مندی' : 'افزودن به علاقه‌مندی' ?>
+              </button>
+            <?php else: ?>
+              <div class="vip-only">
+                <button class="favorite-btn" onclick="showVipMessage()">
+                  <i class="bi bi-heart"></i> افزودن به علاقه‌مندی (VIP)
+                </button>
+              </div>
+            <?php endif; ?>
+            
+            <!-- دکمه افزودن به پلی‌لیست -->
+            <?php if ($isVIP): ?>
+              <button class="playlist-btn" id="playlist-btn">
+                <i class="bi bi-plus-circle"></i> افزودن به پلی‌لیست
+              </button>
+            <?php else: ?>
+              <div class="vip-only">
+                <button class="playlist-btn" onclick="showVipMessage()">
+                  <i class="bi bi-plus-circle"></i> افزودن به پلی‌لیست (VIP)
+                </button>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+      
+      <!-- نمایش ویدیو (اگر موجود باشد) -->
+      <?php if ($video_file): ?>
+        <div class="card <?= !$isVIP ? 'vip-only' : '' ?>">
+          <h3><i class="bi bi-play-btn-fill"></i> ویدیو</h3>
+          <div class="media-container">
+            <?php if (!$isVIP): ?>
+              <div class="vip-overlay">
+                <p>برای مشاهده ویدیو باید اشتراک VIP داشته باشید</p>
+                <a href="vip.php" class="button">خرید اشتراک VIP</a>
+              </div>
+            <?php endif; ?>
+            <!-- پخش‌کننده ویدیویی - کل ویدیو پخش می‌شود -->
+            <video controls playsinline style="<?= !$isVIP ? 'filter: blur(5px);' : '' ?>">
+              <source src="<?= $video_file ?>" type="video/webm">
+              <source src="<?= $video_file ?>" type="video/mp4">
+              مرورگر شما پلیر ویدیو را پشتیبانی نمی‌کند.
+            </video>
+          </div>
+        </div>
+      <?php endif; ?>
+      
+      <!-- اطلاعات تکمیلی -->
+      <div class="card">
+        <h3><i class="bi bi-info-circle"></i> اطلاعات موزیک</h3>
+        <p><strong>نوع:</strong> <?= $music_type ?></p>
+        <?php if ($season_number): ?>
+          <p><strong>فصل:</strong> <?= $season_number ?></p>
+        <?php endif; ?>
+        <?php if ($episode_number): ?>
+          <p><strong>قسمت:</strong> <?= $episode_number ?></p>
+        <?php endif; ?>
+        <?php if (!empty($singers)): ?>
+          <p><strong>خواننده:</strong> 
+            <?php foreach ($singers as $index => $singer): ?>
+              <?= htmlspecialchars($singer['name']) ?><?= $index < count($singers) - 1 ? '، ' : '' ?>
+            <?php endforeach; ?>
+          </p>
+        <?php endif; ?>
+        <p><strong>تعداد بازدید:</strong> <?= number_format($content['view_count']) ?></p>
+      </div>
+      
+      <!-- متن و ترجمه آهنگ -->
+      <?php if ($lyrics_text || $lyrics_translation): ?>
+        <div class="lyrics-section">
+          <h3 style="text-align: center; color: var(--secondary-color);">متن آهنگ</h3>
+          <div class="lyrics-container">
+            <?php if ($lyrics_text): ?>
+              <div class="lyrics-box <?= !$isVIP ? 'non-vip' : '' ?>">
+                <h4>متن اصلی</h4>
+                <div class="lyrics-text"><?= $lyrics_text ?></div>
+                <?php if (!$isVIP): ?>
+                  <div class="vip-overlay">
+                    <p>برای مشاهده متن آهنگ باید اشتراک VIP داشته باشید</p>
+                    <a href="vip.php" class="button">خرید اشتراک VIP</a>
+                  </div>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
+            
+            <?php if ($lyrics_translation): ?>
+              <div class="lyrics-box <?= !$isVIP ? 'non-vip' : '' ?>">
+                <h4>ترجمه فارسی</h4>
+                <div class="lyrics-text"><?= $lyrics_translation ?></div>
+                <?php if (!$isVIP): ?>
+                  <div class="vip-overlay">
+                    <p>برای مشاهده ترجمه باید اشتراک VIP داشته باشید</p>
+                    <a href="vip.php" class="button">خرید اشتراک VIP</a>
+                  </div>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+      
+      <!-- لینک‌های مهم -->
+      <?php if (!empty($important_links)): ?>
+        <div class="card">
+          <h3><i class="bi bi-link-45deg"></i> لینک‌های مهم</h3>
+          <ul class="links">
+            <?php foreach ($important_links as $link): ?>
+              <li><a href="<?= htmlspecialchars($link['url']) ?>" target="_blank"><?= htmlspecialchars($link['name']) ?></a></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+      
+      <!-- محتواهای مرتبط -->
+      <?php if (!empty($relatedContents)): ?>
+        <div class="related-section">
+          <h3 style="text-align: center; color: var(--secondary-color);">موزیک‌های مرتبط</h3>
+          <div class="related-grid">
+            <?php foreach ($relatedContents as $item): ?>
+              <a href="content.php?id=<?= $item['id'] ?>" class="related-item">
+                <div class="badge"><?= htmlspecialchars($item['music_type']) ?></div>
+                <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>">
+                <div class="related-info">
+                  <h4><?= htmlspecialchars($item['title']) ?></h4>
+                  <p><?= htmlspecialchars($item['music_type']) ?></p>
+                </div>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+      
+      <!-- دکمه بازگشت -->
+      <div>
+      <center>
+        <a href="index.php" class="button-link">
+          <button class="button"><i class="bi bi-house-door"></i> بازگشت به صفحه اصلی</button>
+          </center>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- مودال پلی‌لیست -->
+  <div class="modal" id="playlist-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>انتخاب پلی‌لیست</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div id="playlist-container">
+        <?php if (!empty($userPlaylists)): ?>
+          <ul class="playlist-list">
+            <?php foreach ($userPlaylists as $playlist): ?>
+              <li class="playlist-item" data-id="<?= $playlist['id'] ?>">
+                <h4><?= htmlspecialchars($playlist['name']) ?></h4>
+                <?php if (!empty($playlist['description'])): ?>
+                  <p><?= htmlspecialchars($playlist['description']) ?></p>
+                <?php endif; ?>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php else: ?>
+          <p>شما هنوز هیچ پلی‌لیستی ندارید.</p>
+        <?php endif; ?>
+        <button class="create-playlist-btn" id="create-playlist-btn">
+          <i class="bi bi-plus-circle"></i> ایجاد پلی‌لیست جدید
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="navbar">
+    <a href="index.php" class="nav-item"><i class="bi bi-house-door-fill"></i>خانه</a>
+    <a href="categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
+    <a href="search/search.php" class="nav-item"><i class="bi bi-search"></i>جستجو</a>
+    <a href="about.php" class="nav-item"><i class="bi bi-info-circle"></i>درباره ما</a>
+  </div>
+  
+  <script>
+    // --- سیستم تغییر تم ---
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlElement = document.documentElement;
+    
+    themeToggle.addEventListener('click', () => {
+        const isDark = htmlElement.getAttribute('data-theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        
+        htmlElement.setAttribute('data-theme', newTheme);
+        themeToggle.innerHTML = `<i class="bi ${newTheme === 'dark' ? 'bi-sun' : 'bi-moon'}"></i>`;
+        
+        // ذخیره تنظیمات در کوکی به مدت 30 روز
+        document.cookie = `dark_mode=${newTheme === 'dark'}; max-age=${30 * 24 * 60 * 60}; path=/`;
+    });
+    
+    // --- تبلیغ - فقط برای کاربران غیر VIP اجرا شود ---
+    <?php if (!$isVIP): ?>
+    const adVideo = document.getElementById("ad-video");
+    const skipBtn = document.getElementById("skip-btn");
+    const unmuteBtn = document.getElementById("unmute-btn");
+    const adSection = document.getElementById("ad-section");
+    const mainContent = document.getElementById("main-content");
+    
+    // بارگذاری لینک تبلیغ
+    fetch("assets/ads/Ads.txt?t=" + new Date().getTime())
+      .then(r => {
+        if (!r.ok) throw new Error("خطا در دریافت لینک تبلیغ");
+        return r.text();
+      })
+      .then(txt => {
+        let url = txt.trim();
+        if (!url) return;
+        
+        // اعتبارسنجی URL
+        try {
+          new URL(url);
+        } catch {
+          url = "http://" + url;
+        }
+        
+        document.getElementById("ad-link").href = url;
+      })
+      .catch(e => {
+        console.error(e.message);
+        document.getElementById("ad-link").href = "#";
+      });
+    
+    // مدیریت صدا
+    unmuteBtn.onclick = () => {
+      adVideo.muted = false;
+      unmuteBtn.textContent = "🔊 صدا فعال";
+      setTimeout(() => {
+        unmuteBtn.style.opacity = "0.5";
+      }, 2000);
+    };
+    
+    // تایمر رد کردن تبلیغ
+    let t = 10; // زمان تبلیغ 10 ثانیه
+    const timer = setInterval(() => {
+      skipBtn.textContent = `رد کردن تبلیغ (${t})`;
+      if (--t < 0) {
+        clearInterval(timer);
+        skipBtn.disabled = false;
+        skipBtn.textContent = "رد کردن تبلیغ";
+      }
+    }, 1000);
+    
+    // مدیریت رد کردن تبلیغ
+    skipBtn.onclick = skipAd;
+    adVideo.addEventListener("ended", skipAd);
+    
+    function skipAd() {
+      adVideo.pause();
+      adSection.style.display = "none";
+      mainContent.style.display = "block";
+      clearInterval(timer); // توقف تایمر
+    }
+    
+    // شروع پخش تبلیغ پس از لود صفحه
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        adVideo.play().catch(e => {
+          console.log("پخش خودکار تبلیغ ممکن نیست:", e);
+          skipAd();
+        });
+      } catch (e) {
+        console.log("خطا در پخش تبلیغ:", e);
+        skipAd();
+      }
+    });
+    <?php else: ?>
+    // برای کاربران VIP، محتوای اصلی مستقیماً نمایش داده می‌شود
+    document.getElementById('main-content').style.display = 'block';
+    <?php endif; ?>
+    
+    // --- مدیریت پخش‌کننده موزیک ---
+    const audio = document.getElementById('music-audio');
+    const playBtn = document.getElementById('play-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const progress = document.getElementById('progress');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+    const volumeSlider = document.getElementById('volume-slider');
+    const speedControl = document.getElementById('speed-control');
+    const rewindBtn = document.getElementById('rewind-btn');
+    const forwardBtn = document.getElementById('forward-btn');
+    
+    // حالت پخش
+    let isPlaying = false;
+    
+    // پخش/توقف
+    function togglePlay() {
+      if (isPlaying) {
+        audio.pause();
+        playBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+      } else {
+        audio.play();
+        playBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+      }
+      isPlaying = !isPlaying;
+    }
+    
+    // فرمت زمان
+    function formatTime(seconds) {
+      const min = Math.floor(seconds / 60);
+      const sec = Math.floor(seconds % 60);
+      return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+    
+    // به‌روزرسانی پیشرفت
+    function updateProgress() {
+      if (isNaN(audio.duration)) return;
+      
+      const percent = (audio.currentTime / audio.duration) * 100;
+      progress.style.width = `${percent}%`;
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+      durationEl.textContent = formatTime(audio.duration);
+    }
+    
+    // تنظیم پیشرفت بر اساس کلیک کاربر
+    function setProgress(e) {
+      const rect = progressBar.getBoundingClientRect();
+      let position;
+      
+      if (e.type.includes('touch')) {
+        position = (rect.right - e.touches[0].clientX) / rect.width;
+      } else {
+        position = (rect.right - e.clientX) / rect.width;
+      }
+      
+      // محدود کردن موقعیت به بازه 0 تا 1
+      position = Math.max(0, Math.min(1, position));
+      audio.currentTime = position * audio.duration;
+      updateProgress();
+    }
+    
+    // تنظیم حجم صدا
+    function setVolume() {
+      audio.volume = volumeSlider.value / 100;
+    }
+    
+    // تنظیم سرعت پخش
+    function setSpeed() {
+      audio.playbackRate = speedControl.value;
+    }
+    
+    // توابع برای دکمه‌های عقب/جلو
+    function rewind() {
+      audio.currentTime = Math.max(0, audio.currentTime - 15);
+    }
+    
+    function forward() {
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + 15);
+    }
+    
+    // رویدادها
+    playBtn.addEventListener('click', togglePlay);
+    audio.addEventListener('timeupdate', updateProgress);
+    
+    // افزودن رویدادهای لمسی و ماوس
+    progressBar.addEventListener('click', setProgress);
+    progressBar.addEventListener('touchstart', function(e) {
+      setProgress(e);
+      progressBar.addEventListener('touchmove', setProgress);
+    });
+    
+    // حذف شنونده حرکت هنگام رها کردن
+    document.addEventListener('touchend', function() {
+      progressBar.removeEventListener('touchmove', setProgress);
+    });
+    
+    volumeSlider.addEventListener('input', setVolume);
+    speedControl.addEventListener('change', setSpeed);
+    rewindBtn.addEventListener('click', rewind);
+    forwardBtn.addEventListener('click', forward);
+    
+    // تنظیم مدت زمان کل پس از بارگذاری
+    audio.addEventListener('loadedmetadata', () => {
+      durationEl.textContent = formatTime(audio.duration);
+      updateProgress();
+    });
+    
+    // بازنشانی پس از پایان پخش
+    audio.addEventListener('ended', () => {
+      isPlaying = false;
+      playBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+    });
+    
+    // به‌روزرسانی اولیه پیشرفت
+    updateProgress();
+    
+    // مدیریت dropdown انتخاب موزیک
+    <?php if (count($relatedMusic) > 1): ?>
+    document.getElementById('music-selector').addEventListener('change', function() {
+      window.location.href = 'content.php?id=' + this.value;
+    });
+    <?php endif; ?>
+    
+    // --- مدیریت علاقه‌مندی‌ها و پلی‌لیست‌ها ---
+    <?php if ($isVIP && isset($_SESSION['user_id'])): ?>
+    const favoriteBtn = document.getElementById('favorite-btn');
+    const playlistBtn = document.getElementById('playlist-btn');
+    const playlistModal = document.getElementById('playlist-modal');
+    const closeModal = document.querySelector('.close-modal');
+    const playlistItems = document.querySelectorAll('.playlist-item');
+    const createPlaylistBtn = document.getElementById('create-playlist-btn');
+    
+    // مدیریت علاقه‌مندی‌ها
+    favoriteBtn.addEventListener('click', function() {
+      const isCurrentlyFavorite = this.classList.contains('active');
+      const action = isCurrentlyFavorite ? 'remove' : 'add';
+      
+      fetch('manage_favorite.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `content_id=<?= $id ?>&action=${action}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          if (action === 'add') {
+            this.classList.add('active');
+            this.innerHTML = '<i class="bi bi-heart-fill"></i> حذف از علاقه‌مندی';
+          } else {
+            this.classList.remove('active');
+            this.innerHTML = '<i class="bi bi-heart"></i> افزودن به علاقه‌مندی';
+          }
+        } else {
+          alert('خطا در بروزرسانی علاقه‌مندی‌ها: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('خطا در ارتباط با سرور');
+      });
+    });
+    
+    // مدیریت پلی‌لیست‌ها
+    playlistBtn.addEventListener('click', function() {
+      playlistModal.style.display = 'flex';
+    });
+    
+    closeModal.addEventListener('click', function() {
+      playlistModal.style.display = 'none';
+    });
+    
+    // بستن مودال با کلیک خارج از آن
+    playlistModal.addEventListener('click', function(e) {
+      if (e.target === playlistModal) {
+        playlistModal.style.display = 'none';
+      }
+    });
+    
+    // افزودن به پلی‌لیست
+    playlistItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const playlistId = this.getAttribute('data-id');
+        
+        fetch('add_to_playlist.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `content_id=<?= $id ?>&playlist_id=${playlistId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('محتوا با موفقیت به پلی‌لیست اضافه شد');
+            playlistModal.style.display = 'none';
+          } else {
+            alert('خطا در افزودن به پلی‌لیست: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('خطا در ارتباط با سرور');
+        });
+      });
+    });
+    
+    // ایجاد پلی‌لیست جدید
+    createPlaylistBtn.addEventListener('click', function() {
+      const playlistName = prompt('لطفاً نام پلی‌لیست جدید را وارد کنید:');
+      if (playlistName && playlistName.trim() !== '') {
+        fetch('create_playlist.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `name=${encodeURIComponent(playlistName.trim())}&content_id=<?= $id ?>`
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('پلی‌لیست جدید ایجاد و محتوا به آن اضافه شد');
+            playlistModal.style.display = 'none';
+            // رفرش صفحه برای نمایش پلی‌لیست جدید
+            location.reload();
+          } else {
+            alert('خطا در ایجاد پلی‌لیست: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('خطا در ارتباط با سرور');
+        });
+      }
+    });
+    <?php endif; ?>
+    
+    // نمایش پیام VIP برای کاربران غیر VIP
+    function showVipMessage() {
+      alert('این قابلیت فقط برای کاربران VIP در دسترس است. لطفاً اشتراک VIP خریداری کنید.');
+      window.location.href = 'vip.php';
+    }
+  </script>
+</body>
+</html>
