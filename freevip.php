@@ -366,7 +366,7 @@ function jdate($format, $timestamp = '') {
 </head>
 <body>
     <div class="header">
-        <img src="image.png" alt="لوگو رسانه من">
+        <img src="/image.png" alt="Logo">
         <button class="theme-toggle" id="themeToggle">
             <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
         </button>
@@ -377,56 +377,54 @@ function jdate($format, $timestamp = '') {
             <div class="welcome-icon">
                 <i class="bi bi-heart-fill"></i>
             </div>
-            <h1 class="welcome-title">اشتراک رایگان VIP</h1>
+            <h1 class="welcome-title"><?= am_te('free_vip_request') ?></h1>
             <p class="welcome-text">
-                انیمه موزیک ایران با افتخار از تمامی علاقه‌مندان واقعی به انیمه و موزیک استقبال می‌کند! 💚
+                <?= am_te('free_vip_welcome') ?>
             </p>
             <p class="welcome-text">
-                ما معتقدیم که علاقه و اشتیاق نباید به دلیل محدودیت‌های مالی متوقف شود. 
-                اگر واقعاً عاشق انیمه و موسیقی هستید اما امکان مالی برای خرید اشتراک ندارید، 
-                ما اینجا هستیم تا به شما کمک کنیم.
+                <?= am_te('free_vip_belief') ?>
             </p>
         </div>
         
         <div class="requirements-section">
-            <h2 class="section-title">شرایط درخواست اشتراک رایگان</h2>
+            <h2 class="section-title"><?= am_te('free_vip_requirements') ?></h2>
             <p style="margin-bottom: 20px; color: var(--text-secondary);">
-                برای دریافت اشتراک رایگان، لطفاً شرایط زیر را داشته و اطلاعات مورد نیاز را ارسال کنید:
+                <?= am_te('free_vip_req_intro') ?>
             </p>
             
             <ul class="requirements-list">
                 <li>
                     <i class="bi bi-check-circle"></i>
-                    <span>علاقه واقعی به انیمه و موسیقی انیمه داشته باشید</span>
+                    <span><?= am_te('free_vip_req_1') ?></span>
                 </li>
                 <li>
                     <i class="bi bi-check-circle"></i>
-                    <span>در حال حاضر امکان مالی برای خرید اشتراک نداشته باشید</span>
+                    <span><?= am_te('free_vip_req_2') ?></span>
                 </li>
                 <li>
                     <i class="bi bi-check-circle"></i>
-                    <span>مایل به حمایت از پروژه در آینده باشید</span>
+                    <span><?= am_te('free_vip_req_3') ?></span>
                 </li>
                 <li>
                     <i class="bi bi-check-circle"></i>
-                    <span>دلایل و شرایط خود را صادقانه شرح دهید</span>
+                    <span><?= am_te('free_vip_req_4') ?></span>
                 </li>
                 <li>
                     <i class="bi bi-check-circle"></i>
-                    <span>توضیح دهید چرا به اشتراک رایگان نیاز دارید</span>
+                    <span><?= am_te('free_vip_req_5') ?></span>
                 </li>
             </ul>
             
             <div class="info-box">
-                <div class="info-title">توجه مهم</div>
-                <p>مدت اشتراک های رایگان ۷ روزه می باشد و برای هر تمدید رایگان باید با ادمین در تماس باشید در صورتی که میتوانید به تیم کمک کنید این مدت میتواند بیشتر شود.</p>
+                <div class="info-title"><?= am_te('important_notice') ?></div>
+                <p><p><?= am_te('free_vip_notice') ?></p></p>
             </div>
         </div>
         
         <div class="contact-methods">
-            <h2 class="section-title">ارسال درخواست</h2>
+            <h2 class="section-title"><?= am_te('send_request') ?></h2>
             <p style="text-align: center; margin-bottom: 20px; color: var(--text-secondary);">
-                لطفاً از طریق یکی از روش‌های زیر شرایط خود را ارسال کنید:
+                <?= am_te('send_request_intro') ?>
             </p>
             
             <div class="contact-options">
@@ -434,18 +432,18 @@ function jdate($format, $timestamp = '') {
                     <div class="contact-icon">
                         <i class="bi bi-telegram"></i>
                     </div>
-                    <div class="contact-name">ارسال از طریق تلگرام</div>
+                    <div class="contact-name"><?= am_te('send_via_telegram') ?></div>
                     <div class="contact-description">
-                        برای ارسال درخواست از طریق تلگرام، لطفاً با ادمین در ارتباط باشید
+                        <?= am_te('send_via_telegram_desc') ?>
                     </div>
                     <a href="http://t.me/I_MHP_I" target="_blank" class="contact-link">
-                        <i class="bi bi-telegram"></i> ادمین تلگرام
+                        <i class="bi bi-telegram"></i> <?= am_te('admin_telegram') ?>
                     </a>
                     <div style="margin-top: 15px; font-size: 13px; color: var(--text-secondary);">
-                        اگر ریپورت هستید به ربات زیر پیام دهید:
+                        <?= am_te('if_reported_msg_bot') ?>
                     </div>
                     <a href="http://t.me/Anime_music_irn_bot" target="_blank" class="contact-link">
-                        <i class="bi bi-robot"></i> ربات پشتیبانی
+                        <i class="bi bi-robot"></i> <?= am_te('support_bot') ?>
                     </a>
                 </div>
                 
@@ -453,36 +451,36 @@ function jdate($format, $timestamp = '') {
                     <div class="contact-icon">
                         <i class="bi bi-chat-dots"></i>
                     </div>
-                    <div class="contact-name">ارسال از طریق روبیکا</div>
+                    <div class="contact-name"><?= am_te('send_via_rubika') ?></div>
                     <div class="contact-description">
-                        برای ارسال درخواست از طریق روبیکا، لطفاً به آیدی زیر مراجعه کنید
+                        <?= am_te('send_via_rubika_desc') ?>
                     </div>
                     <a href="https://rubika.ir/I_MHP_I" target="_blank" class="contact-link">
                         <i class="bi bi-chat-dots"></i> I_MHP_I@
                     </a>
                     <div style="margin-top: 15px; font-size: 13px; color: var(--text-secondary);">
-                        پس از ورود، شرایط و دلایل خود را به طور کامل شرح دهید
+                        <?= am_te('explain_after_entry') ?>
                     </div>
                 </div>
             </div>
             
             <div class="info-box" style="margin-top: 25px;">
-                <div class="info-title">راهنمایی</div>
-                <p>لطفاً در هنگام ارسال درخواست، موارد زیر را ذکر کنید:</p>
+                <div class="info-title"><?= am_te('guidance') ?></div>
+                <p><?= am_te('guidance_intro') ?></p>
                 <ul style="text-align: right; margin: 10px 0; padding-right: 20px;">
-                    <li>توانایی در کمک شما به انیمه موزیک</li>
-                    <li>دلایل نیاز به اشتراک رایگان</li>
-                    <li>علاقه‌مندی‌های خاص در زمینه انیمه و موسیقی</li>
+                    <li><?= am_te('guidance_1') ?></li>
+                    <li><?= am_te('guidance_2') ?></li>
+                    <li><?= am_te('guidance_3') ?></li>
                 </ul>
             </div>
         </div>
     </div>
     
     <div class="navbar">
-        <a href="index.php"><i class="bi bi-house"></i> خانه</a>
-        <a href="categories.php"><i class="bi bi-grid-1x2-fill"></i> دسته‌ها</a>
-        <a href="vip.php"><i class="bi bi-star"></i> VIP</a>
-        <a href="profile.php" ><i class="bi bi-person"></i> پروفایل</a>
+        <a href="<?= am_lang_url('index.php') ?>"><i class="bi bi-house"></i> <?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('vip.php') ?>"><i class="bi bi-star"></i> VIP</a>
+        <a href="<?= am_lang_url('profile.php') ?>"><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
     </div>
 
     <script>

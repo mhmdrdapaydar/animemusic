@@ -729,10 +729,10 @@ $contentTypes = [
             <!-- دکمه صفحه قبل -->
             <?php if ($page > 1): ?>
                 <a href="<?= am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => $page - 1]))) ?>">
-                    <i class="bi bi-chevron-right"></i> قبلی
+                    <i class="bi bi-chevron-right"></i> <?= am_te('prev_page') ?>
                 </a>
             <?php else: ?>
-                <span class="disabled"><i class="bi bi-chevron-right"></i> قبلی</span>
+                <span class="disabled"><i class="bi bi-chevron-right"></i> <?= am_te('prev_page') ?></span>
             <?php endif; ?>
 
             <!-- نمایش صفحات مجاور -->
@@ -762,10 +762,10 @@ $contentTypes = [
             <!-- دکمه صفحه بعد -->
             <?php if ($page < $totalPages): ?>
                 <a href="<?= am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => $page + 1]))) ?>">
-                    بعدی <i class="bi bi-chevron-left"></i>
+                    <?= am_te('next_page') ?> <i class="bi bi-chevron-left"></i>
                 </a>
             <?php else: ?>
-                <span class="disabled">بعدی <i class="bi bi-chevron-left"></i></span>
+                <span class="disabled"><?= am_te('next_page') ?> <i class="bi bi-chevron-left"></i></span>
             <?php endif; ?>
         </div>
     <?php endif; ?>

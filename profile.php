@@ -81,10 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute([$firstName, $lastName, $email, $_SESSION['user_id']])) {
                 $_SESSION['first_name'] = $firstName;
                 $_SESSION['last_name'] = $lastName;
-                $message = 'پروفایل با موفقیت به‌روزرسانی شد';
+                $message = am_t('profile_updated');
                 $message_type = 'success';
             } else {
-                $message = 'خطا در به‌روزرسانی پروفایل';
+                $message = am_t('profile_update_error');
                 $message_type = 'error';
             }
         }
@@ -97,10 +97,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'لطفا تمام فیلدهای رمز عبور را پر کنید';
             $message_type = 'error';
         } elseif ($newPassword !== $confirmPassword) {
-            $message = 'رمز عبور جدید و تکرار آن مطابقت ندارند';
+            $message = am_t('password_mismatch');
             $message_type = 'error';
         } elseif (strlen($newPassword) < 6) {
-            $message = 'رمز عبور جدید باید حداقل 6 کاراکتر باشد';
+            $message = am_t('password_too_short');
             $message_type = 'error';
         } elseif (!password_verify($currentPassword, $user['password'])) {
             $message = 'رمز عبور فعلی اشتباه است';
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'رمز عبور با موفقیت تغییر کرد';
                 $message_type = 'success';
             } else {
-                $message = 'خطا در تغییر رمز عبور';
+                $message = am_t('change_password_error');
                 $message_type = 'error';
             }
         }
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $isPublic = isset($_POST['is_public']) ? 1 : 0;
         
         if (empty($playlistName)) {
-            $message = 'لطفا نام لیست پخش را وارد کنید';
+            $message = am_t('enter_playlist_name_field');
             $message_type = 'error';
         } else {
             $stmt = $db_users->prepare("INSERT INTO playlists (user_id, name, description, is_public) VALUES (?, ?, ?, ?)");
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: profile.php");
                 exit;
             } else {
-                $message = 'خطا در ایجاد لیست پخش';
+                $message = am_t('create_playlist_error');
                 $message_type = 'error';
             }
         }
@@ -851,61 +851,61 @@ function format_date($date) {
                     </div>
                     <?php if ($user['subscription_status'] === 'vip' && $user['subscription_end_date']): ?>
                         <p style="margin-top: 10px; font-size: 14px; color: var(--text-secondary);">
-                            اعتبار تا: <?= format_date($user['subscription_end_date']) ?>
+                            <?= am_te('valid_until') ?>: <?= format_date($user['subscription_end_date']) ?>
                         </p>
                     <?php endif; ?>
                 </div>
                 
                 <ul class="sidebar-nav">
-                    <li><a href="#" class="active" onclick="switchTab('profile-tab')"><i class="bi bi-person"></i> پروفایل</a></li>
+                    <li><a href="#" class="active" onclick="switchTab('profile-tab')"><i class="bi bi-person"></i> <?= am_te('profile') ?></a></li>
                     <?php if ($isVIP): ?>
-                        <li><a href="#" onclick="switchTab('playlists-tab')"><i class="bi bi-music-note-list"></i> لیست‌های پخش</a></li>
-                        <li><a href="#" onclick="switchTab('favorites-tab')"><i class="bi bi-heart"></i> مورد علاقه‌ها</a></li>
+                        <li><a href="#" onclick="switchTab('playlists-tab')"><i class="bi bi-music-note-list"></i> <?= am_te('my_playlists') ?></a></li>
+                        <li><a href="#" onclick="switchTab('favorites-tab')"><i class="bi bi-heart"></i> <?= am_te('my_favorites') ?></a></li>
                     <?php else: ?>
-                        <li><a href="vip.php" class="disabled"><i class="bi bi-music-note-list"></i> لیست‌های پخش (VIP)</a></li>
-                        <li><a href="vip.php" class="disabled"><i class="bi bi-heart"></i> مورد علاقه‌ها (VIP)</a></li>
+                        <li><a href="vip.php" class="disabled"><i class="bi bi-music-note-list"></i> <?= am_te('playlists_vip_tab') ?></a></li>
+                        <li><a href="vip.php" class="disabled"><i class="bi bi-heart"></i> <?= am_te('favorites_vip_tab') ?></a></li>
                     <?php endif; ?>
-                    <li><a href="#" onclick="switchTab('security-tab')"><i class="bi bi-shield-lock"></i> امنیت</a></li>
-                    <li><a href="vip.php"><i class="bi bi-star"></i> ارتقاء به VIP</a></li>
-                    <li><a href="logout.php"><i class="bi bi-box-arrow-left"></i> خروج</a></li>
+                    <li><a href="#" onclick="switchTab('security-tab')"><i class="bi bi-shield-lock"></i> <?= am_te('security') ?></a></li>
+                    <li><a href="<?= am_lang_url('vip.php') ?>"><i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?></a></li>
+                    <li><a href="<?= am_lang_url('logout.php') ?>"><i class="bi bi-box-arrow-left"></i> <?= am_te('logout') ?></a></li>
                 </ul>
             </div>
             
             <div class="main-content">
                 <!-- تب پروفایل -->
                 <div id="profile-tab" class="tab-content active">
-                    <h2 class="section-title">اطلاعات پروفایل</h2>
+                    <h2 class="section-title"><?= am_te('profile_info') ?></h2>
                     
                     <form method="post">
                         <input type="hidden" name="update_profile" value="1">
                         
                         <div class="form-group">
-                            <label for="first_name">نام</label>
+                            <label for="first_name"><?= am_te('first_name') ?></label>
                             <input type="text" id="first_name" name="first_name" class="form-control" 
                                    value="<?= htmlspecialchars($user['first_name']) ?>" required>
                         </div>
                         
                         <div class="form-group">
-                            <label for="last_name">نام خانوادگی</label>
+                            <label for="last_name"><?= am_te('last_name') ?></label>
                             <input type="text" id="last_name" name="last_name" class="form-control" 
                                    value="<?= htmlspecialchars($user['last_name']) ?>" required>
                         </div>
                         
                         <div class="form-group">
-                            <label for="username">نام کاربری</label>
+                            <label for="username"><?= am_te('username') ?></label>
                             <input type="text" id="username" class="form-control" 
                                    value="<?= htmlspecialchars($user['username']) ?>" disabled>
-                            <small style="color: var(--text-secondary);">نام کاربری قابل تغییر نیست</small>
+                            <small style="color: var(--text-secondary);"><?= am_te('username_not_editable') ?></small>
                         </div>
                         
                         <div class="form-group">
-                            <label for="email">ایمیل</label>
+                            <label for="email"><?= am_te('email') ?></label>
                             <input type="email" id="email" name="email" class="form-control" 
                                    value="<?= htmlspecialchars($user['email'] ?? '') ?>">
                         </div>
                         
                         <button type="submit" class="btn">
-                            <i class="bi bi-check-lg"></i> ذخیره تغییرات
+                            <i class="bi bi-check-lg"></i> <?= am_te('save_changes') ?>
                         </button>
                     </form>
                 </div>
@@ -914,9 +914,9 @@ function format_date($date) {
                 <div id="playlists-tab" class="tab-content">
                     <?php if ($isVIP): ?>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h2 class="section-title">لیست‌های پخش من</h2>
+                            <h2 class="section-title"><?= am_te('my_playlists') ?></h2>
                             <button class="btn" onclick="showCreatePlaylistModal()">
-                                <i class="bi bi-plus-lg"></i> ایجاد لیست جدید
+                                <i class="bi bi-plus-lg"></i> <?= am_te('create_new_list') ?>
                             </button>
                         </div>
                         
@@ -949,7 +949,7 @@ function format_date($date) {
                                             </div>
                                             <div class="content-info">
                                                 <h3 class="content-title"><?= htmlspecialchars($playlist['name']) ?></h3>
-                                                <p class="content-type"><?= $playlist['content_count'] ?> موزیک</p>
+                                                <p class="content-type"><?= $playlist['content_count'] ?> <?= am_te('music_count') ?></p>
                                                 <p class="content-type">
                                                     <i class="bi <?= $playlist['is_public'] ? 'bi-globe' : 'bi-lock' ?>"></i>
                                                     <?= $playlist['is_public'] ? 'عمومی' : 'خصوصی' ?>
@@ -965,16 +965,16 @@ function format_date($date) {
                         <?php else: ?>
                             <p style="text-align: center; color: var(--text-secondary); padding: 40px 0;">
                                 <i class="bi bi-music-note-list" style="font-size: 48px; display: block; margin-bottom: 15px;"></i>
-                                هنوز لیست پخشی ایجاد نکرده‌اید.
+                                <?= am_te('no_playlists_yet') ?>
                             </p>
                         <?php endif; ?>
                     <?php else: ?>
                         <div class="vip-only-message">
                             <i class="bi bi-star-fill"></i>
-                            <h3>این بخش فقط برای کاربران VIP در دسترس است</h3>
-                            <p>برای دسترسی به لیست‌های پخش، اشتراک VIP تهیه کنید.</p>
+                            <h3><?= am_te('vip_only_section') ?></h3>
+                            <p><?= am_te('vip_needed_playlists') ?></p>
                             <a href="vip.php" class="btn" style="margin-top: 20px;">
-                                <i class="bi bi-star"></i> ارتقاء به VIP
+                                <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                             </a>
                         </div>
                     <?php endif; ?>
@@ -983,7 +983,7 @@ function format_date($date) {
                 <!-- تب مورد علاقه‌ها -->
                 <div id="favorites-tab" class="tab-content">
                     <?php if ($isVIP): ?>
-                        <h2 class="section-title">موزیک‌های مورد علاقه</h2>
+                        <h2 class="section-title"><?= am_te('my_fav_music') ?></h2>
                         
                         <?php if (!empty($user_favorites)): ?>
                             <div class="content-grid">
@@ -1002,16 +1002,16 @@ function format_date($date) {
                         <?php else: ?>
                             <p style="text-align: center; color: var(--text-secondary); padding: 40px 0;">
                                 <i class="bi bi-heart" style="font-size: 48px; display: block; margin-bottom: 15px;"></i>
-                                هنوز موزیکی به مورد علاقه‌ها اضافه نکرده‌اید.
+                                <?= am_te('no_favorites_yet') ?>
                             </p>
                         <?php endif; ?>
                     <?php else: ?>
                         <div class="vip-only-message">
                             <i class="bi bi-star-fill"></i>
-                            <h3>این بخش فقط برای کاربران VIP در دسترس است</h3>
-                            <p>برای دسترسی به مورد علاقه‌ها، اشترак VIP تهیه کنید.</p>
+                            <h3><?= am_te('vip_only_section') ?></h3>
+                            <p><?= am_te('vip_needed_favorites') ?></p>
                             <a href="vip.php" class="btn" style="margin-top: 20px;">
-                                <i class="bi bi-star"></i> ارتقاء به VIP
+                                <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                             </a>
                         </div>
                     <?php endif; ?>
@@ -1019,13 +1019,13 @@ function format_date($date) {
                 
                 <!-- تب امنیت -->
                 <div id="security-tab" class="tab-content">
-                    <h2 class="section-title">تغییر رمز عبور</h2>
+                    <h2 class="section-title"><?= am_te('change_password') ?></h2>
                     
                     <form method="post">
                         <input type="hidden" name="change_password" value="1">
                         
                         <div class="form-group">
-                            <label for="current_password">رمز عبور فعلی</label>
+                            <label for="current_password"><?= am_te('current_password') ?></label>
                             <input type="password" id="current_password" name="current_password" class="form-control" required>
                             <button type="button" class="password-toggle" id="currentPasswordToggle">
                                 <i class="bi bi-eye"></i>
@@ -1033,7 +1033,7 @@ function format_date($date) {
                         </div>
                         
                         <div class="form-group">
-                            <label for="new_password">رمز عبور جدید</label>
+                            <label for="new_password"><?= am_te('new_password') ?></label>
                             <input type="password" id="new_password" name="new_password" class="form-control" required>
                             <button type="button" class="password-toggle" id="newPasswordToggle">
                                 <i class="bi bi-eye"></i>
@@ -1041,7 +1041,7 @@ function format_date($date) {
                         </div>
                         
                         <div class="form-group">
-                            <label for="confirm_password">تکرار رمز عبور جدید</label>
+                            <label for="confirm_password"><?= am_te('repeat_new_password') ?></label>
                             <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
                             <button type="button" class="password-toggle" id="confirmPasswordToggle">
                                 <i class="bi bi-eye"></i>
@@ -1049,7 +1049,7 @@ function format_date($date) {
                         </div>
                         
                         <button type="submit" class="btn">
-                            <i class="bi bi-key"></i> تغییر رمز عبور
+                            <i class="bi bi-key"></i> <?= am_te('change_password') ?>
                         </button>
                     </form>
                 </div>
@@ -1062,33 +1062,33 @@ function format_date($date) {
     <div class="modal" id="create-playlist-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>ایجاد لیست پخش جدید</h3>
+                <h3><?= am_te('create_playlist') ?></h3>
                 <button class="close-modal" onclick="closeCreatePlaylistModal()">&times;</button>
             </div>
             <form method="post">
                 <input type="hidden" name="create_playlist" value="1">
                 
                 <div class="form-group">
-                    <label for="playlist_name">نام لیست پخش</label>
+                    <label for="playlist_name"><?= am_te('playlist_name') ?></label>
                     <input type="text" id="playlist_name" name="playlist_name" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="playlist_description">توضیحات (اختیاری)</label>
+                    <label for="playlist_description"><?= am_te('description_optional') ?></label>
                     <textarea id="playlist_description" name="playlist_description" class="form-control" rows="3"></textarea>
                 </div>
                 
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" name="is_public" value="1"> لیست پخش عمومی باشد
+                        <input type="checkbox" name="is_public" value="1"> <?= am_te('public_playlist_q') ?>
                     </label>
                     <small style="color: var(--text-secondary); display: block; margin-top: 5px;">
-                        اگر این گزینه را انتخاب کنید، دیگران می‌توانند لیست پخش شما را ببینند.
+                        <?= am_te('public_playlist_hint') ?>
                     </small>
                 </div>
                 
                 <button type="submit" class="btn">
-                    <i class="bi bi-check-lg"></i> ایجاد لیست پخش
+                    <i class="bi bi-check-lg"></i> <?= am_te('create_list') ?>
                 </button>
             </form>
         </div>
@@ -1096,10 +1096,10 @@ function format_date($date) {
     <?php endif; ?>
     
     <div class="navbar">
-        <a href="index.php"><i class="bi bi-house"></i> خانه</a>
-        <a href="categories.php"><i class="bi bi-grid-1x2-fill"></i> دسته‌ها</a>
-        <a href="vip.php"><i class="bi bi-star"></i> VIP</a>
-        <a href="profile.php" class="active"><i class="bi bi-person"></i> پروفایل</a>
+        <a href="<?= am_lang_url('index.php') ?>"><i class="bi bi-house"></i> <?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('vip.php') "><i class="bi bi-star"></i> VIP</a>
+        <a href="<?= am_lang_url('profile.php')  class="active""><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
     </div>
     
     <script>

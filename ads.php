@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
 <head>
   <?= am_lang_base_tag() ?>
   <meta charset="UTF-8" />
-  <title>ثبت تبلیغ جدید</title>
+  <title><?= am_te('register_ad_title') ?> | <?= am_te('site_name') ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -558,26 +558,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
 
   <div class="telegram-note">
     <i class="fab fa-telegram-plane"></i>
-    برای ثبت تبلیغ و راهنمایی از طریق تلگرام، با آی‌دی زیر در ارتباط باشید در صورتی که ریپورت هستید فرم را پر کنید:
+    <?= am_te('register_ad_intro') ?>
     <a href="https://t.me/I_MHP_I" target="_blank">@I_MHP_I</a>
   </div>
 
-  <h1 class="page-title">ثبت تبلیغ جدید</h1>
+  <h1 class="page-title"><?= am_te('register_ad_title') ?></h1>
   
   <div class="container">
     <!-- مراحل ثبت تبلیغ -->
     <div class="steps-container">
       <div class="step active" data-step="1">
         <div class="step-number">1</div>
-        <div class="step-label">اطلاعات تبلیغ</div>
+        <div class="step-label"><?= am_te('ad_info') ?></div>
       </div>
       <div class="step" data-step="2">
         <div class="step-number">2</div>
-        <div class="step-label">لینک آپارات</div>
+        <div class="step-label"><?= am_te('aparat_link') ?></div>
       </div>
       <div class="step" data-step="3">
         <div class="step-number">3</div>
-        <div class="step-label">تایید نهایی</div>
+        <div class="step-label"><?= am_te('final_confirm') ?></div>
       </div>
       <div class="steps-line">
         <div class="progress-line" id="progress-line" style="width: 0%"></div>
@@ -591,13 +591,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
           <div class="success-icon">
             <i class="fas fa-check-circle"></i>
           </div>
-          <h2>تبلیغ شما با موفقیت ثبت شد!</h2>
+          <h2><?= am_te('ad_submitted') ?></h2>
           <p>
-            تبلیغ شما پس از بررسی توسط تیم ما، در سایت نمایش داده خواهد شد. 
-            می‌توانید از طریق تلگرام وضعیت تبلیغ را پیگیری کنید.
+            <?= am_te('ad_under_review') ?>
           </p>
           <button class="button" id="go-to-home">
-            بازگشت به صفحه اصلی <i class="fas fa-home"></i>
+            <?= am_te('back_to_home_i') ?> <i class="fas fa-home"></i>
           </button>
         </div>
       </div>
@@ -605,37 +604,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
       <!-- فرم مرحله ۱: اطلاعات تبلیغ -->
       <div class="form-section active" id="step-1">
         <div class="card">
-          <h3><i class="fas fa-info-circle"></i> اطلاعات اصلی تبلیغ</h3>
+          <h3><i class="fas fa-info-circle"></i> <?= am_te('ad_main_info') ?></h3>
           
           <div class="form-group">
-            <label for="ad-name">نام تبلیغ:</label>
+            <label for="ad-name"><?= am_te('ad_name') ?>:</label>
             <input type="text" id="ad-name" class="form-control" placeholder="نام تبلیغ خود را وارد کنید">
           </div>
           
           <div class="form-group">
-            <label for="ad-url">لینک مقصد:</label>
+            <label for="ad-url"><?= am_te('ad_dest_link') ?>:</label>
             <input type="url" id="ad-url" class="form-control" placeholder="https://example.com">
           </div>
           
           <div class="form-group">
-            <label for="ad-description">توضیحات تبلیغ:</label>
+            <label for="ad-description"><?= am_te('ad_description') ?>:</label>
             <textarea id="ad-description" class="form-control" placeholder="توضیحات کامل درباره تبلیغ..."></textarea>
           </div>
           
           <div class="requirements">
-            <p><strong>ملاحظات:</strong></p>
+            <p><strong><?= am_te('notes') ?>:</strong></p>
             <ul>
-              <li>لینک باید با http:// یا https:// شروع شود</li>
-              <li>توضیحات باید حداقل ۳۰ کاراکتر داشته باشد</li>
-              <li>محتوا نباید شامل موارد غیراخلاقی باشد</li>
-              <li>حتما در قسمت توضیحات نحوه برقراری ارتباطی را بنویسید تا شما رو در شبکه های اجتماعی پیدا کنیم ترجیحا حتما بعد از پر کردن فرم به پیوی تلگرام پیام بدید</li>
+              <li><?= am_te('note_1') ?></li>
+              <li><?= am_te('note_2') ?></li>
+              <li><?= am_te('note_3') ?></li>
+              <li><?= am_te('note_4') ?></li>
             </ul>
           </div>
         </div>
         
         <div class="button-group">
           <button class="button" id="next-to-step2">
-            مرحله بعد <i class="fas fa-arrow-left"></i>
+            <?= am_te('next_step') ?> <i class="fas fa-arrow-left"></i>
           </button>
         </div>
       </div>
@@ -643,38 +642,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
       <!-- فرم مرحله ۲: لینک آپارات -->
       <div class="form-section" id="step-2">
         <div class="card">
-          <h3><i class="fas fa-video"></i> لینک ویدیو از آپارات</h3>
+          <h3><i class="fas fa-video"></i> <?= am_te('aparat_video_link') ?></h3>
           
           <div class="form-group">
-            <label for="aparat-url">لینک ویدیو آپارات:</label>
+            <label for="aparat-url"><?= am_te('aparat_video_link_label') ?>:</label>
             <input type="url" id="aparat-url" class="form-control" placeholder="https://www.aparat.com/v/...">
           </div>
           
           <div class="requirements">
-            <p><strong>ملاحظات:</strong></p>
+            <p><strong><?= am_te('notes') ?>:</strong></p>
             <ul>
-              <li>لینک باید از سایت آپارات (aparat.com) باشد</li>
-              <li>ویدیو باید عمومی باشد</li>
-              <li>لینک باید شامل شناسه ویدیو باشد (مثال: https://www.aparat.com/v/XXXXX)</li>
+              <li><?= am_te('aparat_note_1') ?></li>
+              <li><?= am_te('aparat_note_2') ?></li>
+              <li><?= am_te('aparat_note_3') ?></li>
             </ul>
           </div>
         </div>
         
         <div class="aparat-guide">
-          <h4><i class="fas fa-question-circle"></i> چگونه ویدیو را در آپارات آپلود کنیم؟</h4>
+          <h4><i class="fas fa-question-circle"></i> <?= am_te('how_upload_aparat') ?></h4>
           <ol>
-            <li>وارد سایت <a href="https://www.aparat.com" target="_blank">aparat.com</a> شوید</li>
-            <li>در حساب کاربری خود لاگین کنید (یا یک حساب جدید بسازید)</li>
-            <li>روی دکمه "آپلود ویدیو" کلیک کنید</li>
-            <li>فایل ویدیویی خود را انتخاب و آپلود کنید</li>
-            <li>پس از آپلود، لینک ویدیو را کپی کنید (مثال: https://www.aparat.com/v/XXXXX)</li>
-            <li>لینک کپی شده را در فیلد بالا وارد کنید</li>
-            <li>در صورتی که با ساخت ویدیو تبلیغاتی آشنا نیستید به پیوی ادمین در تلگرام مراجعه کنید!</li>
+            <li><?= am_te('guide_1') ?></li>
+            <li><?= am_te('guide_2') ?></li>
+            <li><?= am_te('guide_3') ?></li>
+            <li><?= am_te('guide_4') ?></li>
+            <li><?= am_te('guide_5') ?></li>
+            <li><?= am_te('guide_6') ?></li>
+            <li><?= am_te('guide_7') ?></li>
           </ol>
         </div>
         
         <div class="preview-container" id="aparat-preview" style="display: none;">
-          <h3 class="preview-title">پیش نمایش ویدیو</h3>
+          <h3 class="preview-title"><?= am_te('video_preview') ?></h3>
           <div class="preview-box">
             <div class="preview-video" id="aparat-preview-frame">
               <!-- آپارات embed در اینجا نمایش داده می‌شود -->
@@ -684,30 +683,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
         
         <div class="button-group">
           <button class="button secondary" id="back-to-step1">
-            <i class="fas fa-arrow-right"></i> مرحله قبل
+            <i class="fas fa-arrow-right"></i> <?= am_te('prev_step') ?>
           </button>
           <button class="button" id="next-to-step3">
-            مرحله بعد <i class="fas fa-arrow-left"></i>
+            <?= am_te('next_step') ?> <i class="fas fa-arrow-left"></i>
           </button>
         </div>
       </div>
       
       <!-- فرم مرحله ۳: تایید نهایی -->
       <div class="form-section" id="step-3">
-        <form method="POST" action="ads.php">  <!-- اصلاح action به ads.php -->
+        <form method="POST" action="<?= am_lang_url('ads.php') ?>">  <!-- اصلاح action به ads.php -->
           <div class="card">
-            <h3><i class="fas fa-check-circle"></i> تایید اطلاعات</h3>
+            <h3><i class="fas fa-check-circle"></i> <?= am_te('confirm_info') ?></h3>
             
             <div class="preview-container">
-              <h3 class="preview-title">پیش نمایش تبلیغ</h3>
+              <h3 class="preview-title"><?= am_te('ad_preview') ?></h3>
               <div class="preview-box">
                 <div class="preview-video" id="final-aparat-preview">
                   <!-- آپارات embed در اینجا نمایش داده می‌شود -->
                 </div>
                 <div class="preview-details">
-                  <h4 id="preview-ad-name">نام تبلیغ</h4>
-                  <p id="preview-ad-description">توضیحات تبلیغ</p>
-                  <a href="#" id="preview-ad-url" class="preview-link" target="_blank">مشاهده لینک مقصد</a>
+                  <h4 id="preview-ad-name"><?= am_te('ad_name') ?></h4>
+                  <p id="preview-ad-description"><?= am_te('ad_description') ?></p>
+                  <a href="#" id="preview-ad-url" class="preview-link" target="_blank"><?= am_te('view_dest_link') ?></a>
                 </div>
               </div>
             </div>
@@ -715,18 +714,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
             <div class="checkbox-group">
               <input type="checkbox" id="terms-agree" name="terms_agree" required>
               <label for="terms-agree">
-                با <a href="#" target="_blank">قوانین و شرایط</a> سایت موافقم و تأیید می‌کنم که محتوای این تبلیغ 
-                مطابق با قوانین جمهوری اسلامی ایران است و مسئولیت هرگونه تخلف بر عهده اینجانب است.
+                <?= am_te('terms_agree') ?>
               </label>
             </div>
           </div>
           
           <div class="button-group">
             <button type="button" class="button secondary" id="back-to-step2">
-              <i class="fas fa-arrow-right"></i> مرحله قبل
+              <i class="fas fa-arrow-right"></i> <?= am_te('prev_step') ?>
             </button>
             <button type="submit" class="button" id="submit-ad" name="submit_ad">
-              ثبت نهایی تبلیغ <i class="fas fa-paper-plane"></i>
+              <?= am_te('final_submit_ad') ?> <i class="fas fa-paper-plane"></i>
             </button>
           </div>
           
@@ -886,7 +884,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
     
     // بازگشت به صفحه اصلی
     document.getElementById('go-to-home')?.addEventListener('click', () => {
-      window.location.href = 'index.php';
+      window.location.href = <?= json_encode(am_lang_url('index.php')) ?>;
     });
   </script>
 </body>

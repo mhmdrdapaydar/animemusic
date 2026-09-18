@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
 
     if (empty($username) || empty($password)) {
-        $error = 'لطفا نام کاربری و رمز عبور را وارد کنید';
+        $error = am_t('fill_user_pass');
     } else {
         // پیدا کردن کاربر
         $stmt = $db_users->prepare("SELECT * FROM users WHERE username = ?");
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: profile.php");
             exit;
         } else {
-            $error = 'نام کاربری یا رمز عبور اشتباه است';
+            $error = am_t('wrong_credentials');
         }
     }
 }
@@ -364,8 +364,8 @@ if (isset($_SESSION['user_id'])) {
         
         <div class="auth-card">
             <div class="auth-header">
-                <h1>ورود به حساب کاربری</h1>
-                <p>لطفا اطلاعات حساب خود را وارد کنید</p>
+                <h1><?= am_te('login_welcome') ?></h1>
+                <p><?= am_te('login_subtitle') ?></p>
             </div>
             
             <?php if ($error): ?>
@@ -374,30 +374,30 @@ if (isset($_SESSION['user_id'])) {
                 </div>
             <?php endif; ?>
             
-            <form method="post" action="login.php">
+            <form method="post" action="<?= am_lang_url('login.php') ?>">
                 <div class="form-group">
-                    <label for="username">نام کاربری</label>
+                    <label for="username"><?= am_te('username') ?></label>
                     <input type="text" id="username" name="username" class="form-control" required 
                            value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                           placeholder="نام کاربری خود را وارد کنید">
+                           placeholder="<?= am_te('enter_username_ph') ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">رمز عبور</label>
+                    <label for="password"><?= am_te('password') ?></label>
                     <input type="password" id="password" name="password" class="form-control" required
-                           placeholder="رمز عبور خود را وارد کنید">
+                           placeholder="<?= am_te('enter_password_ph') ?>">
                     <button type="button" class="password-toggle" id="passwordToggle">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
                 
                 <button type="submit" class="btn">
-                    <i class="bi bi-box-arrow-in-right"></i> ورود
+                    <i class="bi bi-box-arrow-in-right"></i> <?= am_te('login') ?>
                 </button>
             </form>
             
             <div class="auth-footer">
-                حساب ندارید؟ <a href="register.php">ثبت‌نام کنید</a>
+                <?= am_te('no_account_signup') ?> <a href="<?= am_lang_url('register.php') ?>"><?= am_te('signup_link') ?></a>
             </div>
         </div>
     </div>

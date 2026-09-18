@@ -18,17 +18,17 @@ $plan_period = '';
 
 switch($plan) {
     case 'monthly':
-        $plan_name = 'ماهیانه';
+        $plan_name = am_t('monthly_plan');
         $plan_price = '۲۹,۰۰۰ تومان';
         $plan_period = 'یک ماه اشتراک';
         break;
     case '3months':
-        $plan_name = 'سه ماهه';
+        $plan_name = am_t('quarterly_plan');
         $plan_price = '۷۹,۰۰۰ تومان';
         $plan_period = 'سه ماه اشتراک';
         break;
     case 'yearly':
-        $plan_name = 'سالانه';
+        $plan_name = am_t('yearly_plan');
         $plan_price = '۲۵۹,۰۰۰ تومان';
         $plan_period = 'یک سال اشتراک';
         break;
@@ -352,7 +352,7 @@ function jdate($format, $timestamp = '') {
 </head>
 <body>
     <div class="header">
-        <img src="image.png" alt="لوگو رسانه من">
+        <img src="/image.png" alt="Logo">
         <button class="theme-toggle" id="themeToggle">
             <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
         </button>
@@ -360,24 +360,24 @@ function jdate($format, $timestamp = '') {
     
     <div class="container">
         <div class="plan-summary">
-            <h2>پلن انتخابی شما</h2>
+            <h2><?= am_te('selected_plan') ?></h2>
             <div class="plan-name"><?= $plan_name ?></div>
             <div class="plan-price"><?= $plan_price ?></div>
             <div class="plan-period"><?= $plan_period ?></div>
-            <p style="margin-top: 15px; color: var(--text-secondary);">لطفاً روش پرداخت خود را انتخاب کنید</p>
+            <p style="margin-top: 15px; color: var(--text-secondary);"><?= am_te('choose_payment_method') ?></p>
         </div>
         
         <div class="payment-methods">
-            <h2 class="section-title">روش پرداخت خود را انتخاب کنید و در صورت وجود حتما کد تخفیف را برای ادمین ارسال کنید</h2>
+            <h2 class="section-title"><?= am_te('payment_method_title') ?></h2>
             
             <div class="payment-options">
                 <div class="payment-option" onclick="showTelegramInstructions()">
                     <div class="payment-icon">
                         <i class="bi bi-telegram"></i>
                     </div>
-                    <div class="payment-name">پرداخت از طریق تلگرام</div>
+                    <div class="payment-name"><?= am_te('pay_telegram') ?></div>
                     <div class="payment-description">
-                        برای پرداخت از طریق تلگرام، لطفاً با ادمین در ارتباط باشید
+                        <?= am_te('pay_telegram_desc') ?>
                     </div>
                 </div>
                 
@@ -385,49 +385,49 @@ function jdate($format, $timestamp = '') {
                     <div class="payment-icon">
                         <i class="bi bi-chat-dots"></i>
                     </div>
-                    <div class="payment-name">پرداخت از طریق روبیکا</div>
+                    <div class="payment-name"><?= am_te('pay_rubika') ?></div>
                     <div class="payment-description">
-                        برای پرداخت از طریق روبیکا، لطفاً به آیدی زیر مراجعه کنید
+                        <?= am_te('pay_rubika_desc') ?>
                     </div>
                 </div>
             </div>
             
             <div id="telegramInstructions" class="payment-instructions">
-                <div class="instruction-title">راهنمای پرداخت از طریق تلگرام</div>
+                <div class="instruction-title"><?= am_te('telegram_guide') ?></div>
                 <div class="instruction-text">
-                    لطفاً با فیلترشکن به ادمین پیام دهید:
+                    <?= am_te('message_admin_vpn') ?>
                 </div>
                 <a href="http://t.me/I_MHP_I" target="_blank" class="contact-link">
-                    <i class="bi bi-telegram"></i> ادمین تلگرام
+                    <i class="bi bi-telegram"></i> <?= am_te('admin_telegram') ?>
                 </a>
                 <div class="instruction-text" style="margin-top: 20px;">
-                    اگر ریپورت هستید به ربات زیر پیام دهید:
+                    <?= am_te('if_reported_msg_bot') ?>
                 </div>
                 <a href="http://t.me/Anime_music_irn_bot" target="_blank" class="contact-link">
-                    <i class="bi bi-robot"></i> ربات پشتیبانی
+                    <i class="bi bi-robot"></i> <?= am_te('support_bot') ?>
                 </a>
             </div>
             
             <div id="rubikaInstructions" class="payment-instructions">
-                <div class="instruction-title">راهنمای پرداخت از طریق روبیکا</div>
+                <div class="instruction-title"><?= am_te('rubika_guide') ?></div>
                 <div class="instruction-text">
-                    لطفاً وارد آیدی زیر در روبیکا شوید:
+                    <?= am_te('enter_rubika_id') ?>
                 </div>
                 <a href="https://rubika.ir/I_MHP_I" target="_blank" class="contact-link">
                     <i class="bi bi-chat-dots"></i> I_MHP_I@
                 </a>
                 <div class="instruction-text" style="margin-top: 20px;">
-                    پس از ورود به این آیدی، اطلاعات پلن انتخابی خود را ارسال کرده و منتظر راهنمایی ادمین باشید.
+                    <?= am_te('send_plan_info') ?>
                 </div>
             </div>
         </div>
     </div>
     
     <div class="navbar">
-        <a href="index.php"><i class="bi bi-house"></i> خانه</a>
-        <a href="categories.php"><i class="bi bi-grid-1x2-fill"></i> دسته‌ها</a>
-        <a href="vip.php"><i class="bi bi-star"></i> VIP</a>
-        <a href="profile.php"><i class="bi bi-person"></i> پروفایل</a>
+        <a href="<?= am_lang_url('index.php') ?>"><i class="bi bi-house"></i> <?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('vip.php') ?>"><i class="bi bi-star"></i> VIP</a>
+        <a href="<?= am_lang_url('profile.php') ?>"><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
     </div>
 
     <script>

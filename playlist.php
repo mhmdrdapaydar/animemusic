@@ -718,7 +718,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
             <div class="playlist-meta">
                 <span class="playlist-meta-item">
                     <i class="bi bi-music-note-list"></i>
-                    <?= count($playlistItems) ?> موزیک
+                    <?= count($playlistItems) ?> <?= am_te('music_count') ?>
                 </span>
                 <span class="playlist-meta-item">
                     <i class="bi <?= $playlist['is_public'] ? 'bi-globe' : 'bi-lock' ?>"></i>
@@ -726,12 +726,12 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                 </span>
                 <span class="playlist-meta-item">
                     <i class="bi bi-calendar"></i>
-                    ایجاد شده در: <?= format_date($playlist['created_at']) ?>
+                    <?= am_te('created_on') ?>: <?= format_date($playlist['created_at']) ?>
                 </span>
             </div>
             
             <div class="playlist-owner">
-                ساخته شده توسط: <?= htmlspecialchars($playlist['first_name'] . ' ' . $playlist['last_name']) ?>
+                <?= am_te('created_by') ?>: <?= htmlspecialchars($playlist['first_name'] . ' ' . $playlist['last_name']) ?>
             </div>
         </div>
         
@@ -757,7 +757,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                     
                     <div class="player-info">
                         <div class="now-playing" id="now-playing">
-                            پخش کننده آماده است
+                            <?= am_te('player_ready') ?>
                         </div>
                         <div class="player-progress" id="progress-bar">
                             <div class="progress-bar" id="progress"></div>
@@ -767,10 +767,10 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                 
                 <div class="player-options">
                     <button class="option-btn" id="loop-btn">
-                        <i class="bi bi-arrow-repeat"></i> حلقه بی‌پایان
+                        <i class="bi bi-arrow-repeat"></i> <?= am_te('loop') ?>
                     </button>
                     <button class="option-btn" id="shuffle-btn">
-                        <i class="bi bi-shuffle"></i> پخش تصادفی
+                        <i class="bi bi-shuffle"></i> <?= am_te('shuffle') ?>
                     </button>
                 </div>
             </div>
@@ -778,10 +778,10 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
             <!-- پیام برای کاربران غیر VIP -->
             <div class="vip-message">
                 <i class="bi bi-star-fill"></i>
-                <h3>این پخش کننده فقط برای کاربران ویژه (VIP) در دسترس است</h3>
-                <p>برای دسترسی به امکانات پیشرفته پخش موزیک، لطفاً اشتراک VIP تهیه کنید.</p>
+                <h3><?= am_te('player_vip_only') ?></h3>
+                <p><?= am_te('player_vip_cta') ?></p>
                 <a href="vip.php" class="btn">
-                    <i class="bi bi-star"></i> ارتقاء به VIP
+                    <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                 </a>
             </div>
             <?php endif; ?>
@@ -795,7 +795,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                             <form method="post" class="remove-form">
                                 <input type="hidden" name="remove_from_playlist" value="1">
                                 <input type="hidden" name="content_id" value="<?= $item['id'] ?>">
-                                <button type="submit" class="remove-btn" onclick="return confirm('آیا از حذف این موزیک از لیست پخش مطمئن هستید؟')">
+                                <button type="submit" class="remove-btn" onclick="return confirm(<?= json_encode(am_t('confirm_remove_music')) ?>)">
                                     <i class="bi bi-x"></i>
                                 </button>
                             </form>
@@ -809,7 +809,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                                 <p class="content-type"><?= htmlspecialchars($item['music_type']) ?></p>
                                 <p class="content-type">
                                     <i class="bi bi-calendar"></i>
-                                    افزوده شده در: <?= format_date($item['added_at']) ?>
+                                    <?= am_te('added_on') ?>: <?= format_date($item['added_at']) ?>
                                 </p>
                             </div>
                         </a>
@@ -819,16 +819,16 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
         <?php else: ?>
             <div class="empty-state">
                 <i class="bi bi-music-note-list"></i>
-                <p>این لیست پخش خالی است.</p>
+                <p><?= am_te('playlist_empty') ?></p>
                 <a href="categories.php" class="btn">
-                    <i class="bi bi-plus-lg"></i> افزودن موزیک
+                    <i class="bi bi-plus-lg"></i> <?= am_te('add_music') ?>
                 </a>
             </div>
         <?php endif; ?>
         
         <div style="text-align: center; margin-top: 30px;">
             <a href="profile.php" class="btn-secondary">
-                <i class="bi bi-arrow-right"></i> بازگشت به پروفایل
+                <i class="bi bi-arrow-right"></i> <?= am_te('back_to_profile') ?>
             </a>
         </div>
     </div>
@@ -836,23 +836,23 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
     <!-- مودال اشتراک‌گذاری -->
     <div class="share-modal" id="share-modal">
         <div class="share-modal-content">
-            <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 20px;">اشتراک‌گذاری لیست پخش</h3>
-            <p>از لینک زیر برای اشتراک‌گذاری این لیست پخش استفاده کنید:</p>
+            <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 20px;"><?= am_te('share_playlist') ?></h3>
+            <p><?= am_te('share_link_hint') ?></p>
             <div class="share-url" id="share-url"><?= $shareUrl ?></div>
             <button class="btn" onclick="copyShareUrl()">
-                <i class="bi bi-clipboard"></i> کپی لینک
+                <i class="bi bi-clipboard"></i> <?= am_te('copy_link') ?>
             </button>
             <button class="btn-secondary" style="margin-right: 10px;" onclick="closeShareModal()">
-                بستن
+                <?= am_te('close') ?>
             </button>
         </div>
     </div>
     
     <div class="navbar">
-        <a href="index.php"><i class="bi bi-house"></i> خانه</a>
-        <a href="categories.php"><i class="bi bi-grid-1x2-fill"></i> دسته‌ها</a>
-        <a href="vip.php"><i class="bi bi-star"></i> VIP</a>
-        <a href="profile.php" class="active"><i class="bi bi-person"></i> پروفایل</a>
+        <a href="<?= am_lang_url('index.php') ?>"><i class="bi bi-house"></i> <?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('vip.php') "><i class="bi bi-star"></i> VIP</a>
+        <a href="<?= am_lang_url('profile.php')  class="active""><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
     </div>
     
     <script>
@@ -885,7 +885,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
             navigator.clipboard.writeText(shareUrl.textContent).then(() => {
                 alert('لینک با موفقیت کپی شد!');
             }).catch(err => {
-                console.error('خطا در کپی لینک:', err);
+                console.error(<?= json_encode(am_t('copy_link_error')) ?> + ':', err);
             });
         }
         
@@ -1028,7 +1028,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
             if (isLooping) {
                 loopBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> حلقه فعال';
             } else {
-                loopBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> حلقه بی‌پایان';
+                loopBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> <?= am_te('loop') ?>';
             }
         }
         
@@ -1044,7 +1044,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                     [musicList[i], musicList[j]] = [musicList[j], musicList[i]];
                 }
             } else {
-                shuffleBtn.innerHTML = '<i class="bi bi-shuffle"></i> پخش تصادفی';
+                shuffleBtn.innerHTML = '<i class="bi bi-shuffle"></i> <?= am_te('shuffle') ?>';
                 // بازگرداندن لیست به حالت اولیه
                 // این قسمت نیاز به پیاده سازی ذخیره ترتیب اصلی دارد
             }

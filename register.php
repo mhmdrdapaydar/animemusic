@@ -23,23 +23,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // اعتبارسنجی
     if (empty($firstName) || empty($lastName) || empty($username) || empty($password)) {
-        $error = 'لطفا تمام فیلدهای اجباری را پر کنید';
+        $error = am_t('fill_required_fields');
     } elseif ($password !== $confirmPassword) {
-        $error = 'رمز عبور و تکرار آن مطابقت ندارند';
+        $error = am_t('password_mismatch');
     } elseif (strlen($password) < 6) {
-        $error = 'رمز عبور باید حداقل 6 کاراکتر باشد';
+        $error = am_t('password_too_short');
     } else {
         // بررسی تکراری نبودن نام کاربری
         $stmt = $db_users->prepare("SELECT id FROM users WHERE username = ?");
         $stmt->execute([$username]);
         
         if ($stmt->fetch()) {
-            $error = 'نام کاربری قبلا انتخاب شده است';
+            $error = am_t('username_taken');
         } else {
             // کنترل حد نصاب کاربران
             $userCount = (int)$db_users->query("SELECT COUNT(*) FROM users")->fetchColumn();
             if ($userCount >= AM_MAX_USERS) {
-                $error = 'ظرفیت ثبت‌نام تکمیل شده است. لطفاً با پشتیبانی تماس بگیرید.';
+                $error = am_t('signup_full');
             } else {
                 // ثبت کاربر جدید
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header("Location: login.php");
                     exit();
                 } else {
-                    $error = 'خطا در ثبت‌نام. لطفا دوباره تلاش کنید.';
+                    $error = am_t('signup_error');
                 }
             }
         }
@@ -389,8 +389,8 @@ if (isset($_SESSION['user_id'])) {
         
         <div class="auth-card">
             <div class="auth-header">
-                <h1>ایجاد حساب کاربری</h1>
-                <p>لطفا اطلاعات خود را وارد کنید</p>
+                <h1><?= am_te('create_account') ?></h1>
+                <p><?= am_te('login_subtitle') ?></p>
             </div>
             
             <?php if ($error): ?>
@@ -405,60 +405,60 @@ if (isset($_SESSION['user_id'])) {
                 </div>
             <?php endif; ?>
             
-            <form method="post" action="register.php">
+            <form method="post" action="<?= am_lang_url('register.php') ?>">
                 <div class="form-group">
-                    <label for="first_name">نام</label>
+                    <label for="first_name"><?= am_te('first_name') ?></label>
                     <input type="text" id="first_name" name="first_name" class="form-control" required 
                            value="<?= isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : '' ?>"
-                           placeholder="نام خود را وارد کنید">
+                           placeholder="<?= am_te('enter_first_name_ph') ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="last_name">نام خانوادگی</label>
+                    <label for="last_name"><?= am_te('last_name') ?></label>
                     <input type="text" id="last_name" name="last_name" class="form-control" required 
                            value="<?= isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : '' ?>"
-                           placeholder="نام خانوادگی خود را وارد کنید">
+                           placeholder="<?= am_te('enter_last_name_ph') ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="username">نام کاربری</label>
+                    <label for="username"><?= am_te('username') ?></label>
                     <input type="text" id="username" name="username" class="form-control" required 
                            value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                           placeholder="نام کاربری خود را وارد کنید">
+                           placeholder="<?= am_te('enter_username_ph') ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="email">ایمیل (اختیاری)</label>
+                    <label for="email"><?= am_te('email_optional') ?></label>
                     <input type="email" id="email" name="email" class="form-control" 
                            value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>"
-                           placeholder="ایمیل خود را وارد کنید">
+                           placeholder="<?= am_te('enter_email_ph') ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">رمز عبور</label>
+                    <label for="password"><?= am_te('password') ?></label>
                     <input type="password" id="password" name="password" class="form-control" required
-                           placeholder="رمز عبور خود را وارد کنید">
+                           placeholder="<?= am_te('enter_password_ph') ?>">
                     <button type="button" class="password-toggle" data-target="password">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
                 
                 <div class="form-group">
-                    <label for="confirm_password">تکرار رمز عبور</label>
+                    <label for="confirm_password"><?= am_te('repeat_password') ?></label>
                     <input type="password" id="confirm_password" name="confirm_password" class="form-control" required
-                           placeholder="تکرار رمز عبور را وارد کنید">
+                           placeholder="<?= am_te('enter_repeat_password_ph') ?>">
                     <button type="button" class="password-toggle" data-target="confirm_password">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
                 
                 <button type="submit" class="btn">
-                    <i class="bi bi-person-plus"></i> ثبت‌نام
+                    <i class="bi bi-person-plus"></i> <?= am_te('signup') ?>
                 </button>
             </form>
             
             <div class="auth-footer">
-                قبلا حساب دارید؟ <a href="login.php">وارد شوید</a>
+                <?= am_te('have_account_login') ?> <a href="<?= am_lang_url('login.php') ?>"><?= am_te('login_link') ?></a>
             </div>
         </div>
     </div>

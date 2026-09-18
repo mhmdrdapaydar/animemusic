@@ -439,7 +439,7 @@ function jdate($format, $timestamp = '') {
 </head>
 <body>
     <div class="header">
-        <img src="image.png" alt="لوگو رسانه من">
+        <img src="/image.png" alt="Logo">
         <button class="theme-toggle" id="themeToggle">
             <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
         </button>
@@ -455,75 +455,75 @@ function jdate($format, $timestamp = '') {
         
         <div class="vip-container">
             <div class="plans-section">
-                <h2 class="section-title">پلن‌های اشتراک VIP</h2>
-                <p>با خرید اشتراک VIP به تمامی امکانات ویژه سایت دسترسی پیدا کنید</p>
+                <h2 class="section-title"><?= am_te('vip_plans') ?></h2>
+                <p><?= am_te('vip_plans_sub') ?></p>
                 
                 <div class="plans-grid">
                     <div class="plan-card">
-                        <div class="plan-name">ماهیانه</div>
+                        <div class="plan-name"><?= am_te('monthly_plan') ?></div>
                         <div class="plan-price">۲۹,۰۰۰ تومان</div>
-                        <div class="plan-period">یک ماه اشتراک</div>
+                        <div class="plan-period"><?= am_te('one_month_sub') ?></div>
                         
                         <ul class="plan-features">
-                            <li><i class="bi bi-check"></i> دسترسی به تمامی موزیک‌ها</li>
-                            <li><i class="bi bi-check"></i> امکان دانلود موزیک</li>
-                            <li><i class="bi bi-check"></i> مشاهده متن و ترجمه آهنگ‌ها</li>
-                            <li><i class="bi bi-check"></i> تماشای ویدیوهای انیمه</li>
-                            <li><i class="bi bi-check"></i> حذف تبلیغات</li>
-                            <li><i class="bi bi-check"></i> ایجاد لیست پخش نامحدود</li>
-                            <li><i class="bi bi-check"></i> امکان افزودن به علاقه مندی ها</li>
-                            <li><i class="bi bi-check"></i> دسترسی به پخش کننده حرفه ای لیست پخش</li>
-                            <li><i class="bi bi-check"></i> امکان ساخت لیست های پخش عمومی و خصوصی</li>
+                            <li><i class="bi bi-check"></i> <?= am_te('access_all_music') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('download_music_feat') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('view_lyrics_feat') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('watch_anime_videos') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('no_ads') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('unlimited_playlists') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('add_to_favorites_feat') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('pro_player_playlist') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('public_private_playlists') ?></li>
                         </ul>
                         
-                        <a href="getvip.php?plan=monthly" class="plan-button">
-                            <i class="bi bi-cart"></i> خرید پلن
+                        <a href="<?= am_lang_url('getvip.php') ?>?plan=monthly" class="plan-button">
+                            <i class="bi bi-cart"></i> <?= am_te('buy_plan') ?>
                         </a>
                     </div>
                     
                     <div class="plan-card popular">
-                        <div class="plan-name">سه ماهه</div>
+                        <div class="plan-name"><?= am_te('quarterly_plan') ?></div>
                         <div class="plan-price">۷۹,۰۰۰ تومان</div>
-                        <div class="plan-period">سه ماه اشتراک</div>
+                        <div class="plan-period"><?= am_te('three_month_sub') ?></div>
                         
                         <ul class="plan-features">
-                            <li><i class="bi bi-check"></i> تمامی امکانات پلن ماهیانه</li>
-                            <li><i class="bi bi-check"></i> ذخیره ۱۵٪ نسبت به پلن ماهیانه</li>
-                            <li><i class="bi bi-check"></i> پشتیبانی ویژه</li>
+                            <li><i class="bi bi-check"></i> <?= am_te('all_monthly_features') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('save_15') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('priority_support') ?></li>
                         </ul>
                         
-                        <a href="getvip.php?plan=3months" class="plan-button">
-                            <i class="bi bi-cart"></i> خرید پلن
+                        <a href="<?= am_lang_url('getvip.php') ?>?plan=3months" class="plan-button">
+                            <i class="bi bi-cart"></i> <?= am_te('buy_plan') ?>
                         </a>
                     </div>
                     
                     <div class="plan-card">
-                        <div class="plan-name">سالانه</div>
+                        <div class="plan-name"><?= am_te('yearly_plan') ?></div>
                         <div class="plan-price">۲۵۹,۰۰۰ تومان</div>
-                        <div class="plan-period">یک سال اشتراک</div>
+                        <div class="plan-period"><?= am_te('one_year_sub') ?></div>
                         
                         <ul class="plan-features">
-                            <li><i class="bi bi-check"></i> تمامی امکانات پلن سه ماهه</li>
-                            <li><i class="bi bi-check"></i> ذخیره ۳۰٪ نسبت به پلن ماهیانه</li>
-                            <li><i class="bi bi-check"></i> پشتیبانی تلفنی</li>
+                            <li><i class="bi bi-check"></i> <?= am_te('all_quarterly_features') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('save_30') ?></li>
+                            <li><i class="bi bi-check"></i> <?= am_te('phone_support') ?></li>
                         </ul>
                         
-                        <a href="getvip.php?plan=yearly" class="plan-button">
-                            <i class="bi bi-cart"></i> خرید پلن
+                        <a href="<?= am_lang_url('getvip.php') ?>?plan=yearly" class="plan-button">
+                            <i class="bi bi-cart"></i> <?= am_te('buy_plan') ?>
                         </a>
                     </div>
                 </div>
                 
                 <div class="benefits-list">
-                    <h3 class="section-title">مزایای اشتراک VIP</h3>
+                    <h3 class="section-title"><?= am_te('vip_benefits') ?></h3>
                     
                     <div class="benefit-item">
                         <div class="benefit-icon">
                             <i class="bi bi-download"></i>
                         </div>
                         <div>
-                            <h4>دانلود نامحدود</h4>
-                            <p>توانایی دانلود تمامی موزیک‌ها و محتواها بدون محدودیت</p>
+                            <h4><?= am_te('unlimited_downloads') ?></h4>
+                            <p><?= am_te('unlimited_downloads_desc') ?></p>
                         </div>
                     </div>
                     
@@ -532,8 +532,8 @@ function jdate($format, $timestamp = '') {
                             <i class="bi bi-music-note-beamed"></i>
                         </div>
                         <div>
-                            <h4>متن و ترجمه آهنگ‌ها</h4>
-                            <p>دسترسی کامل به متن اصلی و ترجمه فارسی تمامی آهنگ‌ها</p>
+                            <h4><?= am_te('lyrics_trans_title') ?></h4>
+                            <p><?= am_te('lyrics_trans_desc') ?></p>
                         </div>
                     </div>
                     
@@ -542,8 +542,8 @@ function jdate($format, $timestamp = '') {
                             <i class="bi bi-play-btn"></i>
                         </div>
                         <div>
-                            <h4>ویدیوهای انیمه</h4>
-                            <p>تماشای ویدیوهای Opening و Ending با کیفیت بالا</p>
+                            <h4><?= am_te('anime_videos_title') ?></h4>
+                            <p><?= am_te('anime_videos_desc') ?></p>
                         </div>
                     </div>
                     
@@ -552,8 +552,8 @@ function jdate($format, $timestamp = '') {
                             <i class="bi-broadcast"></i>
                         </div>
                         <div>
-                            <h4>لیست پخش اختصاصی</h4>
-                            <p>شما با داشتن لیست پخش اختصاصی می‌توانید لیست های پخش عمومی و خصوصی خودتون رو داشته باشید لیست پخش مجهز به پخش کننده خاص هست</p>
+                            <h4><?= am_te('dedicated_playlist_title') ?></h4>
+                            <p><?= am_te('dedicated_playlist_desc') ?></p>
                         </div>
                     </div>
                     
@@ -562,8 +562,8 @@ function jdate($format, $timestamp = '') {
                             <i class="bi-suit-heart"></i>
                         </div>
                         <div>
-                            <h4>علاقه مندی ها</h4>
-                            <p>شما میتوانید آهنگ های مورد علاقه خود را به بخش مورد علاقه اضافه کنید تا بتوانید بعدا آنها را آسان تر پیدا کنید</p>
+                            <h4><?= am_te('favorites_title') ?></h4>
+                            <p><?= am_te('favorites_desc') ?></p>
                         </div>
                     </div>
                     
@@ -572,8 +572,8 @@ function jdate($format, $timestamp = '') {
                             <i class="bi bi-x-circle"></i>
                         </div>
                         <div>
-                            <h4>حذف تبلیغات</h4>
-                            <p>تجربه تماشای بدون وقفه و بدون تبلیغات</p>
+                            <h4><?= am_te('ad_free_title') ?></h4>
+                            <p><?= am_te('ad_free_desc') ?></p>
                         </div>
                     </div>
                 </div>
@@ -581,31 +581,31 @@ function jdate($format, $timestamp = '') {
             
             <div class="user-status">
                 <div class="user-status-content">
-                    <h3 class="section-title">وضعیت اشتراک شما</h3>
+                    <h3 class="section-title"><?= am_te('subscription_status') ?></h3>
                     
                     <div class="status-badge <?= $user['subscription_status'] === 'vip' ? 'status-vip' : 'status-free' ?>">
-                        <?= $user['subscription_status'] === 'vip' ? 'VIP' : 'عادی' ?>
+                        <?= $user['subscription_status'] === 'vip' ? 'VIP' : am_te('regular_label') ?>
                     </div>
                     
                     <?php if ($user['subscription_status'] === 'vip' && $user['subscription_end_date']): ?>
-                        <p>اعتبار اشتراک شما تا: 
+                        <p><?= am_te('vip_active_until') ?> 
                             <strong><?= jdate('Y/m/d', $user['subscription_end_date']) ?></strong>
                         </p>
                         <p class="status-info">
                             <i class="bi bi-info-circle"></i>
-                            شما در حال حاضر از تمامی امکانات VIP بهره‌مند هستید.
+                            <?= am_te('vip_active_info') ?>
                         </p>
                     <?php else: ?>
-                        <p>شما در حال حاضر اشتراک عادی دارید.</p>
+                        <p><?= am_te('regular_sub_now') ?></p>
                         <p class="status-info">
                             <i class="bi bi-info-circle"></i>
-                            با ارتقاء به VIP به تمامی امکانات ویژه دسترسی پیدا خواهید کرد.
+                            <?= am_te('upgrade_to_vip_info') ?>
                         </p>
                     <?php endif; ?>
                     
                     <div style="margin-top: 20px;">
-                        <a href="profile.php" class="plan-button" style="display: block; text-align: center; text-decoration: none;">
-                            <i class="bi bi-person"></i> پنل کاربری
+                        <a href="<?= am_lang_url('profile.php') ?>" class="plan-button" style="display: block; text-align: center; text-decoration: none;">
+                            <i class="bi bi-person"></i> <?= am_te('user_panel_link') ?>
                         </a>
                     </div>
                 </div>
@@ -614,10 +614,10 @@ function jdate($format, $timestamp = '') {
     </div>
     
     <div class="navbar">
-        <a href="index.php"><i class="bi bi-house"></i> خانه</a>
-        <a href="categories.php"><i class="bi bi-grid-1x2-fill"></i> دسته‌ها</a>
-        <a href="vip.php" class="active"><i class="bi bi-star"></i> VIP</a>
-        <a href="profile.php"><i class="bi bi-person"></i> پروفایل</a>
+        <a href="<?= am_lang_url('index.php') ?>"><i class="bi bi-house"></i> <?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('vip.php')  class="active""><i class="bi bi-star"></i> VIP</a>
+        <a href="<?= am_lang_url('profile.php') "><i class="bi bi-person"></i> <?= am_te('profile') ?></a>
     </div>
 
     <script>

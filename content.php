@@ -1189,7 +1189,7 @@ if (!empty($content['important_links'])) {
           <!-- پخش‌کننده صوتی - فقط صوت پخش می‌شود و هیچ ویدیویی بارگذاری نمی‌شود -->
           <audio id="music-audio" preload="metadata" controlslist="nodownload">
             <source src="<?= $music_file ?>">
-            مرورگر شما پلیر صوتی را پشتیبانی نمی‌کند.
+            <?= am_te('audio_unsupported') ?>
           </audio>
           
           <div class="player-controls">
@@ -1234,7 +1234,7 @@ if (!empty($content['important_links'])) {
               </a>
             <?php else: ?>
               <div class="vip-only">
-                <a href="<?= am_lang_url(\'vip.php\') ?>" class="download-btn">
+                <a href="<?= am_lang_url('vip.php') ?>" class="download-btn">
                   <i class="bi bi-download"></i> <?= am_te('download_vip') ?>
                 </a>
               </div>
@@ -1273,19 +1273,19 @@ if (!empty($content['important_links'])) {
       <!-- نمایش ویدیو (اگر موجود باشد) -->
       <?php if ($video_file): ?>
         <div class="card <?= !$isVIP ? 'vip-only' : '' ?>">
-          <h3><i class="bi bi-play-btn-fill"></i> ویدیو</h3>
+          <h3><i class="bi bi-play-btn-fill"></i> <?= am_te('video') ?></h3>
           <div class="media-container">
             <?php if (!$isVIP): ?>
               <div class="vip-overlay">
-                <p>برای مشاهده ویدیو باید اشتراک VIP داشته باشید</p>
-                <a href="<?= am_lang_url(\'vip.php\') ?>" class="button"><?= am_te('buy_vip') ?></a>
+                <p><?= am_te('video_vip_msg') ?></p>
+                <a href="<?= am_lang_url('vip.php') ?>" class="button"><?= am_te('buy_vip') ?></a>
               </div>
             <?php endif; ?>
             <!-- پخش‌کننده ویدیویی - فقط با درخواست کاربر (کلیک) لود می‌شود تا باند پخش موزیک اشغال نشود -->
             <video controls playsinline preload="none" poster="<?= $image_url ?>" style="<?= !$isVIP ? 'filter: blur(5px);' : '' ?>">
               <source src="<?= $video_file ?>" type="video/webm">
               <source src="<?= $video_file ?>" type="video/mp4">
-              مرورگر شما پلیر ویدیو را پشتیبانی نمی‌کند.
+              <?= am_te('video_unsupported') ?>
             </video>
           </div>
         </div>
@@ -1293,13 +1293,13 @@ if (!empty($content['important_links'])) {
       
       <!-- اطلاعات تکمیلی -->
       <div class="card">
-        <h3><i class="bi bi-info-circle"></i> اطلاعات موزیک</h3>
-        <p><strong>نوع:</strong> <?= $music_type ?></p>
+        <h3><i class="bi bi-info-circle"></i> <?= am_te('music_info') ?></h3>
+        <p><strong><?= am_te('type_label') ?>:</strong> <?= $music_type ?></p>
         <?php if ($season_number): ?>
-          <p><strong>فصل:</strong> <?= $season_number ?></p>
+          <p><strong><?= am_te('season_label') ?>:</strong> <?= $season_number ?></p>
         <?php endif; ?>
         <?php if ($episode_number): ?>
-          <p><strong>قسمت:</strong> <?= $episode_number ?></p>
+          <p><strong><?= am_te('episode_label') ?>:</strong> <?= $episode_number ?></p>
         <?php endif; ?>
         <?php if (!empty($singers)): ?>
           <p><strong><?= am_te('singer') ?>:</strong> 
@@ -1308,7 +1308,7 @@ if (!empty($content['important_links'])) {
             <?php endforeach; ?>
           </p>
         <?php endif; ?>
-        <p><strong>تعداد بازدید:</strong> <?= number_format($content['view_count']) ?></p>
+        <p><strong><?= am_te('views_label') ?>:</strong> <?= number_format($content['view_count']) ?></p>
       </div>
       
       <!-- متن و ترجمه آهنگ -->
@@ -1323,7 +1323,7 @@ if (!empty($content['important_links'])) {
                 <?php if (!$isVIP): ?>
                   <div class="vip-overlay">
                     <p><?= am_te('lyrics_vip_msg') ?></p>
-                    <a href="<?= am_lang_url(\'vip.php\') ?>" class="button"><?= am_te('buy_vip') ?></a>
+                    <a href="<?= am_lang_url('vip.php') ?>" class="button"><?= am_te('buy_vip') ?></a>
                   </div>
                 <?php endif; ?>
               </div>
@@ -1335,8 +1335,8 @@ if (!empty($content['important_links'])) {
                 <div class="lyrics-text clamp"><?= $lyrics_translation ?></div>
                 <?php if (!$isVIP): ?>
                   <div class="vip-overlay">
-                    <p>برای مشاهده ترجمه باید اشتراک VIP داشته باشید</p>
-                    <a href="<?= am_lang_url(\'vip.php\') ?>" class="button"><?= am_te('buy_vip') ?></a>
+                    <p><?= am_te('lyrics_translation_vip') ?></p>
+                    <a href="<?= am_lang_url('vip.php') ?>" class="button"><?= am_te('buy_vip') ?></a>
                   </div>
                 <?php endif; ?>
               </div>
@@ -1348,7 +1348,7 @@ if (!empty($content['important_links'])) {
       <!-- لینک‌های مهم -->
       <?php if (!empty($important_links)): ?>
         <div class="card">
-          <h3><i class="bi bi-link-45deg"></i> لینک‌های مهم</h3>
+          <h3><i class="bi bi-link-45deg"></i> <?= am_te('important_links') ?></h3>
           <ul class="links">
             <?php foreach ($important_links as $link): ?>
               <li><a href="<?= htmlspecialchars($link['url']) ?>" target="_blank"><?= htmlspecialchars($link['name']) ?></a></li>
@@ -1379,7 +1379,7 @@ if (!empty($content['important_links'])) {
       <!-- دکمه بازگشت -->
       <div>
       <center>
-        <a href="<?= am_lang_url(\'index.php\') ?>" class="button-link">
+        <a href="<?= am_lang_url('index.php') ?>" class="button-link">
           <button class="button"><i class="bi bi-house-door"></i> <?= am_te('back_home') ?></button>
           </center>
         </a>
@@ -1407,10 +1407,10 @@ if (!empty($content['important_links'])) {
             <?php endforeach; ?>
           </ul>
         <?php else: ?>
-          <p>شما هنوز هیچ پلی‌لیستی ندارید.</p>
+          <p><?= am_te('no_playlists') ?></p>
         <?php endif; ?>
         <button class="create-playlist-btn" id="create-playlist-btn">
-          <i class="bi bi-plus-circle"></i> ایجاد پلی‌لیست جدید
+          <i class="bi bi-plus-circle"></i> <?= am_te('create_playlist') ?>
         </button>
       </div>
     </div>
@@ -1451,7 +1451,7 @@ if (!empty($content['important_links'])) {
     // بارگذاری لینک تبلیغ
     fetch("assets/ads/Ads.txt?t=" + new Date().getTime())
       .then(r => {
-        if (!r.ok) throw new Error("خطا در دریافت لینک تبلیغ");
+        if (!r.ok) throw new Error(<?= json_encode(am_t('ad_link_error')) ?>);
         return r.text();
       })
       .then(txt => {
@@ -1475,7 +1475,7 @@ if (!empty($content['important_links'])) {
     // مدیریت صدا
     unmuteBtn.onclick = () => {
       adVideo.muted = false;
-      unmuteBtn.textContent = "🔊 صدا فعال";
+      unmuteBtn.textContent = <?= json_encode(am_t('sound_on')) ?>;
       setTimeout(() => {
         unmuteBtn.style.opacity = "0.5";
       }, 2000);
@@ -1677,18 +1677,18 @@ if (!empty($content['important_links'])) {
         if (data.success) {
           if (action === 'add') {
             this.classList.add('active');
-            this.innerHTML = '<i class="bi bi-heart-fill"></i> حذف از علاقه‌مندی';
+            this.innerHTML = '<i class="bi bi-heart-fill"></i> ' + <?= json_encode(am_t('remove_fav_js')) ?>;
           } else {
             this.classList.remove('active');
-            this.innerHTML = '<i class="bi bi-heart"></i> افزودن به علاقه‌مندی';
+            this.innerHTML = '<i class="bi bi-heart"></i> ' + <?= json_encode(am_t('add_fav_js')) ?>;
           }
         } else {
-          alert('خطا در بروزرسانی علاقه‌مندی‌ها: ' + data.message);
+          alert(<?= json_encode(am_t('fav_update_error')) ?> + ': ' + data.message);
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('خطا در ارتباط با سرور');
+        alert(<?= json_encode(am_t('server_error')) ?>);
       });
     });
     
@@ -1723,22 +1723,22 @@ if (!empty($content['important_links'])) {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert('محتوا با موفقیت به پلی‌لیست اضافه شد');
+            alert(<?= json_encode(am_t('added_to_playlist_success')) ?>);
             playlistModal.style.display = 'none';
           } else {
-            alert('خطا در افزودن به پلی‌لیست: ' + data.message);
+            alert(<?= json_encode(am_t('add_to_playlist_error')) ?> + ': ' + data.message);
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          alert('خطا در ارتباط با سرور');
+          alert(<?= json_encode(am_t('server_error')) ?>);
         });
       });
     });
     
     // ایجاد پلی‌لیست جدید
     createPlaylistBtn.addEventListener('click', function() {
-      const playlistName = prompt('لطفاً نام پلی‌لیست جدید را وارد کنید:');
+      const playlistName = prompt(<?= json_encode(am_t('enter_playlist_name')) ?>);
       if (playlistName && playlistName.trim() !== '') {
         fetch('/create_playlist.php', {
           method: 'POST',
@@ -1750,17 +1750,17 @@ if (!empty($content['important_links'])) {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert('پلی‌لیست جدید ایجاد و محتوا به آن اضافه شد');
+            alert(<?= json_encode(am_t('playlist_created_success')) ?>);
             playlistModal.style.display = 'none';
             // رفرش صفحه برای نمایش پلی‌لیست جدید
             location.reload();
           } else {
-            alert('خطا در ایجاد پلی‌لیست: ' + data.message);
+            alert(<?= json_encode(am_t('create_playlist_error')) ?> + ': ' + data.message);
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          alert('خطا در ارتباط با سرور');
+          alert(<?= json_encode(am_t('server_error')) ?>);
         });
       }
     });
