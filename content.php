@@ -161,15 +161,29 @@ if (!empty($content['important_links'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
 <head>
+  <?= am_lang_base_tag() ?>
   <meta charset="UTF-8" />
-  <title>دانلود <?= $music_type_fa ?> <?= $title_fa ?> | <?= $title_en ?> | <?= $title ?></title>
+  <?php
+  // عنوان SEO چندزبانه: برای فارسی همان الگوی قبل، برای سایر زبان‌ها الگوی لاتین
+  if (am_lang() === 'fa') {
+      $page_title_text = "دانلود $music_type_fa $title_fa | $title_en | $title";
+      $page_desc_text  = "دانلود $music_type_fa $title_fa با کیفیت بالا و لینک مستقیم. $title_en - $title";
+  } else {
+      $am_meta_type = strtolower($music_type);
+      $am_meta_dl   = am_t('download');
+      $page_title_text = "$am_meta_dl $am_meta_type $title_en | $title";
+      $page_desc_text  = "$am_meta_dl $am_meta_type '$title_en' ($title) — anime song, direct link, high quality.";
+  }
+  ?>
+  <title><?= am_e($page_title_text) ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="دانلود <?= $music_type_fa ?> <?= $title_fa ?> با کیفیت بالا و لینک مستقیم. <?= $title_en ?> - <?= $title ?>" />
+  <meta name="description" content="<?= am_e($page_desc_text) ?>" />
+  <?= am_hreflang_links('content.php?id=' . $id) ?>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
-  <style>
+<style>
     :root {
       --primary-color: #00ff6a;
       --secondary-color: #00ffc3;
@@ -1097,16 +1111,16 @@ if (!empty($content['important_links'])) {
       }
     }
   </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
   
   <div class="header">
-    <img src="image.png" alt="لوگو رسانه" />
+    <img src="/image.png" alt="Logo" />
     <div>
       <button class="theme-toggle" id="themeToggle">
         <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
@@ -1116,24 +1130,26 @@ if (!empty($content['important_links'])) {
           <?php if ($isVIP): ?>
             <span class="vip-badge">VIP</span>
           <?php else: ?>
-            <a href="vip.php" style="color: var(--secondary-color); text-decoration: none;">ارتقاء به VIP</a>
+            <a href="<?= am_lang_url('vip.php') ?>" style="color: var(--secondary-color); text-decoration: none;"><?= am_te("upgrade_vip") ?></a>
           <?php endif; ?>
         <?php else: ?>
-          <a href="login.php" style="color: var(--secondary-color); text-decoration: none;">ورود / ثبت‌نام</a>
+          <a href="<?= am_lang_url('login.php') ?>" style="color: var(--secondary-color); text-decoration: none;"><?= am_te("login_signup") ?></a>
         <?php endif; ?>
       </div>
     </div>
   </div>
 
-  <h2><?= $title ?></h2>
-  <?php if (!empty($title_fa)): ?>
+  <?= am_lang_switcher_flags('content.php?id=' . $id) ?>
+
+  <h2><?= am_e(am_lang_content_title($title_en, $title_fa)) ?></h2>
+  <?php if (!empty($title_fa) && am_lang() === 'fa'): ?>
     <h3 style="text-align: center; color: var(--text-secondary); margin-top: 5px;"><?= $title_fa ?></h3>
   <?php endif; ?>
   
   <div class="container">
     <?php if (!empty($description)): ?>
       <div class="card">
-        <h3><i class="bi bi-journal-text"></i> خلاصه توضیحات</h3>
+        <h3><i class="bi bi-journal-text"></i> <?= am_te("description_title") ?></h3>
         <p class="clamp"><?= $description ?></p>
       </div>
     <?php endif; ?>
@@ -1141,10 +1157,10 @@ if (!empty($content['important_links'])) {
     <!-- تبلیغ - فقط برای کاربران غیر VIP نمایش داده شود -->
     <?php if (!$isVIP): ?>
     <div id="ad-section">
-      <video id="ad-video" src="assets/ads/myad.mp4" muted playsinline preload="metadata"></video>
-      <a id="ad-link" href="#" target="_blank" rel="noopener noreferrer">اطلاعات بیشتر</a>
-      <button id="skip-btn" class="button" disabled>رد کردن تبلیغ (10)</button>
-      <button id="unmute-btn" class="button">🔊 فعال کردن صدا</button>
+      <video id="ad-video" src="/assets/ads/myad.mp4" muted playsinline preload="metadata"></video>
+      <a id="ad-link" href="#" target="_blank" rel="noopener noreferrer"><?= am_te('more_info') ?></a>
+      <button id="skip-btn" class="button" disabled><?= am_te('skip_ad') ?> (10)</button>
+      <button id="unmute-btn" class="button"><?= am_te('enable_sound') ?></button>
     </div>
     <?php endif; ?>
     
@@ -1153,7 +1169,7 @@ if (!empty($content['important_links'])) {
       <!-- dropdown برای انتخاب موزیک‌های دیگر از همین انیمه و نوع -->
       <?php if (count($relatedMusic) > 1): ?>
       <div class="card">
-        <h3><i class="bi bi-list"></i> انتخاب <?= $music_type ?></h3>
+        <h3><i class="bi bi-list"></i> <?= am_te("choose_music") ?> — <?= $music_type ?></h3>
         <select id="music-selector" class="form-control">
           <?php foreach ($relatedMusic as $music): ?>
             <option value="<?= $music['id'] ?>" <?= $music['id'] == $id ? 'selected' : '' ?>>
@@ -1214,12 +1230,12 @@ if (!empty($content['important_links'])) {
             
             <?php if ($isVIP): ?>
               <a href="<?= $music_file ?>" download class="download-btn">
-                <i class="bi bi-download"></i> دانلود موزیک
+                <i class="bi bi-download"></i> <?= am_te("download_music") ?>
               </a>
             <?php else: ?>
               <div class="vip-only">
-                <a href="vip.php" class="download-btn">
-                  <i class="bi bi-download"></i> دانلود (VIP)
+                <a href="<?= am_lang_url(\'vip.php\') ?>" class="download-btn">
+                  <i class="bi bi-download"></i> <?= am_te('download_vip') ?>
                 </a>
               </div>
             <?php endif; ?>
@@ -1228,12 +1244,12 @@ if (!empty($content['important_links'])) {
             <?php if ($isVIP): ?>
               <button class="favorite-btn <?= $isFavorite ? 'active' : '' ?>" id="favorite-btn">
                 <i class="bi bi-heart<?= $isFavorite ? '-fill' : '' ?>"></i>
-                <?= $isFavorite ? 'حذف از علاقه‌مندی' : 'افزودن به علاقه‌مندی' ?>
+                <?= $isFavorite ? am_t("remove_favorite") : am_t("add_favorite") ?>
               </button>
             <?php else: ?>
               <div class="vip-only">
                 <button class="favorite-btn" onclick="showVipMessage()">
-                  <i class="bi bi-heart"></i> افزودن به علاقه‌مندی (VIP)
+                  <i class="bi bi-heart"></i> <?= am_te("add_favorite") ?> (VIP)
                 </button>
               </div>
             <?php endif; ?>
@@ -1241,12 +1257,12 @@ if (!empty($content['important_links'])) {
             <!-- دکمه افزودن به پلی‌لیست -->
             <?php if ($isVIP): ?>
               <button class="playlist-btn" id="playlist-btn">
-                <i class="bi bi-plus-circle"></i> افزودن به پلی‌لیست
+                <i class="bi bi-plus-circle"></i> <?= am_te("add_playlist") ?>
               </button>
             <?php else: ?>
               <div class="vip-only">
                 <button class="playlist-btn" onclick="showVipMessage()">
-                  <i class="bi bi-plus-circle"></i> افزودن به پلی‌لیست (VIP)
+                  <i class="bi bi-plus-circle"></i> <?= am_te("add_playlist") ?> (VIP)
                 </button>
               </div>
             <?php endif; ?>
@@ -1262,7 +1278,7 @@ if (!empty($content['important_links'])) {
             <?php if (!$isVIP): ?>
               <div class="vip-overlay">
                 <p>برای مشاهده ویدیو باید اشتراک VIP داشته باشید</p>
-                <a href="vip.php" class="button">خرید اشتراک VIP</a>
+                <a href="<?= am_lang_url(\'vip.php\') ?>" class="button"><?= am_te('buy_vip') ?></a>
               </div>
             <?php endif; ?>
             <!-- پخش‌کننده ویدیویی - فقط با درخواست کاربر (کلیک) لود می‌شود تا باند پخش موزیک اشغال نشود -->
@@ -1286,7 +1302,7 @@ if (!empty($content['important_links'])) {
           <p><strong>قسمت:</strong> <?= $episode_number ?></p>
         <?php endif; ?>
         <?php if (!empty($singers)): ?>
-          <p><strong>خواننده:</strong> 
+          <p><strong><?= am_te('singer') ?>:</strong> 
             <?php foreach ($singers as $index => $singer): ?>
               <?= htmlspecialchars($singer['name']) ?><?= $index < count($singers) - 1 ? '، ' : '' ?>
             <?php endforeach; ?>
@@ -1298,16 +1314,16 @@ if (!empty($content['important_links'])) {
       <!-- متن و ترجمه آهنگ -->
       <?php if ($lyrics_text || $lyrics_translation): ?>
         <div class="lyrics-section">
-          <h3 style="text-align: center; color: var(--secondary-color);">متن آهنگ</h3>
+          <h3 style="text-align: center; color: var(--secondary-color);"><?= am_te("lyrics") ?></h3>
           <div class="lyrics-container">
             <?php if ($lyrics_text): ?>
               <div class="lyrics-box <?= !$isVIP ? 'non-vip' : '' ?>">
-                <h4>متن اصلی</h4>
+                <h4><?= am_te("original_lyrics") ?></h4>
                 <div class="lyrics-text clamp"><?= $lyrics_text ?></div>
                 <?php if (!$isVIP): ?>
                   <div class="vip-overlay">
-                    <p>برای مشاهده متن آهنگ باید اشتراک VIP داشته باشید</p>
-                    <a href="vip.php" class="button">خرید اشتراک VIP</a>
+                    <p><?= am_te('lyrics_vip_msg') ?></p>
+                    <a href="<?= am_lang_url(\'vip.php\') ?>" class="button"><?= am_te('buy_vip') ?></a>
                   </div>
                 <?php endif; ?>
               </div>
@@ -1315,12 +1331,12 @@ if (!empty($content['important_links'])) {
             
             <?php if ($lyrics_translation): ?>
               <div class="lyrics-box <?= !$isVIP ? 'non-vip' : '' ?>">
-                <h4>ترجمه فارسی</h4>
+                <h4><?= am_te("lyrics_translation") ?></h4>
                 <div class="lyrics-text clamp"><?= $lyrics_translation ?></div>
                 <?php if (!$isVIP): ?>
                   <div class="vip-overlay">
                     <p>برای مشاهده ترجمه باید اشتراک VIP داشته باشید</p>
-                    <a href="vip.php" class="button">خرید اشتراک VIP</a>
+                    <a href="<?= am_lang_url(\'vip.php\') ?>" class="button"><?= am_te('buy_vip') ?></a>
                   </div>
                 <?php endif; ?>
               </div>
@@ -1344,12 +1360,12 @@ if (!empty($content['important_links'])) {
       <!-- محتواهای مرتبط -->
       <?php if (!empty($relatedContents)): ?>
         <div class="related-section">
-          <h3 style="text-align: center; color: var(--secondary-color);">موزیک‌های مرتبط</h3>
+          <h3 style="text-align: center; color: var(--secondary-color);"><?= am_te('related') ?></h3>
           <div class="related-grid">
             <?php foreach ($relatedContents as $item): ?>
-              <a href="content.php?id=<?= $item['id'] ?>" class="related-item">
+              <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="related-item">
                 <div class="badge"><?= htmlspecialchars($item['music_type']) ?></div>
-                <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>">
+                <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="<?= am_e($item['title']) ?>">
                 <div class="related-info">
                   <h4><?= htmlspecialchars($item['title']) ?></h4>
                   <p><?= htmlspecialchars($item['music_type']) ?></p>
@@ -1363,8 +1379,8 @@ if (!empty($content['important_links'])) {
       <!-- دکمه بازگشت -->
       <div>
       <center>
-        <a href="index.php" class="button-link">
-          <button class="button"><i class="bi bi-house-door"></i> بازگشت به صفحه اصلی</button>
+        <a href="<?= am_lang_url(\'index.php\') ?>" class="button-link">
+          <button class="button"><i class="bi bi-house-door"></i> <?= am_te('back_home') ?></button>
           </center>
         </a>
       </div>
@@ -1375,7 +1391,7 @@ if (!empty($content['important_links'])) {
   <div class="modal" id="playlist-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>انتخاب پلی‌لیست</h3>
+        <h3><?= am_te('add_playlist') ?></h3>
         <button class="close-modal">&times;</button>
       </div>
       <div id="playlist-container">
@@ -1401,10 +1417,10 @@ if (!empty($content['important_links'])) {
   </div>
   
   <div class="navbar">
-    <a href="index.php" class="nav-item"><i class="bi bi-house-door-fill"></i>خانه</a>
-    <a href="categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
-    <a href="search/search.php" class="nav-item"><i class="bi bi-search"></i>جستجو</a>
-    <a href="about.php" class="nav-item"><i class="bi bi-info-circle"></i>درباره ما</a>
+    <a href="<?= am_lang_url('index.php') ?>" class="nav-item"><i class="bi bi-house-door-fill"></i><?= am_te('home') ?></a>
+    <a href="<?= am_lang_url('categories.php') ?>" class="nav-item"><i class="bi bi-grid-1x2-fill"></i><?= am_te('categories') ?></a>
+    <a href="<?= am_lang_url('search/search.php') ?>" class="nav-item"><i class="bi bi-search"></i><?= am_te('search') ?></a>
+    <a href="<?= am_lang_url('about.php') ?>" class="nav-item"><i class="bi bi-info-circle"></i><?= am_te('about') ?></a>
   </div>
   
   <script>
@@ -1427,6 +1443,7 @@ if (!empty($content['important_links'])) {
     <?php if (!$isVIP): ?>
     const adVideo = document.getElementById("ad-video");
     const skipBtn = document.getElementById("skip-btn");
+    const skipLabel = <?= json_encode(am_t('skip_ad')) ?>;
     const unmuteBtn = document.getElementById("unmute-btn");
     const adSection = document.getElementById("ad-section");
     const mainContent = document.getElementById("main-content");
@@ -1467,11 +1484,11 @@ if (!empty($content['important_links'])) {
     // تایمر رد کردن تبلیغ
     let t = 10; // زمان تبلیغ 10 ثانیه
     const timer = setInterval(() => {
-      skipBtn.textContent = `رد کردن تبلیغ (${t})`;
+      skipBtn.textContent = `${skipLabel} (${t})`;
       if (--t < 0) {
         clearInterval(timer);
         skipBtn.disabled = false;
-        skipBtn.textContent = "رد کردن تبلیغ";
+        skipBtn.textContent = skipLabel;
       }
     }, 1000);
     
@@ -1630,7 +1647,7 @@ if (!empty($content['important_links'])) {
     // مدیریت dropdown انتخاب موزیک
     <?php if (count($relatedMusic) > 1): ?>
     document.getElementById('music-selector').addEventListener('change', function() {
-      window.location.href = 'content.php?id=' + this.value;
+      window.location.href = <?= json_encode(am_lang_url('content.php')) ?> + '?id=' + this.value;
     });
     <?php endif; ?>
     
@@ -1648,7 +1665,7 @@ if (!empty($content['important_links'])) {
       const isCurrentlyFavorite = this.classList.contains('active');
       const action = isCurrentlyFavorite ? 'remove' : 'add';
       
-      fetch('manage_favorite.php', {
+      fetch('/manage_favorite.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -1696,7 +1713,7 @@ if (!empty($content['important_links'])) {
       item.addEventListener('click', function() {
         const playlistId = this.getAttribute('data-id');
         
-        fetch('add_to_playlist.php', {
+        fetch('/add_to_playlist.php', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -1723,7 +1740,7 @@ if (!empty($content['important_links'])) {
     createPlaylistBtn.addEventListener('click', function() {
       const playlistName = prompt('لطفاً نام پلی‌لیست جدید را وارد کنید:');
       if (playlistName && playlistName.trim() !== '') {
-        fetch('create_playlist.php', {
+        fetch('/create_playlist.php', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',

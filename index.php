@@ -99,11 +99,13 @@ if (isset($_COOKIE['dark_mode'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
 <head>
+    <?= am_lang_base_tag() ?>
     <meta charset="UTF-8" />
-    <title>خانه | انیمه موزیک</title>
+    <title><?= am_te('home') ?> | <?= am_te('site_name') ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <?= am_hreflang_links('index.php') ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
     <style>
@@ -563,17 +565,17 @@ if (isset($_COOKIE['dark_mode'])) {
             }
         }
     </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
     <div class="header">
-        <img src="<?= asset('image.png') ?>" alt="لوگو رسانه" />
+        <img src="<?= am_e(am_lang_asset('image.png')) ?>" alt="Logo" />
         <div class="header-buttons">
-            <a href="profile.php" class="profile-button">
+            <a href="<?= am_lang_url('profile.php') ?>" class="profile-button">
                 <i class="bi bi-person"></i>
             </a>
             <button class="theme-toggle" id="themeToggle">
@@ -582,9 +584,11 @@ if (isset($_COOKIE['dark_mode'])) {
         </div>
     </div>
 
+    <?= am_lang_switcher_flags('index.php') ?>
+
     <div class="search-container">
-        <form action="search/search.php" method="GET">
-            <input type="text" name="q" class="search-input" placeholder="جستجوی انیمه، موزیک، خواننده..." />
+        <form action="<?= am_lang_url('search/search.php') ?>" method="GET">
+            <input type="text" name="q" class="search-input" placeholder="<?= am_te('search_ph') ?>" />
             <button type="submit" class="search-button">
                 <i class="bi bi-search"></i>
             </button>
@@ -592,12 +596,12 @@ if (isset($_COOKIE['dark_mode'])) {
     </div>
 
     <?php if (!empty($specialSlides)): ?>
-    <div class="slider-container" aria-label="اسلایدر محتوا ویژه">
+    <div class="slider-container" aria-label="Special content slider">
         <div class="slider-wrapper">
             <?php foreach ($specialSlides as $index => $slide): ?>
                 <div class="slider-slide <?= $index === 0 ? 'active' : '' ?>" data-index="<?= $index ?>">
                     <a href="<?= htmlspecialchars($slide['url']) ?>" target="_blank" rel="noopener noreferrer">
-                        <img src="<?= asset($slide['img']) ?>" alt="ویژه" loading="lazy" />
+                        <img src="<?= am_e(am_lang_asset($slide['img'])) ?>" alt="Featured" loading="lazy" />
                     </a>
                 </div>
             <?php endforeach; ?>
@@ -671,7 +675,7 @@ if (isset($_COOKIE['dark_mode'])) {
     <?php endif; ?>
 
     <div class="section">
-        <h2><span>🔥 محبوب‌ترین‌ها</span> <a href="list.php?sort=popular">مشاهده همه</a></h2>
+        <h2><span><?= am_te('popular') ?></span> <a href="<?= am_lang_url('list.php?sort=popular') ?>"><?= am_te('view_all') ?></a></h2>
         <div class="horizontal-scroll">
             <?php if (empty($popularContents)): ?>
                 <?php for ($i = 0; $i < 5; $i++): ?>
@@ -679,14 +683,14 @@ if (isset($_COOKIE['dark_mode'])) {
                 <?php endfor; ?>
             <?php else: ?>
                 <?php foreach ($popularContents as $item): ?>
-                    <a href="content.php?id=<?= $item['id'] ?>" class="content-card">
+                    <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
                         <div class="content-badge"><?= htmlspecialchars($item['music_type']) ?></div>
                         <div class="image-container">
-                            <img src="<?= asset($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
+                            <img src="<?= am_e(am_lang_asset($item['image_url'] ?? 'assets/image/placeholder.jpg')) ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
                         </div>
                         <div class="info">
-                            <h3><?= htmlspecialchars($item['title']) ?></h3>
-                            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+                            <h3><?= am_e($item['title']) ?></h3>
+                            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -695,7 +699,7 @@ if (isset($_COOKIE['dark_mode'])) {
     </div>
 
     <div class="section">
-        <h2><span>🆕 جدیدترین‌ها</span> <a href="list.php?sort=latest">مشاهده همه</a></h2>
+        <h2><span><?= am_te('latest') ?></span> <a href="<?= am_lang_url('list.php?sort=latest') ?>"><?= am_te('view_all') ?></a></h2>
         <div class="horizontal-scroll">
             <?php if (empty($latestContents)): ?>
                 <?php for ($i = 0; $i < 5; $i++): ?>
@@ -703,14 +707,14 @@ if (isset($_COOKIE['dark_mode'])) {
                 <?php endfor; ?>
             <?php else: ?>
                 <?php foreach ($latestContents as $item): ?>
-                    <a href="content.php?id=<?= $item['id'] ?>" class="content-card">
+                    <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
                         <div class="content-badge"><?= htmlspecialchars($item['music_type']) ?></div>
                         <div class="image-container">
-                            <img src="<?= asset($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
+                            <img src="<?= am_e(am_lang_asset($item['image_url'] ?? 'assets/image/placeholder.jpg')) ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
                         </div>
                         <div class="info">
-                            <h3><?= htmlspecialchars($item['title']) ?></h3>
-                            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+                            <h3><?= am_e($item['title']) ?></h3>
+                            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -719,7 +723,7 @@ if (isset($_COOKIE['dark_mode'])) {
     </div>
 
     <div class="section">
-        <h2><span>🎵 اوپنینگ ها</span> <a href="list.php?type=opening">مشاهده همه</a></h2>
+        <h2><span><?= am_te('openings') ?></span> <a href="<?= am_lang_url('list.php?type=opening') ?>"><?= am_te('view_all') ?></a></h2>
         <div class="horizontal-scroll">
             <?php if (empty($openings)): ?>
                 <?php for ($i = 0; $i < 5; $i++): ?>
@@ -727,13 +731,13 @@ if (isset($_COOKIE['dark_mode'])) {
                 <?php endfor; ?>
             <?php else: ?>
                 <?php foreach ($openings as $item): ?>
-                    <a href="content.php?id=<?= $item['id'] ?>" class="content-card">
+                    <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
                         <div class="image-container">
-                            <img src="<?= asset($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
+                            <img src="<?= am_e(am_lang_asset($item['image_url'] ?? 'assets/image/placeholder.jpg')) ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
                         </div>
                         <div class="info">
-                            <h3><?= htmlspecialchars($item['title']) ?></h3>
-                            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+                            <h3><?= am_e($item['title']) ?></h3>
+                            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -742,7 +746,7 @@ if (isset($_COOKIE['dark_mode'])) {
     </div>
 
     <div class="section">
-        <h2><span>🎶 اندینگ ها</span> <a href="list.php?type=ending">مشاهده همه</a></h2>
+        <h2><span><?= am_te('endings') ?></span> <a href="<?= am_lang_url('list.php?type=ending') ?>"><?= am_te('view_all') ?></a></h2>
         <div class="horizontal-scroll">
             <?php if (empty($endings)): ?>
                 <?php for ($i = 0; $i < 5; $i++): ?>
@@ -750,13 +754,13 @@ if (isset($_COOKIE['dark_mode'])) {
                 <?php endfor; ?>
             <?php else: ?>
                 <?php foreach ($endings as $item): ?>
-                    <a href="content.php?id=<?= $item['id'] ?>" class="content-card">
+                    <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
                         <div class="image-container">
-                            <img src="<?= asset($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
+                            <img src="<?= am_e(am_lang_asset($item['image_url'] ?? 'assets/image/placeholder.jpg')) ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
                         </div>
                         <div class="info">
-                            <h3><?= htmlspecialchars($item['title']) ?></h3>
-                            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+                            <h3><?= am_e($item['title']) ?></h3>
+                            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -765,7 +769,7 @@ if (isset($_COOKIE['dark_mode'])) {
     </div>
 
     <div class="section">
-        <h2><span>🎼 موسیقی زمینه (OST)</span> <a href="list.php?type=ost">مشاهده همه</a></h2>
+        <h2><span><?= am_te('osts') ?></span> <a href="<?= am_lang_url('list.php?type=ost') ?>"><?= am_te('view_all') ?></a></h2>
         <div class="horizontal-scroll">
             <?php if (empty($osts)): ?>
                 <?php for ($i = 0; $i < 5; $i++): ?>
@@ -773,13 +777,13 @@ if (isset($_COOKIE['dark_mode'])) {
                 <?php endfor; ?>
             <?php else: ?>
                 <?php foreach ($osts as $item): ?>
-                    <a href="content.php?id=<?= $item['id'] ?>" class="content-card">
+                    <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
                         <div class="image-container">
-                            <img src="<?= asset($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
+                            <img src="<?= am_e(am_lang_asset($item['image_url'] ?? 'assets/image/placeholder.jpg')) ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy" />
                         </div>
                         <div class="info">
-                            <h3><?= htmlspecialchars($item['title']) ?></h3>
-                            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+                            <h3><?= am_e($item['title']) ?></h3>
+                            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
                         </div>
                     </a>
                 <?php endforeach; ?>
@@ -788,10 +792,10 @@ if (isset($_COOKIE['dark_mode'])) {
     </div>
 
     <div class="navbar">
-        <a href="index.php" class="nav-item active"><i class="bi bi-house-door-fill"></i>خانه</a>
-        <a href="categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
-        <a href="search/search.php" class="nav-item"><i class="bi bi-search"></i>جستجو</a>
-        <a href="about.php" class="nav-item"><i class="bi bi-info-circle"></i>درباره ما</a>
+        <a href="<?= am_lang_url('index.php') ?>" class="nav-item active"><i class="bi bi-house-door-fill"></i><?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>" class="nav-item"><i class="bi bi-grid-1x2-fill"></i><?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('search/search.php') ?>" class="nav-item"><i class="bi bi-search"></i><?= am_te('search') ?></a>
+        <a href="<?= am_lang_url('about.php') ?>" class="nav-item"><i class="bi bi-info-circle"></i><?= am_te('about') ?></a>
     </div>
 
     <script>

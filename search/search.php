@@ -209,23 +209,25 @@ $totalPages = ceil($totalResults / $perPage);
 
 // گزینه‌های نوع محتوا
 $contentTypes = [
-    '' => 'همه انواع',
-    'Opening' => 'اوپنینگ',
-    'Ending' => 'اندینگ',
-    'OST' => 'موسیقی زمینه',
-    'Concert' => 'کنسرت',
-    'Character Song' => 'آهنگ شخصیت'
+    '' => am_t('all_types'),
+    'Opening' => am_t('opening_type'),
+    'Ending' => am_t('ending_type'),
+    'OST' => am_t('ost_type'),
+    'Concert' => am_t('concert_type'),
+    'Character Song' => am_t('char_song_type')
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
 <head>
     <meta charset="UTF-8">
-    <title>جستجو | رسانه من - انیمه موزیک</title>
+    <title><?= am_te('search') ?> | <?= am_te('site_name') ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?= am_lang_base_tag() ?>
+    <?= am_hreflang_links('search/search.php') ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet">
-    <style>
+<style>
         :root {
             --primary-color: #00ff6a;
             --secondary-color: #00ffc3;
@@ -634,15 +636,15 @@ $contentTypes = [
             }
         }
     </style>
-    <link rel="icon" type="image/x-icon" href="../favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
-    <link rel="stylesheet" href="../assets/site.css?v=4" />
-    <script defer src="../assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
     <div class="header">
-        <img src="../image.png" alt="لوگو رسانه">
+        <img src="/image.png" alt="لوگو رسانه">
         <div class="header-buttons">
             <button class="theme-toggle" id="themeToggle">
                 <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
@@ -650,9 +652,11 @@ $contentTypes = [
         </div>
     </div>
 
+    <?= am_lang_switcher_flags('search/search.php') ?>
+
     <div class="search-container">
         <form method="get" class="search-form">
-            <input type="text" name="q" class="search-input" value="<?= htmlspecialchars($search) ?>" placeholder="جستجوی انیمه، موزیک، خواننده...">
+            <input type="text" name="q" class="search-input" value="<?= htmlspecialchars($search) ?>" placeholder="<?= am_te('search_ph') ?>">
             
             <select name="type" class="search-select">
                 <?php foreach ($contentTypes as $key => $label): ?>
@@ -661,14 +665,14 @@ $contentTypes = [
             </select>
             
             <select name="singer" class="search-select">
-                <option value="">همه خوانندگان</option>
+                <option value=""><?= am_te('all_singers') ?></option>
                 <?php foreach ($allSingers as $singer): ?>
                     <option value="<?= $singer['id'] ?>" <?= $singerFilter == $singer['id'] ? 'selected' : '' ?>><?= htmlspecialchars($singer['name']) ?></option>
                 <?php endforeach; ?>
             </select>
             
             <button type="submit" class="search-button">
-                <i class="bi bi-search"></i> جستجو
+                <i class="bi bi-search"></i> <?= am_te('search') ?>
             </button>
         </form>
     </div>
@@ -676,9 +680,9 @@ $contentTypes = [
     <?php if ($search !== ''): ?>
         <div class="search-summary">
             <?php if ($totalResults > 0): ?>
-                <p>نمایش <strong><?= ($page - 1) * $perPage + 1 ?> تا <?= min($page * $perPage, $totalResults) ?></strong> از <strong><?= $totalResults ?></strong> نتیجه برای "<strong><?= htmlspecialchars($search) ?></strong>"</p>
+                <p><?= am_te('showing') ?> <strong><?= ($page - 1) * $perPage + 1 ?> <?= am_te('to_word') ?> <?= min($page * $perPage, $totalResults) ?></strong> <?= am_te('of_word') ?> <strong><?= $totalResults ?></strong> <?= am_te('result_word') ?> <?= am_te('for_word') ?> "<strong><?= htmlspecialchars($search) ?></strong>"</p>
             <?php else: ?>
-                <p>هیچ نتیجه‌ای برای "<strong><?= htmlspecialchars($search) ?></strong>" یافت نشد.</p>
+                <p><?= am_te('no_results_for') ?> "<strong><?= htmlspecialchars($search) ?></strong>"</p>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -687,8 +691,8 @@ $contentTypes = [
         <?php if ($search !== '' && empty($results)): ?>
             <div class="no-results">
                 <i class="bi bi-search"></i>
-                <h3>نتیجه‌ای یافت نشد</h3>
-                <p>لطفاً عبارت جستجوی خود را تغییر دهید یا فیلترها را جایگزین کنید.</p>
+                <h3><?= am_te('not_found') ?></h3>
+                <p><?= am_te('try_other_search') ?></p>
             </div>
         <?php endif; ?>
         
@@ -701,13 +705,13 @@ $contentTypes = [
                     </span>
                 <?php endif; ?>
                 
-                <a href="../content.php?id=<?= $item['id'] ?>" class="content-card">
+                <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
                     <div class="card-image">
-                        <img src="<?= htmlspecialchars($item['image_url'] ?? '../assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy">
+                        <img src="<?= htmlspecialchars($item['image_url'] ?? '/assets/image/placeholder.jpg') ?>" alt="<?= am_e($item['title']) ?>" loading="lazy">
                     </div>
                     <div class="info">
                         <h3><?= htmlspecialchars($item['title']) ?></h3>
-                        <p><?= htmlspecialchars($item['title_fa']) ?></p>
+                        <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
                         <?php if (!empty($item['singers'])): ?>
                             <p title="<?= htmlspecialchars($item['singers']) ?>">
                                 <i class="bi bi-person"></i> 
@@ -724,7 +728,7 @@ $contentTypes = [
         <div class="pagination">
             <!-- دکمه صفحه قبل -->
             <?php if ($page > 1): ?>
-                <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">
+                <a href="<?= am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => $page - 1]))) ?>">
                     <i class="bi bi-chevron-right"></i> قبلی
                 </a>
             <?php else: ?>
@@ -737,7 +741,7 @@ $contentTypes = [
             $endPage = min($totalPages, $page + 2);
             
             if ($startPage > 1) {
-                echo '<a href="?' . http_build_query(array_merge($_GET, ['page' => 1])) . '">1</a>';
+                echo '<a href="' . am_e(am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => 1])))) . '">1</a>';
                 if ($startPage > 2) echo '<span>...</span>';
             }
             
@@ -745,19 +749,19 @@ $contentTypes = [
                 <?php if ($i == $page): ?>
                     <span class="current"><?= $i ?></span>
                 <?php else: ?>
-                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
+                    <a href="<?= am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => $i]))) ?>"><?= $i ?></a>
                 <?php endif; ?>
             <?php endfor;
             
             if ($endPage < $totalPages) {
                 if ($endPage < $totalPages - 1) echo '<span>...</span>';
-                echo '<a href="?' . http_build_query(array_merge($_GET, ['page' => $totalPages])) . '">' . $totalPages . '</a>';
+                echo '<a href="' . am_e(am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => $totalPages])))) . '">' . $totalPages . '</a>';
             }
             ?>
 
             <!-- دکمه صفحه بعد -->
             <?php if ($page < $totalPages): ?>
-                <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">
+                <a href="<?= am_lang_url('search/search.php?' . http_build_query(array_merge($_GET, ['page' => $page + 1]))) ?>">
                     بعدی <i class="bi bi-chevron-left"></i>
                 </a>
             <?php else: ?>
@@ -767,10 +771,10 @@ $contentTypes = [
     <?php endif; ?>
 
     <div class="navbar">
-        <a href="../index.php" class="nav-item"><i class="bi bi-house-door-fill"></i> خانه</a>
-        <a href="../categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i> دسته‌ها</a>
-        <a href="search.php" class="nav-item active"><i class="bi bi-search"></i> جستجو</a>
-        <a href="../about.php" class="nav-item"><i class="bi bi-info-circle"></i> درباره ما</a>
+        <a href="<?= am_lang_url('index.php') ?>" class="nav-item"><i class="bi bi-house-door-fill"></i> <?= am_te('home') ?></a>
+        <a href="<?= am_lang_url('categories.php') ?>" class="nav-item"><i class="bi bi-grid-1x2-fill"></i> <?= am_te('categories') ?></a>
+        <a href="<?= am_lang_url('search/search.php') ?>" class="nav-item active"><i class="bi bi-search"></i> <?= am_te('search') ?></a>
+        <a href="<?= am_lang_url('about.php') ?>" class="nav-item"><i class="bi bi-info-circle"></i> <?= am_te('about') ?></a>
     </div>
 
     <script>

@@ -111,14 +111,16 @@ elseif (isset($_GET['singer'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
 <head>
   <meta charset="UTF-8">
-  <title>دسته‌بندی‌ها | انیمه موزیک</title>
+  <title><?= am_te('categories') ?> | <?= am_te('site_name') ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= am_lang_base_tag() ?>
+  <?= am_hreflang_links('categories.php') ?>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
-  <style>
+<style>
     :root {
         --primary-color: #00ff6a;
         --secondary-color: #00ffc3;
@@ -414,68 +416,70 @@ elseif (isset($_GET['singer'])) {
       }
     }
   </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
 
   <div class="header">
-    <img src="image.png" alt="لوگو رسانه" />
+    <img src="/image.png" alt="لوگو رسانه" />
     <button class="theme-toggle" id="themeToggle">
         <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
     </button>
   </div>
+  <?= am_lang_switcher_flags('categories.php') ?>
 
-  <h1>دسته‌بندی‌ها</h1>
+
+  <h1><?= am_te('categories') ?></h1>
 
   <?php if (empty($contents)): ?>
-    <div class="section-title">انواع موزیک</div>
+    <div class="section-title"><?= am_te('music_types') ?></div>
     <div class="category-list">
       <?php foreach ($musicTypes as $type): ?>
-        <a href="?type=<?= urlencode($type['name']) ?>" class="category-card">
+        <a href="<?= am_lang_url('categories.php?type=' . urlencode($type['name'])) ?>" class="category-card">
           <?= htmlspecialchars($type['name']) ?>
-          <span class="count">(<?= $type['total'] ?> مورد)</span>
+          <span class="count">(<?= $type['total'] ?> <?= am_te('items') ?>)</span>
         </a>
       <?php endforeach; ?>
     </div>
 
-    <div class="section-title">انیمه‌ها</div>
+    <div class="section-title"><?= am_te('animes') ?></div>
     <div class="category-list">
       <?php foreach ($animeSeries as $anime): ?>
-        <a href="?anime=<?= $anime['id'] ?>" class="category-card">
-          <?= htmlspecialchars($anime['title_fa']) ?>
-          <span class="count">(<?= $anime['total'] ?> مورد)</span>
+        <a href="<?= am_lang_url('categories.php?anime=' . $anime['id']) ?>" class="category-card">
+          <?= am_e(am_lang_content_title($anime['title_en'], $anime['title_fa'])) ?>
+          <span class="count">(<?= $anime['total'] ?> <?= am_te('items') ?>)</span>
         </a>
       <?php endforeach; ?>
     </div>
 
-    <div class="section-title">خوانندگان</div>
+    <div class="section-title"><?= am_te('singers') ?></div>
     <div class="category-list">
       <?php foreach ($singers as $singer): ?>
-        <a href="?singer=<?= $singer['id'] ?>" class="category-card">
+        <a href="<?= am_lang_url('categories.php?singer=' . $singer['id']) ?>" class="category-card">
           <?= htmlspecialchars($singer['name']) ?>
-          <span class="count">(<?= $singer['total'] ?> مورد)</span>
+          <span class="count">(<?= $singer['total'] ?> <?= am_te('items') ?>)</span>
         </a>
       <?php endforeach; ?>
     </div>
   <?php else: ?>
-    <h2>آثار <?= $filterType ?>: <?= htmlspecialchars($currentFilter) ?></h2>
+    <h2><?= am_te('content_filter_h2') ?> <?= $filterType ?>: <?= htmlspecialchars($currentFilter) ?></h2>
     
-    <a href="categories.php" class="back-button">بازگشت به دسته‌بندی‌ها</a>
+    <a href="<?= am_lang_url('categories.php') ?>" class="back-button"><?= am_te('categories') ?></a>
     
     <div class="content-grid">
       <?php foreach ($contents as $item): ?>
-        <a href="content.php?id=<?= $item['id'] ?>" class="content-card">
+        <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="content-card">
           <div class="badge"><?= htmlspecialchars($item['music_type']) ?></div>
-          <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>">
+          <img src="<?= htmlspecialchars($item['image_url'] ?? '/assets/image/placeholder.jpg') ?>" alt="<?= am_e($item['title']) ?>">
           <div class="info">
             <h3><?= htmlspecialchars($item['title']) ?></h3>
-            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
             <?php if ($item['season_number']): ?>
-              <p>فصل <?= $item['season_number'] ?></p>
+              <p><?= am_te('season') ?> <?= $item['season_number'] ?></p>
             <?php endif; ?>
           </div>
         </a>
@@ -484,10 +488,10 @@ elseif (isset($_GET['singer'])) {
   <?php endif; ?>
 
   <div class="navbar">
-    <a href="index.php" class="nav-item"><i class="bi bi-house-door-fill"></i>خانه</a>
-    <a href="categories.php" class="nav-item active"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
-    <a href="search/search.php" class="nav-item"><i class="bi bi-search"></i>جستجو</a>
-    <a href="about.php" class="nav-item"><i class="bi bi-info-circle"></i>درباره ما</a>
+    <a href="<?= am_lang_url('index.php') ?>" class="nav-item"><i class="bi bi-house-door-fill"></i><?= am_te('home') ?></a>
+    <a href="<?= am_lang_url('categories.php') ?>" class="nav-item active"><i class="bi bi-grid-1x2-fill"></i><?= am_te('categories') ?></a>
+    <a href="<?= am_lang_url('search/search.php') ?>" class="nav-item"><i class="bi bi-search"></i><?= am_te('search') ?></a>
+    <a href="<?= am_lang_url('about.php') ?>" class="nav-item"><i class="bi bi-info-circle"></i><?= am_te('about') ?></a>
   </div>
 
   <script>

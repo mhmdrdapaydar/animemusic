@@ -13,6 +13,19 @@
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---------- ۰) واژه‌نامه کوچک رابط (برای دکمه‌های ساخته‌شده با JS) ---------- */
+  var L = {
+    backToTop:   { fa: 'بازگشت به بالا', en: 'Back to top', ja: 'トップへ戻る', es: 'Volver arriba', pt: 'Voltar ao topo', fr: 'Haut de page', de: 'Nach oben', ar: 'العودة إلى الأعلى', hi: 'ऊपर जाएं', th: 'กลับขึ้นบน', ko: '맨 위로' },
+    readMore:    { fa: 'مشاهده ادامه', en: 'View more', ja: '続きを見る', es: 'Ver más', pt: 'Ver mais', fr: 'Voir plus', de: 'Mehr anzeigen', ar: 'عرض المزيد', hi: 'और देखें', th: 'ดูเพิ่มเติม', ko: '더 보기' },
+    close:       { fa: 'بستن', en: 'Close', ja: '閉じる', es: 'Cerrar', pt: 'Fechar', fr: 'Fermer', de: 'Schließen', ar: 'إغلاق', hi: 'बंद करें', th: 'ปิด', ko: '닫기' }
+  };
+  function amJS(key) {
+    var lang = (document.documentElement.getAttribute('lang') || 'fa').split('-')[0];
+    var entry = L[key];
+    if (!entry) return key;
+    return entry[lang] || entry.en || entry.fa || key;
+  }
+
   /* ---------- ۱) انیمیشن ورود هنگام اسکرول ---------- */
   var revealSel = '.section, .card, .category-card, .plan-card, .benefit-item, ' +
                   '.sponsor-item, .exchange-item, .auth-card, .related-item, ' +
@@ -48,8 +61,8 @@
     if (document.getElementById('am-to-top')) return;
     var btn = document.createElement('button');
     btn.id = 'am-to-top';
-    btn.title = 'بازگشت به بالا';
-    btn.setAttribute('aria-label', 'بازگشت به بالا');
+    btn.title = amJS('backToTop');
+    btn.setAttribute('aria-label', amJS('backToTop'));
     btn.innerHTML = '<i class="bi bi-arrow-up-short"></i>';
     document.body.appendChild(btn);
     btn.addEventListener('click', function () {
@@ -78,13 +91,13 @@
       btn.type = 'button';
       btn.className = 'readmore-btn';
       btn.setAttribute('aria-expanded', 'false');
-      btn.innerHTML = '<i class="bi bi-chevron-down"></i> مشاهده ادامه';
+      btn.innerHTML = '<i class="bi bi-chevron-down"></i> ' + amJS('readMore');
       btn.addEventListener('click', function () {
         var open = el.classList.toggle('is-open');
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         btn.innerHTML = open
-          ? '<i class="bi bi-chevron-up"></i> بستن'
-          : '<i class="bi bi-chevron-down"></i> مشاهده ادامه';
+          ? '<i class="bi bi-chevron-up"></i> ' + amJS('close')
+          : '<i class="bi bi-chevron-down"></i> ' + amJS('readMore');
       });
       el.parentNode.insertBefore(btn, el.nextSibling);
     });

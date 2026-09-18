@@ -32,15 +32,18 @@ $conditions = [];
 if ($type) {
     $conditions[] = "mt.name = ?";
     $params[] = $type;
-    $title = "همه " . htmlspecialchars($type) . " ها";
+    $typeLabel = htmlspecialchars($type);
+    $title = (am_lang() === 'fa')
+        ? "همه " . $typeLabel . " ها"
+        : "All " . $typeLabel . "s";
 } 
 // مرتب‌سازی بر اساس محبوبیت
 elseif ($sort === 'popular') {
-    $title = "محبوب‌ترین‌ها";
+    $title = am_t('popular');
 } 
 // مرتب‌سازی بر اساس جدیدترین‌ها
 else {
-    $title = "جدیدترین‌ها";
+    $title = am_t('latest');
 }
 
 // اضافه کردن شرایط به کوئری
@@ -76,14 +79,16 @@ $totalPages = ceil($totalItems / $perPage);
 $isDarkMode = am_theme();
 ?>
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
 <head>
   <meta charset="UTF-8">
-  <title><?= $title ?> | رسانه من</title>
+  <title><?= am_e($title) ?> | <?= am_te('site_name') ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= am_lang_base_tag() ?>
+  <?= am_hreflang_links('list.php') ?>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet" />
-  <style>
+<style>
     :root {
         --primary-color: #00ff6a;
         --secondary-color: #00ffc3;
@@ -356,57 +361,59 @@ $isDarkMode = am_theme();
         }
     }
   </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
   <div class="header">
-    <h1><?= $title ?></h1>
+    <h1><?= am_e($title) ?></h1>
     <button class="theme-toggle" id="themeToggle">
         <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
     </button>
   </div>
+  <?= am_lang_switcher_flags('list.php') ?>
+
 
   <div class="filters">
-    <a href="?sort=latest" class="filter-btn <?= (!$type && $sort === 'latest') ? 'active' : '' ?>">
-        جدیدترین‌ها
+    <a href="<?= am_lang_url('list.php?sort=latest') ?>" class="filter-btn <?= (!$type && $sort === 'latest') ? 'active' : '' ?>">
+        <?= am_te('latest') ?>
     </a>
-    <a href="?sort=popular" class="filter-btn <?= (!$type && $sort === 'popular') ? 'active' : '' ?>">
-        محبوب‌ترین‌ها
+    <a href="<?= am_lang_url('list.php?sort=popular') ?>" class="filter-btn <?= (!$type && $sort === 'popular') ? 'active' : '' ?>">
+        <?= am_te('popular') ?>
     </a>
-    <a href="?type=Opening" class="filter-btn <?= $type === 'Opening' ? 'active' : '' ?>">
-        اوپنینگ ها
+    <a href="<?= am_lang_url('list.php?type=Opening') ?>" class="filter-btn <?= $type === 'Opening' ? 'active' : '' ?>">
+        <?= am_te('openings') ?>
     </a>
-    <a href="?type=Ending" class="filter-btn <?= $type === 'Ending' ? 'active' : '' ?>">
-        اندینگ ها
+    <a href="<?= am_lang_url('list.php?type=Ending') ?>" class="filter-btn <?= $type === 'Ending' ? 'active' : '' ?>">
+        <?= am_te('endings') ?>
     </a>
-    <a href="?type=OST" class="filter-btn <?= $type === 'OST' ? 'active' : '' ?>">
-        موسیقی زمینه
+    <a href="<?= am_lang_url('list.php?type=OST') ?>" class="filter-btn <?= $type === 'OST' ? 'active' : '' ?>">
+        <?= am_te('osts') ?>
     </a>
   </div>
 
   <?php if (empty($items)): ?>
     <div class="empty-state">
         <i class="bi bi-music-note-beamed"></i>
-        <p>محتوا یافت نشد.</p>
+        <p><?= am_te('not_found') ?></p>
     </div>
   <?php else: ?>
     <div class="content-grid">
       <?php foreach ($items as $item): ?>
-        <a class="content-card" href="content.php?id=<?= $item['id'] ?>">
+        <a class="content-card" href="<?= am_lang_url('content.php?id=' . $item['id']) ?>">
           <div class="image-container">
             <div class="content-badge"><?= htmlspecialchars($item['music_type']) ?></div>
-            <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="کاور <?= htmlspecialchars($item['title']) ?>" loading="lazy">
+            <img src="<?= htmlspecialchars($item['image_url'] ?? '/assets/image/placeholder.jpg') ?>" alt="<?= am_e($item['title']) ?>" loading="lazy">
           </div>
           <div class="info">
             <h2><?= htmlspecialchars($item['title']) ?></h2>
-            <p><?= htmlspecialchars($item['title_fa']) ?></p>
+            <p><?= am_e(am_lang_content_title($item['title_en'], $item['title_fa'])) ?></p>
             <div class="meta">
-              <span>فصل <?= $item['season_number'] ?? 1 ?></span>
-              <span><?= number_format($item['view_count'] ?? 0) ?> بازدید</span>
+              <span><?= am_te('season') ?> <?= $item['season_number'] ?? 1 ?></span>
+              <span><?= number_format($item['view_count'] ?? 0) ?> <?= am_te('views') ?></span>
             </div>
           </div>
         </a>
@@ -416,9 +423,9 @@ $isDarkMode = am_theme();
     <div class="pagination">
       <!-- دکمه صفحه قبل -->
       <?php if ($page > 1): ?>
-        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">قبلی</a>
+        <a href="<?= am_lang_url('list.php?' . http_build_query(array_merge($_GET, ['page' => $page - 1]))) ?>"><?= am_te('prev_page') ?></a>
       <?php else: ?>
-        <span class="disabled">قبلی</span>
+        <span class="disabled"><?= am_te('prev_page') ?></span>
       <?php endif; ?>
 
       <!-- نمایش صفحات مجاور -->
@@ -427,7 +434,7 @@ $isDarkMode = am_theme();
       $endPage = min($totalPages, $page + 2);
       
       if ($startPage > 1) {
-          echo '<a href="?' . http_build_query(array_merge($_GET, ['page' => 1])) . '">1</a>';
+          echo '<a href="' . am_e(am_lang_url('list.php?' . http_build_query(array_merge($_GET, ['page' => 1])))) . '">1</a>';
           if ($startPage > 2) echo '<span>...</span>';
       }
       
@@ -435,21 +442,21 @@ $isDarkMode = am_theme();
         <?php if ($i == $page): ?>
           <span class="current"><?= $i ?></span>
         <?php else: ?>
-          <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
+          <a href="<?= am_lang_url('list.php?' . http_build_query(array_merge($_GET, ['page' => $i]))) ?>"><?= $i ?></a>
         <?php endif; ?>
       <?php endfor;
       
       if ($endPage < $totalPages) {
           if ($endPage < $totalPages - 1) echo '<span>...</span>';
-          echo '<a href="?' . http_build_query(array_merge($_GET, ['page' => $totalPages])) . '">' . $totalPages . '</a>';
+          echo '<a href="' . am_e(am_lang_url('list.php?' . http_build_query(array_merge($_GET, ['page' => $totalPages])))) . '">' . $totalPages . '</a>';
       }
       ?>
 
       <!-- دکمه صفحه بعد -->
       <?php if ($page < $totalPages): ?>
-        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">بعدی</a>
+        <a href="<?= am_lang_url('list.php?' . http_build_query(array_merge($_GET, ['page' => $page + 1]))) ?>"><?= am_te('next_page') ?></a>
       <?php else: ?>
-        <span class="disabled">بعدی</span>
+        <span class="disabled"><?= am_te('next_page') ?></span>
       <?php endif; ?>
     </div>
   <?php endif; ?>

@@ -14,14 +14,16 @@ $exchanges = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>" data-theme="<?= $isDarkMode ? 'dark' : 'light' ?>">
 <head>
   <meta charset="UTF-8">
-  <title>درباره ما | انیمه موزیک</title>
+  <title><?= am_te('about') ?> | <?= am_te('site_name') ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= am_lang_base_tag() ?>
+  <?= am_hreflang_links('about.php') ?>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn.min.css" rel="stylesheet">
-  <style>
+<style>
     :root {
       --primary-color: #00ff6a;
       --secondary-color: #00ffc3;
@@ -167,7 +169,7 @@ $exchanges = [
       transform: translateY(-3px);
     }
     
-    /* استایل جدید برای دکمه رزرو تبلیغات با تم زرد/طلایی */
+    /* استایل جدید برای دکمه <?= am_te('book_ad') ?> با تم زرد/طلایی */
     .ad-reservation {
       margin-top: 40px;
       text-align: center;
@@ -313,15 +315,15 @@ $exchanges = [
       transform: translateY(-3px);
     }
   </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
   <div class="header">
-    <img src="image.png" alt="لوگو رسانه">
+    <img src="/image.png" alt="لوگو رسانه">
     <div class="header-buttons">
       <button class="theme-toggle" id="themeToggle">
         <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
@@ -329,8 +331,11 @@ $exchanges = [
     </div>
   </div>
 
+  <?= am_lang_switcher_flags('about.php') ?>
+
+<?php if (am_lang() === 'fa'): ?>
   <div class="container">
-    <h1>درباره ما</h1>
+    <h1><?= am_te('about') ?></h1>
     <p>به <strong>انیمه موزیک</strong>، مرجع تخصصی موسیقی انیمه، خوش آمدید. ما مجموعه‌ای متشکل از توسعه‌دهندگان و علاقه‌مندان پراشتیاق هستیم که مأموریت خود را ایجاد یک پلتفرم برتر و یکپارچه برای ارائه غنی‌ترین مجموعه از تیتراژهای ژاپنی قرار داده‌ایم. تجربه شنیداری ناب و عمیق، هدف نهایی ما در خدمت‌رسانی به جامعه بزرگ هواداران این هنر است.</p>
 
 <p><strong>تمایزهای پلتفرم ما</strong></p>
@@ -346,8 +351,24 @@ $exchanges = [
 <p><strong>تعهد ما</strong></p>
 <p>تیم انیمه موزیک با تمرکز بر <strong>کیفیت محتوا</strong>، <strong>تجربه کاربری برتر</strong> و <strong>پشتیبانی پاسخگو</strong>، متعهد به توسعه مستقل این پلتفرم بر اساس بازخوردهای جامعه کاربری خود است. ما افتخار می‌کنیم که بخشی از سفر موزیکال شما هستیم.</p>
 
+
+<?php else: ?>
+  <div class="container">
+    <h1><?= am_te('about') ?></h1>
+    <p><?= am_te('about_intro') ?></p>
+    <p><strong><?= am_te('our_platform') ?></strong></p>
+    <p><?= am_te('about_platform') ?></p>
+    <p><strong><?= am_te('public_features') ?></strong></p>
+    <p><?= am_te('about_free') ?></p>
+    <p><strong><?= am_te('vip_features_title') ?></strong></p>
+    <p><?= am_te('about_vip') ?></p>
+    <p><strong><?= am_te('our_commitment') ?></strong></p>
+    <p><?= am_te('about_commitment') ?></p>
+  </div>
+<?php endif; ?>
+
     <div class="team-section">
-      <h2>برخی از عضو های فعال تیم</h2>
+      <h2><?= am_te('team_active_members') ?></h2>
       <ul>
         <li>MHP</li>
       </ul>
@@ -355,22 +376,22 @@ $exchanges = [
 
     <div class="social-links">
       <a href="https://t.me/Anime_Music_IRN" target="_blank"><i class="bi bi-telegram"></i></a>
-      <a href="assets/Eror/work.html" target="_blank"><i class="bi bi-instagram"></i></a>
-      <a href="assets/Eror/work.html" target="_blank"><i class="bi bi-camera-video-fill"></i></a>
+      <a href="/assets/Eror/work.html" target="_blank"><i class="bi bi-instagram"></i></a>
+      <a href="/assets/Eror/work.html" target="_blank"><i class="bi bi-camera-video-fill"></i></a>
     </div>
     
-    <!-- بخش جدید رزرو تبلیغات با تم زرد/طلایی -->
+    <!-- بخش جدید <?= am_te('book_ad') ?> با تم زرد/طلایی -->
     <div class="ad-reservation">
-      <h3>فضای تبلیغاتی خود را در رسانه من رزرو کنید</h3>
-      <a href="ads.php" class="reserve-btn">
+      <h3><?= am_te('book_ad_space') ?></h3>
+      <a href="<?= am_lang_url('ads.php') ?>" class="reserve-btn">
         <i class="bi bi-megaphone-fill"></i>
-        رزرو تبلیغات
+        <?= am_te('book_ad') ?>
       </a>
     </div>
 
     <!-- بخش جدید حامیان -->
     <div class="sponsors-section">
-      <h2>حامیان ما</h2>
+      <h2><?= am_te('our_sponsors') ?></h2>
       <div class="sponsors-list">
         <?php foreach ($sponsors as $sponsor): ?>
           <div class="sponsor-item">
@@ -385,7 +406,7 @@ $exchanges = [
 
     <!-- بخش جدید تبادلات -->
     <div class="exchanges-section">
-      <h2>تبادلات و همکاری‌ها</h2>
+      <h2><?= am_te('exchanges') ?></h2>
       <div class="exchanges-list">
         <?php foreach ($exchanges as $exchange): ?>
           <div class="exchange-item">
@@ -400,10 +421,10 @@ $exchanges = [
   </div>
 
   <div class="navbar">
-    <a href="index.php" class="nav-item"><i class="bi bi-house-door-fill"></i>خانه</a>
-    <a href="categories.php" class="nav-item"><i class="bi bi-grid-1x2-fill"></i>دسته‌ها</a>
-    <a href="search/search.php" class="nav-item"><i class="bi bi-search"></i>جستجو</a>
-    <a href="about.php" class="nav-item active"><i class="bi bi-info-circle"></i>درباره ما</a>
+    <a href="<?= am_lang_url('index.php') ?>" class="nav-item"><i class="bi bi-house-door-fill"></i><?= am_te('home') ?></a>
+    <a href="<?= am_lang_url('categories.php') ?>" class="nav-item"><i class="bi bi-grid-1x2-fill"></i><?= am_te('categories') ?></a>
+    <a href="<?= am_lang_url('search/search.php') ?>" class="nav-item"><i class="bi bi-search"></i><?= am_te('search') ?></a>
+    <a href="<?= am_lang_url('about.php') ?>" class="nav-item active"><i class="bi bi-info-circle"></i><?= am_te('about') ?></a>
   </div>
 
   <script>

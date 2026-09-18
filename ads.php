@@ -31,8 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_ad'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="<?= am_e(am_lang()) ?>" dir="<?= am_e(am_lang_dir()) ?>">
 <head>
+  <?= am_lang_base_tag() ?>
   <meta charset="UTF-8" />
   <title>ثبت تبلیغ جدید</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />

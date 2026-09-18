@@ -497,3 +497,41 @@ select.form-control {
 .horizontal-scroll {
     -webkit-overflow-scrolling: touch;
 }
+
+/* ---------- انتخاب‌گر زبان (پرچم‌ها) ---------- */
+.lang-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    padding: 8px 12px;
+    background: transparent;
+}
+.lang-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+    line-height: 1;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 50%;
+    text-decoration: none;
+    background: var(--bg-card, #fff);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.lang-flag:hover {
+    transform: scale(1.18);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+.lang-flag.active {
+    border-color: var(--primary-color, #00ff6a);
+    box-shadow: 0 0 0 2px var(--primary-color, #00ff6a);
+}
+@media (max-width: 480px) {
+    .lang-flag { width: 26px; height: 26px; font-size: 15px; }
+    .lang-switcher { gap: 4px; padding: 6px 8px; }
+}
