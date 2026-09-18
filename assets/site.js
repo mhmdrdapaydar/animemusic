@@ -122,6 +122,43 @@
     });
   }
 
+  /* ---------- ۵) منوی کشویی انتخاب زبان ---------- */
+  function initLangMenu() {
+    var menues = document.querySelectorAll('details.lang-menu');
+    menues.forEach(function (menu) {
+      var summary = menu.querySelector('summary.lang-trigger');
+      var syncAria = function () {
+        if (summary) summary.setAttribute('aria-expanded', menu.open ? 'true' : 'false');
+      };
+      if (summary) summary.setAttribute('aria-expanded', 'false');
+      menu.addEventListener('toggle', syncAria);
+
+      // بستن هنگام کلیک روی یکی از زبان‌ها (ناوبری به آن زبان)
+      menu.querySelectorAll('a.lang-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          menu.removeAttribute('open');
+          syncAria();
+        });
+      });
+
+      // بستن با کلیک بیرون از منو
+      document.addEventListener('click', function (e) {
+        if (!menu.contains(e.target)) {
+          menu.removeAttribute('open');
+          syncAria();
+        }
+      });
+
+      // بستن با کلید Escape
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          menu.removeAttribute('open');
+          syncAria();
+        }
+      });
+    });
+  }
+
   /* اجرا */
   function boot() {
     // فعال کردن فقط وقتی JS در دسترس است تا بدون JS محتوا مخفی نماند
@@ -130,6 +167,7 @@
     initBackToTop();
     initClamp();
     initTilt();
+    initLangMenu();
   }
 
   if (document.readyState === 'loading') {

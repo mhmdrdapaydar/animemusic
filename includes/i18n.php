@@ -143,21 +143,39 @@ if (!defined('AM_I18N_DEFINED')) {
      */
     function am_lang_switcher_flags($basePath = '') {
         $cur = am_current_lang();
+        $langs = am_languages();
         $flag = [
             'fa' => '🇮🇷', 'en' => '🇬🇧', 'ja' => '🇯🇵', 'es' => '🇪🇸', 'pt' => '🇧🇷',
             'fr' => '🇫🇷', 'de' => '🇩🇪', 'ar' => '🇸🇦', 'hi' => '🇮🇳', 'th' => '🇹🇭', 'ko' => '🇰🇷',
         ];
-        $html = '<div class="lang-switcher" aria-label="Language">';
-        foreach (am_languages() as $code => $meta) {
+        $curFlag = $flag[$cur] ?? '';
+        $curName = $langs[$cur][0] ?? $cur;
+
+        // دکمه‌ی اصلی که زبانِ فعلی را نشان می‌دهد؛ با کلیک، منو باز می‌شود.
+        $html = '<div class="lang-switcher" aria-label="' . am_e(am_t('language')) . '">'
+              . '<details class="lang-menu" id="lang-menu">'
+              . '<summary class="lang-trigger" title="' . am_e(am_t('language')) . '" aria-haspopup="listbox" aria-expanded="false">'
+              . '<span class="lang-trigger-flag" aria-hidden="true">' . $curFlag . '</span>'
+              . '<span class="lang-trigger-name">' . am_e($curName) . '</span>'
+              . '<i class="bi bi-chevron-down lang-caret" aria-hidden="true"></i>'
+              . '</summary>'
+              . '<div class="lang-list" role="listbox" aria-label="' . am_e(am_t('language')) . '">';
+
+        foreach ($langs as $code => $meta) {
             $name = $meta[0];
             $href = ($code === 'fa')
                 ? ('/' . ltrim((string)$basePath, '/'))
                 : ('/' . $code . '/' . ltrim((string)$basePath, '/'));
-            $active = ($code === $cur) ? ' active' : '';
-            $html .= '<a href="' . am_e($href) . '" class="lang-flag' . $active . '" title="' . am_e($name) . '" data-lang="' . $code . '">'
-                   . ($flag[$code] ?? '') . '</a>';
+            $isCur = ($code === $cur);
+            $html .= '<a href="' . am_e($href) . '" class="lang-item' . ($isCur ? ' active' : '') . '"'
+                   . ' role="option" data-lang="' . $code . '" hreflang="' . $code . '"'
+                   . ($isCur ? ' aria-selected="true"' : '') . '>'
+                   . '<span class="lang-item-flag" aria-hidden="true">' . ($flag[$code] ?? '') . '</span>'
+                   . '<span class="lang-item-name">' . am_e($name) . '</span>'
+                   . '<span class="lang-item-check" aria-hidden="true">' . ($isCur ? '✓' : '') . '</span>'
+                   . '</a>';
         }
-        $html .= '</div>';
+        $html .= '</div></details></div>';
         return $html;
     }
 
@@ -182,6 +200,7 @@ if (!defined('AM_I18N_DEFINED')) {
             'home'            => ['fa'=>'خانه','en'=>'Home','ja'=>'ホーム','es'=>'Inicio','pt'=>'Início','fr'=>'Accueil','de'=>'Startseite','ar'=>'الرئيسية','hi'=>'होम','th'=>'หน้าแรก','ko'=>'홈'],
             'categories'      => ['fa'=>'دسته‌ها','en'=>'Categories','ja'=>'カテゴリ','es'=>'Categorías','pt'=>'Categorias','fr'=>'Catégories','de'=>'Kategorien','ar'=>'التصنيفات','hi'=>'श्रेणियाँ','th'=>'หมวดหมู่','ko'=>'카테고리'],
             'search'          => ['fa'=>'جستجو','en'=>'Search','ja'=>'検索','es'=>'Buscar','pt'=>'Pesquisar','fr'=>'Rechercher','de'=>'Suche','ar'=>'بحث','hi'=>'खोज','th'=>'ค้นหา','ko'=>'검색'],
+            'language'        => ['fa'=>'انتخاب زبان','en'=>'Choose language','ja'=>'言語を選択','es'=>'Elegir idioma','pt'=>'Escolher idioma','fr'=>'Choisir la langue','de'=>'Sprache wählen','ar'=>'اختيار اللغة','hi'=>'भाषा चुनें','th'=>'เลือกภาษา','ko'=>'언어 선택'],
             'about'           => ['fa'=>'درباره ما','en'=>'About','ja'=>'概要','es'=>'Acerca de','pt'=>'Sobre','fr'=>'À propos','de'=>'Über uns','ar'=>'حول','hi'=>'हमारे बारे में','th'=>'เกี่ยวกับ','ko'=>'소개'],
             'profile'         => ['fa'=>'پروفایل','en'=>'Profile','ja'=>'プロフィール','es'=>'Perfil','pt'=>'Perfil','fr'=>'Profil','de'=>'Profil','ar'=>'الملف الشخصي','hi'=>'प्रोफ़ाइल','th'=>'โปรไฟล์','ko'=>'프로필'],
             'login'           => ['fa'=>'ورود','en'=>'Login','ja'=>'ログイン','es'=>'Iniciar sesión','pt'=>'Entrar','fr'=>'Connexion','de'=>'Anmelden','ar'=>'تسجيل الدخول','hi'=>'लॉगिन','th'=>'เข้าสู่ระบบ','ko'=>'로그인'],
