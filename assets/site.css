@@ -1,11 +1,11 @@
 /**
- * انیمه موزیک — استایل مشترک و بهبود یافته سایت (نسخه ۲)
+ * انیمه موزیک — استایل مشترک و بهبود یافته سایت (نسخه ۴)
  *
  * این فایل بعد از استایل‌های داخلی هر صفحه لود می‌شود و چند هدف را دنبال می‌کند:
  *   ۱) یکدست‌سازی ریتم و فواصل کلی در تمام صفحات
  *   ۲) بهبودهای بصری (اسکرول‌بار، انتخاب متن، فوکوس، هدر، کارت‌ها، فرم‌ها)
  *   ۳) بهینه‌سازی موبایل (safe-area آیفون، لمس بهتر، اسکرول نرم)
- *   ۴) متحرک‌سازی‌های سبک و بدون وابستگی
+ *   ۴) متحرک‌سازی‌های سبک و بدون وابستگی (هماهنگ با assets/site.js)
  *
  * تمام رنگ‌ها از متغیرهای موجود در صفحات گرفته می‌شود تا با هر دو تم
  * (روشن و تیره) سازگار بماند.
@@ -67,10 +67,34 @@ button {
     background-color: color-mix(in srgb, var(--bg-card, #1a1a1a) 86%, transparent);
 }
 
+/* ---------- انیمیشن ورود (با assets/site.js) ----------
+   فقط وقتی JS اجرا شده (کلاس js-anim روی html) المان‌ها مخفی می‌شوند
+   و هنگام اسکرول با کلاس am-revealed ظاهر می‌شوند. بدون JS هیچ چیزی مخفی نمی‌ماند. */
+html.js-anim .section,
+html.js-anim .card,
+html.js-anim .category-card,
+html.js-anim .plan-card,
+html.js-anim .benefit-item,
+html.js-anim .sponsor-item,
+html.js-anim .exchange-item,
+html.js-anim .auth-card,
+html.js-anim .related-item,
+html.js-anim .lyrics-box,
+html.js-anim .search-container {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+html.js-anim .am-revealed {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 /* ---------- کارت‌های محتوا ---------- */
 .content-card {
     transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
-                box-shadow 0.25s ease, filter 0.25s ease;
+                box-shadow 0.25s ease, filter 0.25s ease, border-color 0.25s ease;
     scroll-snap-align: start;
     flex-shrink: 0;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
@@ -80,10 +104,65 @@ button {
 .content-card:hover {
     filter: brightness(1.04);
     border-color: color-mix(in srgb, var(--primary-color, #00ff6a) 45%, transparent);
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--primary-color, #00ff6a) 16%, rgba(0, 0, 0, 0.3));
 }
 
 .image-container img {
     display: block;
+}
+
+/* ---------- شبکه کارت‌ها (list / categories / search / playlists) ---------- */
+.content-grid,
+.results {
+    gap: 16px;
+}
+
+/* ---------- نشان‌ها و پیل‌ها ---------- */
+.badge,
+.content-badge,
+.status-badge,
+.singer-badge {
+    letter-spacing: 0.2px;
+}
+
+/* ---------- کارت دسته‌ها ---------- */
+.category-card {
+    transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+    scroll-snap-align: start;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    border-color: color-mix(in srgb, var(--primary-color, #00ff6a) 45%, transparent);
+    box-shadow: 0 16px 34px color-mix(in srgb, var(--primary-color, #00ff6a) 14%, rgba(0, 0, 0, 0.3));
+}
+
+/* ---------- فیلترها (list.php) ---------- */
+.filters {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.filter-btn {
+    white-space: nowrap;
+}
+
+/* ---------- صفحه‌بندی ---------- */
+.pagination {
+    gap: 6px;
+}
+
+.pagination a,
+.pagination span {
+    transition: transform 0.18s ease, background-color 0.18s ease,
+                border-color 0.18s ease, color 0.18s ease;
+}
+
+.pagination a:hover {
+    transform: translateY(-2px);
 }
 
 /* ---------- نوار ناوبری پایین ---------- */
@@ -98,16 +177,34 @@ button {
     padding: 8px 0 calc(6px + env(safe-area-inset-bottom, 0));
     position: relative;
     -webkit-tap-highlight-color: transparent;
+    transition: transform 0.18s ease, color 0.18s ease;
 }
 
 .nav-item:active {
     transform: scale(0.92);
 }
 
+/* ---------- جستجو ---------- */
+.search-input,
+.search-select {
+    transition: border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.search-input:focus,
+.search-select:focus {
+    border-color: var(--primary-color, #00ff6a);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #00ff6a) 22%, transparent);
+}
+
 /* ---------- فرم‌های عمومی ---------- */
 .form-control {
     transition: border-color 0.22s ease, box-shadow 0.22s ease,
                 background-color 0.22s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color, #00ff6a);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #00ff6a) 24%, transparent);
 }
 
 /* باکس‌های انتخاب (select) هرگز عریض‌تر از ظرف خودشان نمی‌شوند */
@@ -124,12 +221,7 @@ select.form-control {
     width: 100%;
 }
 
-.form-control:focus {
-    border-color: var(--primary-color, #00ff6a);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #00ff6a) 24%, transparent);
-}
-
-/* دکمه اصلی با گرادیان ملایم و حالت فشردن */
+/* ---------- دکمه‌ها ---------- */
 .btn {
     transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
@@ -143,9 +235,67 @@ select.form-control {
     transform: translateY(0) scale(0.98);
 }
 
+/* دکمه کلاسیک site (button) */
+.button {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--primary-color, #00ff6a) 26%, transparent);
+}
+
 /* ---------- عنوان بخش‌ها ---------- */
 .section-title {
     letter-spacing: 0.2px;
+    position: relative;
+}
+
+/* تیتر بخش‌های صفحه اصلی (.section h2) */
+.section h2 {
+    letter-spacing: 0.2px;
+    transition: box-shadow 0.24s ease;
+}
+
+.section h2:hover {
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color, #00ff6a) 12%, rgba(0, 0, 0, 0.15));
+}
+
+.section h2 a {
+    transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.section h2 a:hover {
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color, #00ff6a) 30%, transparent);
+}
+
+/* ---------- اسلایدر ---------- */
+.slider-container {
+    transition: box-shadow 0.3s ease;
+}
+
+.slider-container:hover {
+    box-shadow: 0 12px 34px color-mix(in srgb, var(--primary-color, #00ff6a) 18%, rgba(0, 0, 0, 0.25));
+}
+
+.slider-nav button {
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.slider-nav button:hover {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--primary-color, #00ff6a) 40%, transparent);
+}
+
+.slider-dots span {
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.slider-dots span:hover {
+    transform: scale(1.35);
+}
+
+.slider-dots .active {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--primary-color, #00ff6a) 60%, transparent);
 }
 
 /* ---------- کارت‌های ورود و ثبت‌نام ---------- */
@@ -197,6 +347,131 @@ select.form-control {
 
 .benefit-item:hover {
     transform: translateX(-4px);
+}
+
+/* ---------- صفحه محتوا: پخش‌کننده ---------- */
+.music-section {
+    transition: box-shadow 0.3s ease;
+}
+
+.music-section:hover {
+    box-shadow: 0 18px 50px color-mix(in srgb, var(--primary-color, #00ff6a) 12%, rgba(0, 0, 0, 0.25));
+}
+
+.control-btn {
+    transition: transform 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.control-btn:hover {
+    transform: translateY(-2px);
+}
+
+.control-btn:active {
+    transform: scale(0.92);
+}
+
+/* ---------- صفحه محتوا: آیتم‌های مرتبط ---------- */
+.related-item {
+    transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+}
+
+.related-item:hover {
+    transform: translateY(-5px);
+    border-color: color-mix(in srgb, var(--primary-color, #00ff6a) 45%, transparent);
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--primary-color, #00ff6a) 14%, rgba(0, 0, 0, 0.3));
+}
+
+/* ---------- درباره ما: اسپانسرها/همکاری ---------- */
+.sponsor-item,
+.exchange-item {
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.sponsor-item:hover,
+.exchange-item:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--primary-color, #00ff6a) 40%, transparent);
+}
+
+/* ---------- «ادامه مطلب» ---------- */
+.clamp {
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.clamp.is-clamped {
+    position: relative;
+    max-height: 132px;
+}
+
+.clamp.is-clamped::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 56px;
+    background: linear-gradient(to top, var(--bg-card, #1a1a1a), transparent);
+    pointer-events: none;
+}
+
+.clamp.is-open {
+    max-height: 4000px;
+}
+
+.readmore-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 18px;
+    border-radius: 30px;
+    border: 1px solid var(--primary-color, #00ff6a);
+    background: color-mix(in srgb, var(--primary-color, #00ff6a) 10%, transparent);
+    color: var(--primary-color, #00ff6a);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+.readmore-btn:hover {
+    background: color-mix(in srgb, var(--primary-color, #00ff6a) 22%, transparent);
+    transform: translateY(-2px);
+}
+
+/* ---------- دکمه بازگشت به بالا ---------- */
+#am-to-top {
+    position: fixed;
+    bottom: calc(78px + env(safe-area-inset-bottom, 0));
+    inset-inline-start: 16px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--primary-color, #00ff6a) 55%, transparent);
+    background: var(--bg-card, #1a1a1a);
+    color: var(--primary-color, #00ff6a);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(14px);
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+    z-index: 1090;
+}
+
+#am-to-top.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+#am-to-top:hover {
+    background: color-mix(in srgb, var(--primary-color, #00ff6a) 18%, var(--bg-card, #1a1a1a));
 }
 
 /* ---------- حالت کم‌حرکت برای کاربران حساس ---------- */

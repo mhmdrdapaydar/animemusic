@@ -1100,7 +1100,8 @@ if (!empty($content['important_links'])) {
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=3" />
+    <link rel="stylesheet" href="assets/site.css?v=4" />
+    <script defer src="assets/site.js?v=1"></script>
 </head>
 <body>
   
@@ -1133,7 +1134,7 @@ if (!empty($content['important_links'])) {
     <?php if (!empty($description)): ?>
       <div class="card">
         <h3><i class="bi bi-journal-text"></i> خلاصه توضیحات</h3>
-        <p><?= $description ?></p>
+        <p class="clamp"><?= $description ?></p>
       </div>
     <?php endif; ?>
     
@@ -1302,7 +1303,7 @@ if (!empty($content['important_links'])) {
             <?php if ($lyrics_text): ?>
               <div class="lyrics-box <?= !$isVIP ? 'non-vip' : '' ?>">
                 <h4>متن اصلی</h4>
-                <div class="lyrics-text"><?= $lyrics_text ?></div>
+                <div class="lyrics-text clamp"><?= $lyrics_text ?></div>
                 <?php if (!$isVIP): ?>
                   <div class="vip-overlay">
                     <p>برای مشاهده متن آهنگ باید اشتراک VIP داشته باشید</p>
@@ -1315,7 +1316,7 @@ if (!empty($content['important_links'])) {
             <?php if ($lyrics_translation): ?>
               <div class="lyrics-box <?= !$isVIP ? 'non-vip' : '' ?>">
                 <h4>ترجمه فارسی</h4>
-                <div class="lyrics-text"><?= $lyrics_translation ?></div>
+                <div class="lyrics-text clamp"><?= $lyrics_translation ?></div>
                 <?php if (!$isVIP): ?>
                   <div class="vip-overlay">
                     <p>برای مشاهده ترجمه باید اشتراک VIP داشته باشید</p>
