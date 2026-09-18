@@ -110,6 +110,20 @@ button {
                 background-color 0.22s ease;
 }
 
+/* باکس‌های انتخاب (select) هرگز عریض‌تر از ظرف خودشان نمی‌شوند */
+select {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* باکس انتخاب موزیک در صفحه پخش، هم‌عرض کارت خودش می‌شود */
+select.form-control {
+    width: 100%;
+}
+
 .form-control:focus {
     border-color: var(--primary-color, #00ff6a);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #00ff6a) 24%, transparent);
