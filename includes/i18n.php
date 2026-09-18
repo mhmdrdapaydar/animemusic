@@ -141,6 +141,21 @@ if (!defined('AM_I18N_DEFINED')) {
      * فلگ و انتخاب‌گر زبان (برای قرار دادن بالای صفحه).
      * آیکون پرچم با ایموجی؛ زبان فعال هایلایت می‌شود.
      */
+    /**
+     * گروه‌بندی زبان‌ها برای منوی انتخاب (ترتیب نمایش + جداسازی بصری منطقه‌ای)
+     */
+    function am_lang_groups() {
+        static $groups = null;
+        if ($groups === null) {
+            $groups = [
+                ['key' => 'region_me',   'codes' => ['fa', 'ar']],
+                ['key' => 'region_eu',   'codes' => ['en', 'es', 'pt', 'fr', 'de']],
+                ['key' => 'region_asia', 'codes' => ['ja', 'hi', 'th', 'ko']],
+            ];
+        }
+        return $groups;
+    }
+
     function am_lang_switcher_flags($basePath = '') {
         $cur = am_current_lang();
         $langs = am_languages();
@@ -161,19 +176,31 @@ if (!defined('AM_I18N_DEFINED')) {
               . '</summary>'
               . '<div class="lang-list" role="listbox" aria-label="' . am_e(am_t('language')) . '">';
 
-        foreach ($langs as $code => $meta) {
-            $name = $meta[0];
-            $href = ($code === 'fa')
-                ? ('/' . ltrim((string)$basePath, '/'))
-                : ('/' . $code . '/' . ltrim((string)$basePath, '/'));
-            $isCur = ($code === $cur);
-            $html .= '<a href="' . am_e($href) . '" class="lang-item' . ($isCur ? ' active' : '') . '"'
-                   . ' role="option" data-lang="' . $code . '" hreflang="' . $code . '"'
-                   . ($isCur ? ' aria-selected="true"' : '') . '>'
-                   . '<span class="lang-item-flag" aria-hidden="true">' . ($flag[$code] ?? '') . '</span>'
-                   . '<span class="lang-item-name">' . am_e($name) . '</span>'
-                   . '<span class="lang-item-check" aria-hidden="true">' . ($isCur ? '✓' : '') . '</span>'
-                   . '</a>';
+        foreach (am_lang_groups() as $group) {
+            $html .= '<div class="lang-group" role="presentation">'
+                   . '<div class="lang-group-title" role="presentation">' . am_e(am_t($group['key'])) . '</div>';
+            foreach ($group['codes'] as $code) {
+                if (!isset($langs[$code])) continue;
+                $meta   = $langs[$code];
+                $name   = $meta[0];
+                $enName = $meta[3];
+                $sub    = ($name !== $enName) ? $enName : '';
+                $href = ($code === 'fa')
+                    ? ('/' . ltrim((string)$basePath, '/'))
+                    : ('/' . $code . '/' . ltrim((string)$basePath, '/'));
+                $isCur = ($code === $cur);
+                $html .= '<a href="' . am_e($href) . '" class="lang-item' . ($isCur ? ' active' : '') . '"'
+                       . ' role="option" data-lang="' . $code . '" hreflang="' . $code . '"'
+                       . ($isCur ? ' aria-selected="true"' : '') . '>'
+                       . '<span class="lang-item-flag" aria-hidden="true">' . ($flag[$code] ?? '') . '</span>'
+                       . '<span class="lang-item-body">'
+                       . '<span class="lang-item-name">' . am_e($name) . '</span>'
+                       . ($sub !== '' ? '<span class="lang-item-sub">' . am_e($sub) . '</span>' : '')
+                       . '</span>'
+                       . '<span class="lang-item-check" aria-hidden="true">' . ($isCur ? '✓' : '') . '</span>'
+                       . '</a>';
+            }
+            $html .= '</div>';
         }
         $html .= '</div></details></div>';
         return $html;
@@ -201,6 +228,9 @@ if (!defined('AM_I18N_DEFINED')) {
             'categories'      => ['fa'=>'دسته‌ها','en'=>'Categories','ja'=>'カテゴリ','es'=>'Categorías','pt'=>'Categorias','fr'=>'Catégories','de'=>'Kategorien','ar'=>'التصنيفات','hi'=>'श्रेणियाँ','th'=>'หมวดหมู่','ko'=>'카테고리'],
             'search'          => ['fa'=>'جستجو','en'=>'Search','ja'=>'検索','es'=>'Buscar','pt'=>'Pesquisar','fr'=>'Rechercher','de'=>'Suche','ar'=>'بحث','hi'=>'खोज','th'=>'ค้นหา','ko'=>'검색'],
             'language'        => ['fa'=>'انتخاب زبان','en'=>'Choose language','ja'=>'言語を選択','es'=>'Elegir idioma','pt'=>'Escolher idioma','fr'=>'Choisir la langue','de'=>'Sprache wählen','ar'=>'اختيار اللغة','hi'=>'भाषा चुनें','th'=>'เลือกภาษา','ko'=>'언어 선택'],
+            'region_me'       => ['fa'=>'خاورمیانه','en'=>'Middle East','ja'=>'中東','es'=>'Oriente Medio','pt'=>'Oriente Médio','fr'=>'Moyen-Orient','de'=>'Naher Osten','ar'=>'الشرق الأوسط','hi'=>'मध्य पूर्व','th'=>'ตะวันออกกลาง','ko'=>'중동'],
+            'region_eu'       => ['fa'=>'اروپا و آمریکا','en'=>'Europe & Americas','ja'=>'ヨーロッパ・アメリカ','es'=>'Europa y América','pt'=>'Europa e Américas','fr'=>'Europe et Amériques','de'=>'Europa & Amerika','ar'=>'أوروبا والأمريكتان','hi'=>'यूरोप और अमेरिका','th'=>'ยุโรปและอเมริกา','ko'=>'유럽·아메리카'],
+            'region_asia'     => ['fa'=>'آسیا','en'=>'Asia','ja'=>'アジア','es'=>'Asia','pt'=>'Ásia','fr'=>'Asie','de'=>'Asien','ar'=>'آسيا','hi'=>'एशिया','th'=>'เอเชีย','ko'=>'아시아'],
             'about'           => ['fa'=>'درباره ما','en'=>'About','ja'=>'概要','es'=>'Acerca de','pt'=>'Sobre','fr'=>'À propos','de'=>'Über uns','ar'=>'حول','hi'=>'हमारे बारे में','th'=>'เกี่ยวกับ','ko'=>'소개'],
             'profile'         => ['fa'=>'پروفایل','en'=>'Profile','ja'=>'プロフィール','es'=>'Perfil','pt'=>'Perfil','fr'=>'Profil','de'=>'Profil','ar'=>'الملف الشخصي','hi'=>'प्रोफ़ाइल','th'=>'โปรไฟล์','ko'=>'프로필'],
             'login'           => ['fa'=>'ورود','en'=>'Login','ja'=>'ログイン','es'=>'Iniciar sesión','pt'=>'Entrar','fr'=>'Connexion','de'=>'Anmelden','ar'=>'تسجيل الدخول','hi'=>'लॉगिन','th'=>'เข้าสู่ระบบ','ko'=>'로그인'],
