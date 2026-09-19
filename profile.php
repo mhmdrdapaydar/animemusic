@@ -195,6 +195,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// ===================== تیکت‌های پشتیبانی (فقط VIP) =====================
+$userTickets = [];
+$selectedTicket = null;
+$selectedMessages = [];
+if ($isVIP) {
+    $userTickets = am_tickets_for_user((int)$_SESSION['user_id']);
+
+    // مشاهده‌ی یک تیکت مشخص (با بررسی مالکیت)
+    $ticketViewId = (int)($_GET['ticket'] ?? 0);
+    if ($ticketViewId > 0) {
+        $t = am_ticket_get($ticketViewId);
+        if ($t && (int)$t['user_id'] === (int)$_SESSION['user_id']) {
+            $selectedTicket = $t;
+            $selectedMessages = am_ticket_messages($ticketViewId);
+        }
+    }
+
+    // ارسال تیکت جدید یا پاسخ
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['create_ticket']) && $isVIP) {
+            $subject = trim($_POST['ticket_subject'] ?? '');
+            $body = trim($_POST['ticket_message'] ?? '');
+            if ($subject === '' || $body === '') {
+                $message = am_t('fill_required_fields');
+                $message_type = 'error';
+            } else {
+                if (am_ticket_create((int)$_SESSION['user_id'], $subject, $body)) {
+                    $message = am_t('ticket_sent');
+                    $message_type = 'success';
+                    header("Location: " . am_lang_url('profile.php') . "?tab=tickets");
+                    exit;
+                } else {
+                    $message = am_t('signup_error');
+                    $message_type = 'error';
+                }
+            }
+        } elseif (isset($_POST['reply_ticket']) && $isVIP) {
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $body = trim($_POST['reply_message'] ?? '');
+            $t = am_ticket_get($ticketId);
+            if (!$t || (int)$t['user_id'] !== (int)$_SESSION['user_id']) {
+                $message = am_t('signup_error');
+                $message_type = 'error';
+            } elseif ($body === '') {
+                $message = am_t('fill_required_fields');
+                $message_type = 'error';
+            } else {
+                am_ticket_message_add($ticketId, 'user', $body);
+                header("Location: " . am_lang_url('profile.php') . "?tab=tickets&ticket=" . $ticketId);
+                exit;
+            }
+        }
+    }
+}
+
 // تابع تبدیل تاریخ (نمایش شمسی)
 function format_date($date) {
     return am_format_date($date);
@@ -737,7 +792,26 @@ function format_date($date) {
             color: #ffd700;
             margin-bottom: 15px;
         }
-        
+
+        /* تیکت‌های پشتیبانی */
+        .ticket-thread { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 20px; }
+        .ticket-thread-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; }
+        .ticket-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .ticket-status.open { background: rgba(40,167,69,.15); color: #28a745; }
+        .ticket-status.closed { background: rgba(108,117,125,.2); color: #6c757d; }
+        .ticket-messages { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+        .ticket-msg { padding: 12px 14px; border-radius: 12px; max-width: 90%; }
+        .ticket-msg.user { align-self: flex-end; background: rgba(0,255,106,.1); border: 1px solid rgba(0,255,106,.25); }
+        .ticket-msg.admin { align-self: flex-start; background: rgba(255,0,170,.08); border: 1px solid rgba(255,0,170,.2); }
+        .ticket-msg-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+        .ticket-msg-body { font-size: 14px; line-height: 1.7; }
+        .ticket-reply-form { margin-top: 10px; }
+        .ticket-list { display: flex; flex-direction: column; gap: 10px; }
+        .ticket-item { display: block; text-decoration: none; color: inherit; background: rgba(0,255,106,.05); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; transition: all var(--transition-speed); }
+        .ticket-item:hover { border-color: var(--primary-color); transform: translateX(-3px); }
+        .ticket-item-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .ticket-item-date { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -861,6 +935,7 @@ function format_date($date) {
                     <?php if ($isVIP): ?>
                         <li><a href="#" onclick="switchTab('playlists-tab')"><i class="bi bi-music-note-list"></i> <?= am_te('my_playlists') ?></a></li>
                         <li><a href="#" onclick="switchTab('favorites-tab')"><i class="bi bi-heart"></i> <?= am_te('my_favorites') ?></a></li>
+                        <li><a href="#" onclick="switchTab('tickets-tab')"><i class="bi bi-chat-dots"></i> <?= am_te('tickets_section') ?></a></li>
                     <?php else: ?>
                         <li><a href="vip.php" class="disabled"><i class="bi bi-music-note-list"></i> <?= am_te('playlists_vip_tab') ?></a></li>
                         <li><a href="vip.php" class="disabled"><i class="bi bi-heart"></i> <?= am_te('favorites_vip_tab') ?></a></li>
@@ -1017,6 +1092,92 @@ function format_date($date) {
                     <?php endif; ?>
                 </div>
                 
+                <!-- تب تیکت‌ها -->
+                <div id="tickets-tab" class="tab-content">
+                    <?php if ($isVIP): ?>
+                        <h2 class="section-title"><?= am_te('tickets_section') ?></h2>
+
+                        <?php if ($selectedTicket): ?>
+                            <div class="ticket-thread">
+                                <div class="ticket-thread-head">
+                                    <h3 style="margin:0; color:var(--primary-color);"><?= htmlspecialchars($selectedTicket['subject']) ?></h3>
+                                    <span class="ticket-status <?= $selectedTicket['status'] === 'closed' ? 'closed' : 'open' ?>">
+                                        <?= $selectedTicket['status'] === 'closed' ? am_te('ticket_closed') : am_te('ticket_open') ?>
+                                    </span>
+                                </div>
+                                <div class="ticket-messages">
+                                    <?php foreach ($selectedMessages as $msg): ?>
+                                        <div class="ticket-msg <?= $msg['sender'] === 'admin' ? 'admin' : 'user' ?>">
+                                            <div class="ticket-msg-meta">
+                                                <?= $msg['sender'] === 'admin' ? am_te('admin_telegram') . ' (Admin)' : am_te('profile') ?>
+                                                · <?= htmlspecialchars($msg['created_at']) ?>
+                                            </div>
+                                            <div class="ticket-msg-body"><?= nl2br(htmlspecialchars($msg['body'])) ?></div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php if ($selectedTicket['status'] !== 'closed'): ?>
+                                <form method="post" class="ticket-reply-form">
+                                    <input type="hidden" name="reply_ticket" value="1">
+                                    <input type="hidden" name="ticket_id" value="<?= (int)$selectedTicket['id'] ?>">
+                                    <div class="form-group">
+                                        <label for="reply_message"><?= am_te('ticket_message') ?></label>
+                                        <textarea id="reply_message" name="reply_message" class="form-control" rows="3" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn"><i class="bi bi-reply"></i> <?= am_te('reply_ticket') ?></button>
+                                </form>
+                                <?php else: ?>
+                                    <p style="color:var(--text-secondary);text-align:center;padding:10px 0;"><?= am_te('ticket_closed') ?></p>
+                                <?php endif; ?>
+                                <a href="<?= am_lang_url('profile.php') ?>?tab=tickets" class="btn" style="margin-top:10px;"><i class="bi bi-arrow-right"></i> <?= am_te('back_home') ?></a>
+                            </div>
+                        <?php else: ?>
+                            <form method="post">
+                                <input type="hidden" name="create_ticket" value="1">
+                                <div class="form-group">
+                                    <label for="ticket_subject"><?= am_te('ticket_subject') ?></label>
+                                    <input type="text" id="ticket_subject" name="ticket_subject" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ticket_message"><?= am_te('ticket_message') ?></label>
+                                    <textarea id="ticket_message" name="ticket_message" class="form-control" rows="4" required></textarea>
+                                </div>
+                                <button type="submit" class="btn"><i class="bi bi-send"></i> <?= am_te('send_ticket') ?></button>
+                            </form>
+
+                            <?php if (empty($userTickets)): ?>
+                                <p style="text-align:center;color:var(--text-secondary);padding:30px 0;">
+                                    <i class="bi bi-chat-dots" style="font-size:40px;display:block;margin-bottom:12px;"></i>
+                                    <?= am_te('no_tickets_yet') ?>
+                                </p>
+                            <?php else: ?>
+                                <div class="ticket-list" style="margin-top:20px;">
+                                    <?php foreach ($userTickets as $tk): ?>
+                                        <a href="<?= am_lang_url('profile.php') ?>?tab=tickets&ticket=<?= (int)$tk['id'] ?>" class="ticket-item">
+                                            <div class="ticket-item-head">
+                                                <strong><?= htmlspecialchars($tk['subject']) ?></strong>
+                                                <span class="ticket-status <?= $tk['status'] === 'closed' ? 'closed' : 'open' ?>">
+                                                    <?= $tk['status'] === 'closed' ? am_te('ticket_closed') : am_te('ticket_open') ?>
+                                                </span>
+                                            </div>
+                                            <div class="ticket-item-date"><?= htmlspecialchars($tk['updated_at']) ?></div>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="vip-only-message">
+                            <i class="bi bi-chat-dots"></i>
+                            <h3><?= am_te('vip_only_section') ?></h3>
+                            <p><?= am_te('tickets_vip_only') ?></p>
+                            <a href="vip.php" class="btn" style="margin-top: 20px;">
+                                <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
                 <!-- تب امنیت -->
                 <div id="security-tab" class="tab-content">
                     <h2 class="section-title"><?= am_te('change_password') ?></h2>
@@ -1167,11 +1328,43 @@ function format_date($date) {
         }
         
         // بستن مودال با کلیک خارج از آن
-        document.getElementById('create-playlist-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeCreatePlaylistModal();
+        const modalEl = document.getElementById('create-playlist-modal');
+        if (modalEl) {
+            modalEl.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeCreatePlaylistModal();
+                }
+            });
+        }
+
+        // باز کردن تب بر اساس پارامتر ?tab= در URL
+        function getTabParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('tab');
+        }
+        const urlTab = getTabParam();
+        if (urlTab) {
+            const validTabs = ['profile-tab', 'playlists-tab', 'favorites-tab', 'tickets-tab', 'security-tab'];
+            if (validTabs.indexOf(urlTab) !== -1) {
+                let target = urlTab;
+                if (urlTab === 'tickets') target = 'tickets-tab';
+                if (urlTab === 'playlists') target = 'playlists-tab';
+                if (urlTab === 'favorites') target = 'favorites-tab';
+                if (urlTab === 'security') target = 'security-tab';
+                if (urlTab === 'profile') target = 'profile-tab';
+                const targetEl = document.getElementById(target);
+                if (targetEl) {
+                    document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
+                    targetEl.classList.add('active');
+                    document.querySelectorAll('.sidebar-nav a').forEach(function(l){ l.classList.remove('active'); });
+                    document.querySelectorAll('.sidebar-nav a').forEach(function(l){
+                        if (l.getAttribute('onclick') && l.getAttribute('onclick').indexOf("'" + target + "'") !== -1) {
+                            l.classList.add('active');
+                        }
+                    });
+                }
             }
-        });
+        }
     </script>
 </body>
 </html>

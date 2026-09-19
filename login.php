@@ -9,11 +9,19 @@ $isDarkMode = am_theme();
 
 $error = '';
 
+// ساخت/بازیابی سؤال کپچا در هر بارگذاری
+am_captcha_start();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
 
-    if (empty($username) || empty($password)) {
+    // بررسی کپچا (قبل از هر چیز دیگر)
+    $captchaOk = am_captcha_check($_POST['captcha'] ?? '');
+    if (!$captchaOk) {
+        am_captcha_generate();
+        $error = am_t('captcha_wrong');
+    } elseif (empty($username) || empty($password)) {
         $error = am_t('fill_user_pass');
     } else {
         // پیدا کردن کاربر
@@ -252,7 +260,43 @@ if (isset($_SESSION['user_id'])) {
         .btn:active {
             transform: translateY(-1px);
         }
-        
+
+        /* کپچا */
+        .captcha-group { margin-bottom: 15px; }
+        .captcha-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .captcha-box {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(0,255,106,.08), rgba(255,0,170,.06));
+            border: 1px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 2px;
+            user-select: none;
+            color: var(--text-primary);
+        }
+        .captcha-num { color: var(--primary-color); }
+        .captcha-op { color: var(--text-secondary); margin: 0 8px; }
+        .captcha-eq { color: var(--text-secondary); margin: 0 4px 0 12px; }
+        .captcha-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: all var(--transition-speed);
+        }
+        .captcha-refresh:hover { border-color: var(--primary-color); background: rgba(0,255,106,.06); transform: translateY(-2px); }
+
         .auth-footer {
             text-align: center;
             margin-top: 25px;
@@ -390,7 +434,19 @@ if (isset($_SESSION['user_id'])) {
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
-                
+
+                <div class="form-group captcha-group">
+                    <label for="captcha"><?= am_te('captcha_label') ?></label>
+                    <div class="captcha-row">
+                        <div class="captcha-box" dir="ltr"><?= am_captcha_render() ?></div>
+                        <a class="captcha-refresh" href="?new_captcha=1" title="<?= am_te('captcha_refresh_title') ?>">
+                            <i class="bi bi-arrow-clockwise"></i> <?= am_te('captcha_refresh') ?>
+                        </a>
+                    </div>
+                    <input type="text" id="captcha" name="captcha" class="form-control" required
+                           placeholder="<?= am_te('captcha_placeholder') ?>">
+                </div>
+
                 <button type="submit" class="btn">
                     <i class="bi bi-box-arrow-in-right"></i> <?= am_te('login') ?>
                 </button>

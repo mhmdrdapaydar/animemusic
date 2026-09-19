@@ -594,6 +594,9 @@ if (isset($_GET['error'])) {
       <div class="system-card"><h3><i class="fas fa-chart-pie" style="color:var(--success)"></i> آمار بازدید</h3><p>آمار بازدید صفحات سایت</p><a href="admin_stats.php" class="btn btn-light btn-block"><i class="fas fa-chart-pie"></i> آمار سایت</a></div>
       <div class="system-card"><h3><i class="fas fa-ad" style="color:var(--info)"></i> آمار تبلیغات</h3><p>آمار بازدید بخش تبلیغات</p><a href="admin_ads.php" class="btn btn-light btn-block"><i class="fas fa-ad"></i> آمار تبلیغات</a></div>
       <div class="system-card"><h3><i class="fas fa-bullhorn" style="color:var(--danger)"></i> مدیریت تبلیغات</h3><p>تبلیغِ هر زبان + وضعیت رزروهای تبلیغاتی</p><a href="adscheck.php" class="btn btn-light btn-block"><i class="fas fa-bullhorn"></i> مدیریت تبلیغات</a></div>
+      <div class="system-card"><h3><i class="fas fa-credit-card" style="color:var(--primary)"></i> پرداخت‌ها</h3><p>تأیید/رد رسید کارت‌به‌کارت و هش کریپتو</p><a href="payments.php" class="btn btn-light btn-block"><i class="fas fa-credit-card"></i> مدیریت پرداخت‌ها</a></div>
+      <div class="system-card"><h3><i class="fas fa-life-ring" style="color:var(--info)"></i> تیکت‌ها</h3><p>پاسخ، بستن و حذف تیکت‌های پشتیبانی</p><a href="tickets.php" class="btn btn-light btn-block"><i class="fas fa-life-ring"></i> مدیریت تیکت‌ها</a></div>
+      <div class="system-card"><h3><i class="fas fa-cog" style="color:var(--secondary)"></i> تنظیمات پرداخت</h3><p>شماره کارت، آیدی تلگرام/روبیکا و ارز کریپتو</p><a href="payment_settings.php" class="btn btn-light btn-block"><i class="fas fa-cog"></i> تنظیمات پرداخت</a></div>
     </div>
   </div>
 

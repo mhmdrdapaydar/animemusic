@@ -200,8 +200,7 @@ function jdate($format, $timestamp = '') {
             transform: scale(1.05) translateY(-5px);
         }
         
-        .plan-card.popular::before {
-            content: 'پیشنهاد ویژه';
+        .plan-badge {
             position: absolute;
             top: 15px;
             left: -25px;
@@ -211,6 +210,12 @@ function jdate($format, $timestamp = '') {
             font-size: 12px;
             font-weight: bold;
             transform: rotate(-45deg);
+            z-index: 1;
+        }
+        
+        [dir="ltr"] .plan-badge {
+            left: auto;
+            right: -25px;
         }
         
         .plan-name {
@@ -461,7 +466,7 @@ function jdate($format, $timestamp = '') {
                 <div class="plans-grid">
                     <div class="plan-card">
                         <div class="plan-name"><?= am_te('monthly_plan') ?></div>
-                        <div class="plan-price">۲۹,۰۰۰ تومان</div>
+                        <div class="plan-price"><?= am_e(am_plan_price_label('monthly')) ?></div>
                         <div class="plan-period"><?= am_te('one_month_sub') ?></div>
                         
                         <ul class="plan-features">
@@ -482,8 +487,9 @@ function jdate($format, $timestamp = '') {
                     </div>
                     
                     <div class="plan-card popular">
+                        <span class="plan-badge"><?= am_te('special_offer') ?></span>
                         <div class="plan-name"><?= am_te('quarterly_plan') ?></div>
-                        <div class="plan-price">۷۹,۰۰۰ تومان</div>
+                        <div class="plan-price"><?= am_e(am_plan_price_label('3months')) ?></div>
                         <div class="plan-period"><?= am_te('three_month_sub') ?></div>
                         
                         <ul class="plan-features">
@@ -499,7 +505,7 @@ function jdate($format, $timestamp = '') {
                     
                     <div class="plan-card">
                         <div class="plan-name"><?= am_te('yearly_plan') ?></div>
-                        <div class="plan-price">۲۵۹,۰۰۰ تومان</div>
+                        <div class="plan-price"><?= am_e(am_plan_price_label('yearly')) ?></div>
                         <div class="plan-period"><?= am_te('one_year_sub') ?></div>
                         
                         <ul class="plan-features">

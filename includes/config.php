@@ -21,6 +21,11 @@ define('AM_ADS_FILE', AM_ROOT . '/ads.json');
 define('AM_AD_CONFIG_FILE', AM_ROOT . '/ad_config.json');
 define('AM_AD_CLICKS_FILE', AM_ROOT . '/ad_clicks.json');
 
+// تنظیمات پرداخت ادمین (شماره کارت، آیدی تلگرام/روبیکا، ارز کریپتو)
+define('AM_PAY_CONFIG_FILE', AM_ROOT . '/pay_config.json');
+// پوشه‌ی رسیدهای پرداخت (کارت‌به‌کارت / کریپتو)
+define('AM_RECEIPTS_DIR', AM_ROOT . '/uploads/receipts');
+
 // منطقه زمانی تهران — ملاک محاسبه انقضای اشتراک VIP همین است.
 // اگر host ساعتِ دیگری داشته باشد، این تنظیم حساب تاریخ را یکسان می‌کند
 // تا کاربر «امروز» زودتر یا دیرتر از انقضا، VIP نماند.
