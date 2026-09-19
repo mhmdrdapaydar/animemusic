@@ -250,6 +250,28 @@ if ($isVIP) {
     }
 }
 
+// ===================== تعیین تب فعال (باز شدن مستقیم بخش از URL) =====================
+$activeTab = 'profile-tab'; // پیش‌فرض
+$tabParam   = (string)($_GET['tab'] ?? '');
+$tabMap = [
+    'profile'   => 'profile-tab',
+    'playlists' => 'playlists-tab',
+    'favorites' => 'favorites-tab',
+    'tickets'   => 'tickets-tab',
+    'security'  => 'security-tab',
+];
+if ($tabParam !== '' && isset($tabMap[$tabParam])) {
+    $activeTab = $tabMap[$tabParam];
+}
+// اگر یک تیکت مشخص درخواست شده، مستقیم تب تیکت‌ها را باز کن
+if ($selectedTicket || ((int)($_GET['ticket'] ?? 0) > 0)) {
+    $activeTab = 'tickets-tab';
+}
+// تب‌هایی که فقط برای VIP هستند، برای کاربر غیر VIP به پروفایل برمی‌گردند
+if (!$isVIP && in_array($activeTab, ['playlists-tab', 'favorites-tab', 'tickets-tab'], true)) {
+    $activeTab = 'profile-tab';
+}
+
 // تابع تبدیل تاریخ (نمایش شمسی)
 function format_date($date) {
     return am_format_date($date);
@@ -931,16 +953,16 @@ function format_date($date) {
                 </div>
                 
                 <ul class="sidebar-nav">
-                    <li><a href="#profile-tab" class="active" data-tab="profile-tab" onclick="switchTab('profile-tab', event); return false;"><i class="bi bi-person"></i> <?= am_te('profile') ?></a></li>
+                    <li><a href="#profile-tab" class="<?= $activeTab === 'profile-tab' ? 'active' : '' ?>" data-tab="profile-tab" onclick="switchTab('profile-tab', event); return false;"><i class="bi bi-person"></i> <?= am_te('profile') ?></a></li>
                     <?php if ($isVIP): ?>
-                        <li><a href="#playlists-tab" data-tab="playlists-tab" onclick="switchTab('playlists-tab', event); return false;"><i class="bi bi-music-note-list"></i> <?= am_te('my_playlists') ?></a></li>
-                        <li><a href="#favorites-tab" data-tab="favorites-tab" onclick="switchTab('favorites-tab', event); return false;"><i class="bi bi-heart"></i> <?= am_te('my_favorites') ?></a></li>
-                        <li><a href="#tickets-tab" data-tab="tickets-tab" onclick="switchTab('tickets-tab', event); return false;"><i class="bi bi-chat-dots"></i> <?= am_te('tickets_section') ?></a></li>
+                        <li><a href="#playlists-tab" class="<?= $activeTab === 'playlists-tab' ? 'active' : '' ?>" data-tab="playlists-tab" onclick="switchTab('playlists-tab', event); return false;"><i class="bi bi-music-note-list"></i> <?= am_te('my_playlists') ?></a></li>
+                        <li><a href="#favorites-tab" class="<?= $activeTab === 'favorites-tab' ? 'active' : '' ?>" data-tab="favorites-tab" onclick="switchTab('favorites-tab', event); return false;"><i class="bi bi-heart"></i> <?= am_te('my_favorites') ?></a></li>
+                        <li><a href="#tickets-tab" class="<?= $activeTab === 'tickets-tab' ? 'active' : '' ?>" data-tab="tickets-tab" onclick="switchTab('tickets-tab', event); return false;"><i class="bi bi-chat-dots"></i> <?= am_te('tickets_section') ?></a></li>
                     <?php else: ?>
                         <li><a href="<?= am_lang_url('vip.php') ?>" class="disabled"><i class="bi bi-music-note-list"></i> <?= am_te('playlists_vip_tab') ?></a></li>
                         <li><a href="<?= am_lang_url('vip.php') ?>" class="disabled"><i class="bi bi-heart"></i> <?= am_te('favorites_vip_tab') ?></a></li>
                     <?php endif; ?>
-                    <li><a href="#security-tab" data-tab="security-tab" onclick="switchTab('security-tab', event); return false;"><i class="bi bi-shield-lock"></i> <?= am_te('security') ?></a></li>
+                    <li><a href="#security-tab" class="<?= $activeTab === 'security-tab' ? 'active' : '' ?>" data-tab="security-tab" onclick="switchTab('security-tab', event); return false;"><i class="bi bi-shield-lock"></i> <?= am_te('security') ?></a></li>
                     <li><a href="<?= am_lang_url('vip.php') ?>"><i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?></a></li>
                     <li><a href="<?= am_lang_url('logout.php') ?>"><i class="bi bi-box-arrow-left"></i> <?= am_te('logout') ?></a></li>
                 </ul>
@@ -948,7 +970,7 @@ function format_date($date) {
             
             <div class="main-content">
                 <!-- تب پروفایل -->
-                <div id="profile-tab" class="tab-content active">
+                <div id="profile-tab" class="tab-content<?= $activeTab === 'profile-tab' ? ' active' : '' ?>">
                     <h2 class="section-title"><?= am_te('profile_info') ?></h2>
                     
                     <form method="post">
@@ -986,7 +1008,7 @@ function format_date($date) {
                 </div>
                 
                 <!-- تب لیست‌های پخش -->
-                <div id="playlists-tab" class="tab-content">
+                <div id="playlists-tab" class="tab-content<?= $activeTab === 'playlists-tab' ? ' active' : '' ?>">
                     <?php if ($isVIP): ?>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 class="section-title"><?= am_te('my_playlists') ?></h2>
@@ -1056,7 +1078,7 @@ function format_date($date) {
                 </div>
                 
                 <!-- تب مورد علاقه‌ها -->
-                <div id="favorites-tab" class="tab-content">
+                <div id="favorites-tab" class="tab-content<?= $activeTab === 'favorites-tab' ? ' active' : '' ?>">
                     <?php if ($isVIP): ?>
                         <h2 class="section-title"><?= am_te('my_fav_music') ?></h2>
                         
@@ -1093,7 +1115,7 @@ function format_date($date) {
                 </div>
                 
                 <!-- تب تیکت‌ها -->
-                <div id="tickets-tab" class="tab-content">
+                <div id="tickets-tab" class="tab-content<?= $activeTab === 'tickets-tab' ? ' active' : '' ?>">
                     <?php if ($isVIP): ?>
                         <h2 class="section-title"><?= am_te('tickets_section') ?></h2>
 
@@ -1179,7 +1201,7 @@ function format_date($date) {
                 </div>
 
                 <!-- تب امنیت -->
-                <div id="security-tab" class="tab-content">
+                <div id="security-tab" class="tab-content<?= $activeTab === 'security-tab' ? ' active' : '' ?>">
                     <h2 class="section-title"><?= am_te('change_password') ?></h2>
                     
                     <form method="post">
@@ -1350,21 +1372,27 @@ function format_date($date) {
             });
         }
 
-        // باز کردن تب بر اساس پارامتر ?tab= در URL
+        // باز کردن تب بر اساس پارامتر ?tab= در URL (پشتیبان — تب فعال‌سازی‌شده از سمت سرور هم این‌جا همگام می‌شود)
+        const tabParamMap = {
+            'profile': 'profile-tab',
+            'playlists': 'playlists-tab',
+            'favorites': 'favorites-tab',
+            'tickets': 'tickets-tab',
+            'security': 'security-tab',
+            'profile-tab': 'profile-tab',
+            'playlists-tab': 'playlists-tab',
+            'favorites-tab': 'favorites-tab',
+            'tickets-tab': 'tickets-tab',
+            'security-tab': 'security-tab',
+        };
         function getTabParam() {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('tab');
         }
         const urlTab = getTabParam();
         if (urlTab) {
-            const validTabs = ['profile-tab', 'playlists-tab', 'favorites-tab', 'tickets-tab', 'security-tab'];
-            if (validTabs.indexOf(urlTab) !== -1) {
-                let target = urlTab;
-                if (urlTab === 'tickets') target = 'tickets-tab';
-                if (urlTab === 'playlists') target = 'playlists-tab';
-                if (urlTab === 'favorites') target = 'favorites-tab';
-                if (urlTab === 'security') target = 'security-tab';
-                if (urlTab === 'profile') target = 'profile-tab';
+            const target = tabParamMap[urlTab];
+            if (target) {
                 const targetEl = document.getElementById(target);
                 if (targetEl) {
                     document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
