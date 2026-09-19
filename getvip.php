@@ -300,62 +300,92 @@ $cryptoPending = am_payment_for_plan((int)$user['id'], $plan, 'crypto');
         }
 
         .payment-options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-top: 25px;
-        }
-
-        @media (min-width: 768px) {
-            .payment-options {
-                grid-template-columns: 1fr 1fr;
-            }
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
         }
 
         .payment-option {
             background: linear-gradient(135deg, var(--bg-card), var(--bg-primary));
             border-radius: var(--border-radius);
-            padding: 25px;
-            text-align: center;
             border: 2px solid var(--border-color);
             transition: all var(--transition-speed);
             cursor: pointer;
+            overflow: hidden;
         }
 
-        .payment-option:hover {
-            transform: translateY(-5px);
+        .payment-option-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            width: 100%;
+            background: none;
+            border: none;
+            color: inherit;
+            font-family: inherit;
+            text-align: start;
+            cursor: pointer;
+        }
+
+        .payment-option:hover,
+        .payment-option.open {
             border-color: var(--primary-color);
-            box-shadow: 0 10px 25px rgba(0, 255, 106, 0.15);
+            box-shadow: 0 8px 20px rgba(0, 255, 106, 0.12);
         }
 
         .payment-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+            font-size: 30px;
             color: var(--primary-color);
+            flex-shrink: 0;
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(0, 255, 106, 0.08);
         }
 
         .payment-name {
-            font-size: 20px;
+            font-size: 17px;
             font-weight: bold;
-            margin-bottom: 10px;
             color: var(--text-primary);
+            margin-bottom: 2px;
         }
 
         .payment-description {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
-            margin-bottom: 20px;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        .payment-instructions {
-            margin-top: 30px;
-            padding: 20px;
-            background: rgba(0, 170, 111, 0.1);
-            border-radius: var(--border-radius);
-            border-right: 3px solid var(--primary-color);
-            display: none;
-            animation: fadeIn 0.5s ease;
+        .payment-caret {
+            margin-inline-start: auto;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        .payment-option.open .payment-caret {
+            transform: rotate(180deg);
+        }
+
+        .payment-panel {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.35s ease;
+        }
+        .payment-option.open .payment-panel {
+            padding: 16px 18px;
+            max-height: 900px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .payment-panel-inner {
+            text-align: start;
         }
 
         .instruction-title {
@@ -558,11 +588,11 @@ $cryptoPending = am_payment_for_plan((int)$user['id'], $plan, 'crypto');
             }
         }
     </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
     <div class="header">
@@ -593,123 +623,149 @@ $cryptoPending = am_payment_for_plan((int)$user['id'], $plan, 'crypto');
 
             <div class="payment-options">
                 <?php if ($isFaLang): ?>
-                <div class="payment-option" onclick="showPanel('cardPanel')">
-                    <div class="payment-icon"><i class="bi bi-credit-card"></i></div>
-                    <div class="payment-name"><?= am_te('pay_card') ?></div>
-                    <div class="payment-description"><?= am_te('pay_card_desc') ?></div>
-                </div>
-
-                <div class="payment-option" onclick="showPanel('rubikaPanel')">
-                    <div class="payment-icon"><i class="bi bi-chat-dots"></i></div>
-                    <div class="payment-name"><?= am_te('pay_rubika') ?></div>
-                    <div class="payment-description"><?= am_te('pay_rubika_desc') ?></div>
-                </div>
-                <?php else: ?>
-                <div class="payment-option" onclick="showPanel('cryptoPanel')">
-                    <div class="payment-icon"><i class="bi bi-currency-bitcoin"></i></div>
-                    <div class="payment-name"><?= am_te('pay_crypto') ?></div>
-                    <div class="payment-description"><?= am_te('pay_crypto_desc') ?></div>
-                </div>
-                <?php endif; ?>
-
-                <div class="payment-option" onclick="showPanel('telegramPanel')">
-                    <div class="payment-icon"><i class="bi bi-telegram"></i></div>
-                    <div class="payment-name"><?= am_te('pay_telegram') ?></div>
-                    <div class="payment-description"><?= am_te('pay_telegram_desc') ?></div>
-                </div>
-            </div>
-
-            <?php if ($isFaLang): ?>
-            <!-- کارت به کارت -->
-            <div id="cardPanel" class="payment-instructions">
-                <div class="instruction-title"><i class="bi bi-credit-card"></i> <?= am_te('pay_card') ?></div>
-                <?php if ($cardNumber !== ''): ?>
-                <div class="card-box">
-                    <div><?= am_te('card_number') ?></div>
-                    <div class="card-number-txt" id="cardNumberTxt"><?= am_e($cardNumber) ?></div>
-                    <?php if ($cardHolder !== ''): ?>
-                    <div class="card-holder-txt"><?= am_te('card_holder') ?>: <?= am_e($cardHolder) ?></div>
-                    <?php endif; ?>
-                    <button type="button" class="copy-btn" onclick="copyCard()"><i class="bi bi-clipboard"></i> <?= am_te('copy_card') ?></button>
-                </div>
-                <div class="instruction-text"><?= am_te('settle_card_payment') ?></div>
-                <form method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="card">
-                    <div class="form-group">
-                        <label for="receipt"><?= am_te('upload_receipt') ?></label>
-                        <input type="file" id="receipt" name="receipt" class="form-control" accept="image/*" required>
-                    </div>
-                    <button type="submit" class="btn"><i class="bi bi-cloud-upload"></i> <?= am_te('submit_receipt') ?></button>
-                </form>
-                <?php else: ?>
-                <div class="instruction-text"><?= am_te('payment_pending') ?></div>
-                <div class="instruction-text" style="margin-top:10px;"><?= am_te('contact_admin') ?></div>
-                <a href="http://t.me/<?= am_e($telegramId) ?>" target="_blank" class="contact-link"><i class="bi bi-telegram"></i> <?= am_te('contact_admin') ?></a>
-                <?php endif; ?>
-                <?php if ($pendingPayment && $pendingPayment['method'] === 'card' && $pendingPayment['status'] === 'pending'): ?>
-                <div class="instruction-text" style="margin-top:15px;"><?= am_te('payment_pending') ?></div>
-                <?php endif; ?>
-            </div>
-
-            <!-- روبیکا -->
-            <div id="rubikaPanel" class="payment-instructions">
-                <div class="instruction-title"><?= am_te('rubika_guide') ?></div>
-                <div class="instruction-text"><?= am_te('enter_rubika_id') ?></div>
-                <a href="https://rubika.ir/<?= am_e($rubikaId) ?>" target="_blank" class="contact-link">
-                    <i class="bi bi-chat-dots"></i> <?= am_e($rubikaId) ?>@
-                </a>
-                <div class="instruction-text" style="margin-top: 20px;"><?= am_te('send_plan_info') ?></div>
-            </div>
-            <?php else: ?>
-            <!-- کریپتو -->
-            <div id="cryptoPanel" class="payment-instructions">
-                <div class="instruction-title"><i class="bi bi-currency-bitcoin"></i> <?= am_te('pay_crypto') ?> — <?= am_e($cryptoCoin) ?></div>
-
-                <?php if ($cryptoPending && $cryptoPending['status'] === 'pending' && $cryptoPending['crypto_amount'] !== ''): ?>
-                    <div class="instruction-text"><?= am_te('crypto_amount_unique') ?></div>
-                    <div class="unique-amount"><?= am_e($cryptoPending['crypto_amount']) ?></div>
-                    <?php if ($cryptoWallet !== ''): ?>
-                    <div class="form-group">
-                        <label><?= am_te('crypto_wallet') ?></label>
-                        <div class="card-box"><span style="direction:ltr;word-break:break-all;"><?= am_e($cryptoWallet) ?></span></div>
-                    </div>
-                    <?php endif; ?>
-                    <?php if ($cryptoPending['tx_hash'] === ''): ?>
-                    <form method="post">
-                        <input type="hidden" name="action" value="crypto">
-                        <input type="hidden" name="payment_id" value="<?= (int)$cryptoPending['id'] ?>">
-                        <div class="form-group">
-                            <label for="tx_hash"><?= am_te('tx_hash') ?></label>
-                            <input type="text" id="tx_hash" name="tx_hash" class="form-control" style="direction:ltr;" required>
+                <!-- کارت به کارت -->
+                <div class="payment-option" id="opt-cardPanel">
+                    <button type="button" class="payment-option-head" onclick="togglePanel('cardPanel')" aria-expanded="false">
+                        <div class="payment-icon"><i class="bi bi-credit-card"></i></div>
+                        <div>
+                            <div class="payment-name"><?= am_te('pay_card') ?></div>
+                            <div class="payment-description"><?= am_te('pay_card_desc') ?></div>
                         </div>
-                        <button type="submit" class="btn"><i class="bi bi-send"></i> <?= am_te('submit_hash') ?></button>
-                    </form>
-                    <?php else: ?>
-                    <div class="instruction-text"><?= am_te('payment_pending') ?></div>
-                    <?php endif; ?>
-                <?php elseif ($cryptoPending && $cryptoPending['tx_hash'] !== '' && $cryptoPending['status'] === 'pending'): ?>
-                    <div class="instruction-text"><?= am_te('payment_pending') ?></div>
-                <?php else: ?>
-                    <div class="instruction-text"><?= am_te('pay_crypto_desc') ?></div>
-                    <form method="post">
-                        <input type="hidden" name="action" value="crypto_reserve">
-                        <button type="submit" class="btn"><i class="bi bi-lock"></i> <?= am_te('select_payment_continue') ?></button>
-                    </form>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
+                        <i class="bi bi-chevron-down payment-caret"></i>
+                    </button>
+                    <div id="cardPanel" class="payment-panel">
+                        <div class="payment-panel-inner">
+                            <?php if ($cardNumber !== ''): ?>
+                            <div class="card-box">
+                                <div><?= am_te('card_number') ?></div>
+                                <div class="card-number-txt" id="cardNumberTxt"><?= am_e($cardNumber) ?></div>
+                                <?php if ($cardHolder !== ''): ?>
+                                <div class="card-holder-txt"><?= am_te('card_holder') ?>: <?= am_e($cardHolder) ?></div>
+                                <?php endif; ?>
+                                <button type="button" class="copy-btn" onclick="copyCard()"><i class="bi bi-clipboard"></i> <?= am_te('copy_card') ?></button>
+                            </div>
+                            <div class="instruction-text"><?= am_te('settle_card_payment') ?></div>
+                            <form method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="card">
+                                <div class="form-group">
+                                    <label for="receipt"><?= am_te('upload_receipt') ?> (JPG/PNG/WebP &le; 10MB)</label>
+                                    <input type="file" id="receipt" name="receipt" class="form-control" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn"><i class="bi bi-cloud-upload"></i> <?= am_te('submit_receipt') ?></button>
+                            </form>
+                            <?php else: ?>
+                            <div class="instruction-text"><?= am_te('payment_pending') ?></div>
+                            <div class="instruction-text" style="margin-top:10px;"><?= am_te('contact_admin') ?></div>
+                            <a href="http://t.me/<?= am_e($telegramId) ?>" target="_blank" class="contact-link"><i class="bi bi-telegram"></i> <?= am_te('contact_admin') ?></a>
+                            <?php endif; ?>
+                            <?php if ($pendingPayment && $pendingPayment['method'] === 'card' && $pendingPayment['status'] === 'pending'): ?>
+                            <div class="instruction-text" style="margin-top:15px;"><?= am_te('payment_pending') ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- تلگرام -->
-            <div id="telegramPanel" class="payment-instructions">
-                <div class="instruction-title"><?= am_te('telegram_guide') ?></div>
-                <div class="instruction-text"><?= am_te('message_admin_vpn') ?></div>
-                <a href="http://t.me/<?= am_e($telegramId) ?>" target="_blank" class="contact-link">
-                    <i class="bi bi-telegram"></i> <?= am_te('admin_telegram') ?>
-                </a>
-                <form method="post" style="margin-top:20px;">
-                    <input type="hidden" name="action" value="telegram">
-                    <button type="submit" class="btn"><i class="bi bi-send"></i> <?= am_te('complete_purchase') ?></button>
-                </form>
+                <!-- روبیکا -->
+                <div class="payment-option" id="opt-rubikaPanel">
+                    <button type="button" class="payment-option-head" onclick="togglePanel('rubikaPanel')" aria-expanded="false">
+                        <div class="payment-icon"><i class="bi bi-chat-dots"></i></div>
+                        <div>
+                            <div class="payment-name"><?= am_te('pay_rubika') ?></div>
+                            <div class="payment-description"><?= am_te('pay_rubika_desc') ?></div>
+                        </div>
+                        <i class="bi bi-chevron-down payment-caret"></i>
+                    </button>
+                    <div id="rubikaPanel" class="payment-panel">
+                        <div class="payment-panel-inner">
+                            <div class="instruction-title"><?= am_te('rubika_guide') ?></div>
+                            <div class="instruction-text"><?= am_te('enter_rubika_id') ?></div>
+                            <a href="https://rubika.ir/<?= am_e($rubikaId) ?>" target="_blank" class="contact-link">
+                                <i class="bi bi-chat-dots"></i> <?= am_e($rubikaId) ?>@
+                            </a>
+                            <div class="instruction-text" style="margin-top: 20px;"><?= am_te('send_plan_info') ?></div>
+                        </div>
+                    </div>
+                </div>
+                <?php else: ?>
+                <!-- کریپتو -->
+                <div class="payment-option" id="opt-cryptoPanel">
+                    <button type="button" class="payment-option-head" onclick="togglePanel('cryptoPanel')" aria-expanded="false">
+                        <div class="payment-icon"><i class="bi bi-currency-bitcoin"></i></div>
+                        <div>
+                            <div class="payment-name"><?= am_te('pay_crypto') ?></div>
+                            <div class="payment-description"><?= am_te('pay_crypto_desc') ?></div>
+                        </div>
+                        <i class="bi bi-chevron-down payment-caret"></i>
+                    </button>
+                    <div id="cryptoPanel" class="payment-panel">
+                        <div class="payment-panel-inner">
+                            <div class="instruction-title"><i class="bi bi-currency-bitcoin"></i> <?= am_te('pay_crypto') ?> — <?= am_e($cryptoCoin) ?></div>
+
+                            <?php if ($cryptoPending && $cryptoPending['status'] === 'pending' && $cryptoPending['crypto_amount'] !== ''): ?>
+                                <div class="instruction-text"><?= am_te('crypto_amount_unique') ?></div>
+                                <div class="unique-amount"><?= am_e($cryptoPending['crypto_amount']) ?></div>
+                                <?php if ($cryptoWallet !== ''): ?>
+                                <div class="form-group">
+                                    <label><?= am_te('crypto_wallet') ?></label>
+                                    <div class="card-box"><span style="direction:ltr;word-break:break-all;"><?= am_e($cryptoWallet) ?></span></div>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($cryptoPending['tx_hash'] === ''): ?>
+                                <form method="post">
+                                    <input type="hidden" name="action" value="crypto">
+                                    <input type="hidden" name="payment_id" value="<?= (int)$cryptoPending['id'] ?>">
+                                    <div class="form-group">
+                                        <label for="tx_hash"><?= am_te('tx_hash') ?></label>
+                                        <input type="text" id="tx_hash" name="tx_hash" class="form-control" style="direction:ltr;" required>
+                                    </div>
+                                    <button type="submit" class="btn"><i class="bi bi-send"></i> <?= am_te('submit_hash') ?></button>
+                                </form>
+                                <?php else: ?>
+                                <div class="instruction-text"><?= am_te('payment_pending') ?></div>
+                                <?php endif; ?>
+                            <?php elseif ($cryptoPending && $cryptoPending['tx_hash'] !== '' && $cryptoPending['status'] === 'pending'): ?>
+                                <div class="instruction-text"><?= am_te('payment_pending') ?></div>
+                            <?php else: ?>
+                                <div class="instruction-text"><?= am_te('pay_crypto_desc') ?></div>
+                                <form method="post">
+                                    <input type="hidden" name="action" value="crypto_reserve">
+                                    <button type="submit" class="btn"><i class="bi bi-lock"></i> <?= am_te('select_payment_continue') ?></button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- تلگرام -->
+                <div class="payment-option" id="opt-telegramPanel">
+                    <button type="button" class="payment-option-head" onclick="togglePanel('telegramPanel')" aria-expanded="false">
+                        <div class="payment-icon"><i class="bi bi-telegram"></i></div>
+                        <div>
+                            <div class="payment-name"><?= am_te('pay_telegram') ?></div>
+                            <div class="payment-description"><?= am_te('pay_telegram_desc') ?></div>
+                        </div>
+                        <i class="bi bi-chevron-down payment-caret"></i>
+                    </button>
+                    <div id="telegramPanel" class="payment-panel">
+                        <div class="payment-panel-inner">
+                            <div class="instruction-title"><?= am_te('telegram_guide') ?></div>
+                            <div class="instruction-text"><?= am_te('message_admin_vpn') ?></div>
+                            <a href="http://t.me/<?= am_e($telegramId) ?>" target="_blank" class="contact-link">
+                                <i class="bi bi-telegram"></i> <?= am_te('admin_telegram') ?>
+                            </a>
+                            <form method="post" style="margin-top:20px;">
+                                <input type="hidden" name="action" value="telegram">
+                                <button type="submit" class="btn"><i class="bi bi-send"></i> <?= am_te('complete_purchase') ?></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="navbar">
             </div>
         </div>
     </div>
@@ -737,12 +793,28 @@ $cryptoPending = am_payment_for_plan((int)$user['id'], $plan, 'crypto');
             document.cookie = `dark_mode=${newTheme === 'dark'}; max-age=${30 * 24 * 60 * 60}; path=/`;
         });
 
-        // نمایش پنل پرداخت انتخاب‌شده
-        function showPanel(id) {
-            document.querySelectorAll('.payment-instructions').forEach(function (p) {
-                p.style.display = 'none';
+        // باز/بسته‌کردن پنل پرداخت به‌صورت آکاردئونی (بدون پرش به انتهای صفحه)
+        function togglePanel(id) {
+            const panel = document.getElementById(id);
+            if (!panel) return;
+            const option = panel.closest('.payment-option');
+            const isOpen = option.classList.contains('open');
+
+            // بستن همهٔ پنل‌ها
+            document.querySelectorAll('.payment-option.open').forEach(function (o) {
+                o.classList.remove('open');
+                const btn = o.querySelector('.payment-option-head');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
             });
-            document.getElementById(id).style.display = 'block';
+
+            // اگر بسته بود، همین پنل را باز کن
+            if (!isOpen) {
+                option.classList.add('open');
+                const btn = option.querySelector('.payment-option-head');
+                if (btn) btn.setAttribute('aria-expanded', 'true');
+                // اسکرول نرم تا ابتدای گزینه (پنل زیر همان گزینه باز می‌شود)
+                option.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
 
         // کپی شماره کارت
@@ -762,7 +834,13 @@ $cryptoPending = am_payment_for_plan((int)$user['id'], $plan, 'crypto');
 
         <?php if ($result === 'receipt_sent' || $result === 'tx_hash_sent' || $result === 'crypto_reserved'): ?>
         // باز کردن خودکار پنل مربوطه بعد از ارسال فرم
-        showPanel('<?= ($result === 'tx_hash_sent' || $result === 'crypto_reserved') ? 'cryptoPanel' : 'cardPanel' ?>');
+        togglePanel('<?= ($result === 'tx_hash_sent' || $result === 'crypto_reserved') ? 'cryptoPanel' : 'cardPanel' ?>');
+        <?php else: ?>
+        // پیش‌فرض: اولین روش پرداخت باز باشد تا کاربر فوراً جزئیات را ببیند
+        (function () {
+            const firstHead = document.querySelector('.payment-option .payment-option-head');
+            if (firstHead) firstHead.click();
+        })();
         <?php endif; ?>
     </script>
 </body>

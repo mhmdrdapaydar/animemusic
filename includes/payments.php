@@ -328,7 +328,7 @@ if (!defined('AM_PAYMENTS_LOADED')) {
             return null;
         }
         $file = $_FILES[$fileField];
-        $maxSize = 4 * 1024 * 1024; // 4MB
+        $maxSize = 10 * 1024 * 1024; // 10MB
         if ($file['size'] > $maxSize) {
             return null;
         }

@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/headless.php';
 
 // بررسی پارامتر ID
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
-    header("Location: profile.php");
+    header("Location: " . am_lang_url("profile.php"));
     exit;
 }
 
@@ -37,14 +37,14 @@ $playlist = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // بررسی وجود پلی‌لیست و دسترسی کاربر
 if (!$playlist) {
-    header("Location: profile.php");
+    header("Location: " . am_lang_url("profile.php"));
     exit;
 }
 
 // بررسی دسترسی (اگر پلی‌لیست خصوصی است و کاربر لاگین نکرده یا مالک نیست)
 if (!$playlist['is_public']) {
     if (!isset($_SESSION['user_id']) || $playlist['user_id'] != $_SESSION['user_id']) {
-        header("Location: login.php");
+        header("Location: " . am_lang_url("login.php"));
         exit;
     }
 }
@@ -88,7 +88,7 @@ if (!empty($playlistContents)) {
                     'id' => $content['id'],
                     'title' => $content['title'],
                     'file' => $content['music_file_url'],
-                    'image' => $content['image_url'] ?? 'assets/image/placeholder.jpg'
+                    'image' => $content['image_url'] ?? '/assets/image/placeholder.jpg'
                 ];
                 break;
             }
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$playlistId, $contentId]);
             
             // رفرش صفحه
-            header("Location: playlist.php?id=" . $playlistId);
+            header("Location: " . am_lang_url("playlist.php?id=" . $playlistId));
             exit;
         }
     }
@@ -685,15 +685,15 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
             }
         }
     </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
     <div class="header">
-        <img src="image.png" alt="لوگو رسانه من">
+        <img src="/image.png" alt="لوگو رسانه من">
         <button class="theme-toggle" id="themeToggle">
             <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
         </button>
@@ -780,7 +780,7 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                 <i class="bi bi-star-fill"></i>
                 <h3><?= am_te('player_vip_only') ?></h3>
                 <p><?= am_te('player_vip_cta') ?></p>
-                <a href="vip.php" class="btn">
+                <a href="<?= am_lang_url('vip.php') ?>" class="btn">
                     <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                 </a>
             </div>
@@ -800,8 +800,8 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
                                 </button>
                             </form>
                         <?php endif; ?>
-                        <a href="content.php?id=<?= $item['id'] ?>">
-                            <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" 
+                        <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>">
+                            <img src="<?= htmlspecialchars($item['image_url'] ?? '/assets/image/placeholder.jpg') ?>" 
                                  alt="<?= htmlspecialchars($item['title']) ?>">
                             <div class="content-info">
                                 <h3 class="content-title"><?= htmlspecialchars($item['title']) ?></h3>
@@ -820,14 +820,14 @@ $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : 
             <div class="empty-state">
                 <i class="bi bi-music-note-list"></i>
                 <p><?= am_te('playlist_empty') ?></p>
-                <a href="categories.php" class="btn">
+                <a href="<?= am_lang_url('categories.php') ?>" class="btn">
                     <i class="bi bi-plus-lg"></i> <?= am_te('add_music') ?>
                 </a>
             </div>
         <?php endif; ?>
         
         <div style="text-align: center; margin-top: 30px;">
-            <a href="profile.php" class="btn-secondary">
+            <a href="<?= am_lang_url('profile.php') ?>" class="btn-secondary">
                 <i class="bi bi-arrow-right"></i> <?= am_te('back_to_profile') ?>
             </a>
         </div>

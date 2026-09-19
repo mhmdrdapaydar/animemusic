@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/headless.php';
+
 // پاک کردن تمامی متغیرهای session
 $_SESSION = array();
 
@@ -15,6 +16,6 @@ if (ini_get("session.use_cookies")) {
 // در نهایت session را نابود کنید
 session_destroy();
 
-// هدایت به صفحه اصلی
-header("Location: index.php");
+// هدایت به صفحه اصلیِ زبان جاری (تا کاربر انگلیسی‌زبان به صفحه فارسی نپرد)
+header("Location: " . am_lang_url("index.php"));
 exit;

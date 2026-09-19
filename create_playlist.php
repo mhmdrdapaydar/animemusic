@@ -4,20 +4,20 @@ header('Content-Type: application/json');
 
 // بررسی اینکه کاربر لاگین کرده است
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'لطفاً ابتدا وارد حساب کاربری خود شوید']);
+    echo json_encode(['success' => false, 'message' => am_t('login_required')]);
     exit;
 }
 
 // لیست‌های پخش فقط برای کاربران VIP
 $user = am_current_user();
 if (!$user || $user['subscription_status'] !== 'vip') {
-    echo json_encode(['success' => false, 'message' => 'لیست‌های پخش مخصوص کاربران VIP است']);
+    echo json_encode(['success' => false, 'message' => am_t('playlists_vip_only')]);
     exit;
 }
 
 // بررسی پارامترهای ورودی
 if (!isset($_POST['name']) || empty(trim($_POST['name']))) {
-    echo json_encode(['success' => false, 'message' => 'نام پلی‌لیست الزامی است']);
+    echo json_encode(['success' => false, 'message' => am_t('playlist_name_required')]);
     exit;
 }
 
@@ -33,11 +33,11 @@ try {
     $stmt->execute([$userId, $playlistName]);
     
     if ($stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'پلی‌لیستی با این نام از قبل وجود دارد']);
+        echo json_encode(['success' => false, 'message' => am_t('playlist_name_exists')]);
         exit;
     }
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در بررسی تکراری بودن نام']);
+    echo json_encode(['success' => false, 'message' => am_t('server_error')]);
     exit;
 }
 
@@ -50,11 +50,11 @@ if ($contentId) {
         $stmt->execute([$contentId]);
         
         if (!$stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'محتوا یافت نشد']);
+            echo json_encode(['success' => false, 'message' => am_t('not_found')]);
             exit;
         }
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'خطا در بررسی محتوا']);
+        echo json_encode(['success' => false, 'message' => am_t('server_error')]);
         exit;
     }
 }
@@ -79,15 +79,13 @@ try {
     $db->commit();
     
     echo json_encode([
-        'success' => true, 
-        'message' => $contentId ? 
-            'پلی‌لیست ایجاد و محتوا به آن اضافه شد' : 
-            'پلی‌لیست ایجاد شد',
+        'success' => true,
+        'message' => $contentId ? am_t('playlist_created_success') : am_t('playlist_created'),
         'playlist_id' => $playlistId
     ]);
     
 } catch (PDOException $e) {
     $db->rollBack();
-    echo json_encode(['success' => false, 'message' => 'خطا در ایجاد پلی‌لیست: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => am_t('create_playlist_error')]);
 }
 ?>

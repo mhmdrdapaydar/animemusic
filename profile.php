@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'لیست پخش با موفقیت ایجاد شد';
                 $message_type = 'success';
                 // رفرش صفحه برای نمایش لیست جدید
-                header("Location: profile.php");
+                header("Location: " . am_lang_url("profile.php"));
                 exit;
             } else {
                 $message = am_t('create_playlist_error');
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'لیست پخش با موفقیت حذف شد';
                 $message_type = 'success';
                 // رفرش صفحه برای به‌روزرسانی لیست
-                header("Location: profile.php");
+                header("Location: " . am_lang_url("profile.php"));
                 exit;
             } else {
                 $message = 'خطا در حذف لیست پخش';
@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = 'وضعیت لیست پخش با موفقیت تغییر کرد';
                 $message_type = 'success';
                 // رفرش صفحه برای به‌روزرسانی لیست
-                header("Location: profile.php");
+                header("Location: " . am_lang_url("profile.php"));
                 exit;
             } else {
                 $message = 'خطا در تغییر وضعیت لیست پخش';
@@ -891,15 +891,15 @@ function format_date($date) {
             }
         }
     </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
     <div class="header">
-        <img src="image.png" alt="لوگو رسانه من">
+        <img src="/image.png" alt="لوگو رسانه من">
         <button class="theme-toggle" id="themeToggle">
             <i class="bi <?= $isDarkMode ? 'bi-sun' : 'bi-moon' ?>"></i>
         </button>
@@ -931,16 +931,16 @@ function format_date($date) {
                 </div>
                 
                 <ul class="sidebar-nav">
-                    <li><a href="#" class="active" onclick="switchTab('profile-tab')"><i class="bi bi-person"></i> <?= am_te('profile') ?></a></li>
+                    <li><a href="#profile-tab" class="active" data-tab="profile-tab" onclick="switchTab('profile-tab', event); return false;"><i class="bi bi-person"></i> <?= am_te('profile') ?></a></li>
                     <?php if ($isVIP): ?>
-                        <li><a href="#" onclick="switchTab('playlists-tab')"><i class="bi bi-music-note-list"></i> <?= am_te('my_playlists') ?></a></li>
-                        <li><a href="#" onclick="switchTab('favorites-tab')"><i class="bi bi-heart"></i> <?= am_te('my_favorites') ?></a></li>
-                        <li><a href="#" onclick="switchTab('tickets-tab')"><i class="bi bi-chat-dots"></i> <?= am_te('tickets_section') ?></a></li>
+                        <li><a href="#playlists-tab" data-tab="playlists-tab" onclick="switchTab('playlists-tab', event); return false;"><i class="bi bi-music-note-list"></i> <?= am_te('my_playlists') ?></a></li>
+                        <li><a href="#favorites-tab" data-tab="favorites-tab" onclick="switchTab('favorites-tab', event); return false;"><i class="bi bi-heart"></i> <?= am_te('my_favorites') ?></a></li>
+                        <li><a href="#tickets-tab" data-tab="tickets-tab" onclick="switchTab('tickets-tab', event); return false;"><i class="bi bi-chat-dots"></i> <?= am_te('tickets_section') ?></a></li>
                     <?php else: ?>
-                        <li><a href="vip.php" class="disabled"><i class="bi bi-music-note-list"></i> <?= am_te('playlists_vip_tab') ?></a></li>
-                        <li><a href="vip.php" class="disabled"><i class="bi bi-heart"></i> <?= am_te('favorites_vip_tab') ?></a></li>
+                        <li><a href="<?= am_lang_url('vip.php') ?>" class="disabled"><i class="bi bi-music-note-list"></i> <?= am_te('playlists_vip_tab') ?></a></li>
+                        <li><a href="<?= am_lang_url('vip.php') ?>" class="disabled"><i class="bi bi-heart"></i> <?= am_te('favorites_vip_tab') ?></a></li>
                     <?php endif; ?>
-                    <li><a href="#" onclick="switchTab('security-tab')"><i class="bi bi-shield-lock"></i> <?= am_te('security') ?></a></li>
+                    <li><a href="#security-tab" data-tab="security-tab" onclick="switchTab('security-tab', event); return false;"><i class="bi bi-shield-lock"></i> <?= am_te('security') ?></a></li>
                     <li><a href="<?= am_lang_url('vip.php') ?>"><i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?></a></li>
                     <li><a href="<?= am_lang_url('logout.php') ?>"><i class="bi bi-box-arrow-left"></i> <?= am_te('logout') ?></a></li>
                 </ul>
@@ -1018,7 +1018,7 @@ function format_date($date) {
                                                 </button>
                                             </form>
                                         </div>
-                                        <a href="playlist.php?id=<?= $playlist['id'] ?>">
+                                        <a href="<?= am_lang_url('playlist.php?id=' . $playlist['id']) ?>">
                                             <div style="background: linear-gradient(135deg, <?= $playlist['is_public'] ? '#00ff6a' : '#6c757d' ?>, <?= $playlist['is_public'] ? '#00ffc3' : '#adb5bd' ?>); height: 120px; display: flex; align-items: center; justify-content: center;">
                                                 <i class="bi bi-music-note-list" style="font-size: 48px; color: #000;"></i>
                                             </div>
@@ -1048,7 +1048,7 @@ function format_date($date) {
                             <i class="bi bi-star-fill"></i>
                             <h3><?= am_te('vip_only_section') ?></h3>
                             <p><?= am_te('vip_needed_playlists') ?></p>
-                            <a href="vip.php" class="btn" style="margin-top: 20px;">
+                            <a href="<?= am_lang_url('vip.php') ?>" class="btn" style="margin-top: 20px;">
                                 <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                             </a>
                         </div>
@@ -1063,8 +1063,8 @@ function format_date($date) {
                         <?php if (!empty($user_favorites)): ?>
                             <div class="content-grid">
                                 <?php foreach ($user_favorites as $favorite): ?>
-                                    <a href="content.php?id=<?= $favorite['id'] ?>" class="content-card">
-                                        <img src="<?= htmlspecialchars($favorite['image_url'] ?? 'assets/image/placeholder.jpg') ?>" 
+                                    <a href="<?= am_lang_url('content.php?id=' . $favorite['id']) ?>" class="content-card">
+                                        <img src="<?= htmlspecialchars($favorite['image_url'] ?? '/assets/image/placeholder.jpg') ?>" 
                                              alt="<?= htmlspecialchars($favorite['title']) ?>">
                                         <div class="content-info">
                                             <h3 class="content-title"><?= htmlspecialchars($favorite['title']) ?></h3>
@@ -1085,7 +1085,7 @@ function format_date($date) {
                             <i class="bi bi-star-fill"></i>
                             <h3><?= am_te('vip_only_section') ?></h3>
                             <p><?= am_te('vip_needed_favorites') ?></p>
-                            <a href="vip.php" class="btn" style="margin-top: 20px;">
+                            <a href="<?= am_lang_url('vip.php') ?>" class="btn" style="margin-top: 20px;">
                                 <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                             </a>
                         </div>
@@ -1171,7 +1171,7 @@ function format_date($date) {
                             <i class="bi bi-chat-dots"></i>
                             <h3><?= am_te('vip_only_section') ?></h3>
                             <p><?= am_te('tickets_vip_only') ?></p>
-                            <a href="vip.php" class="btn" style="margin-top: 20px;">
+                            <a href="<?= am_lang_url('vip.php') ?>" class="btn" style="margin-top: 20px;">
                                 <i class="bi bi-star"></i> <?= am_te('upgrade_vip') ?>
                             </a>
                         </div>
@@ -1279,20 +1279,33 @@ function format_date($date) {
             document.cookie = `dark_mode=${newTheme === 'dark'}; max-age=${30 * 24 * 60 * 60}; path=/`;
         });
         
-        function switchTab(tabId) {
+        function switchTab(tabId, evt) {
+            // جلوگیری از رفتار پیش‌فرض لینک (#) تا آدرس عوض نشود و صفحه نپرد
+            if (evt && evt.preventDefault) evt.preventDefault();
+
+            const target = document.getElementById(tabId);
+            if (!target) return;
+
             // مخفی کردن همه تب‌ها
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            
+
             // نمایش تب انتخاب شده
-            document.getElementById(tabId).classList.add('active');
-            
+            target.classList.add('active');
+
             // به‌روزرسانی لینک فعال در نوار کناری
             document.querySelectorAll('.sidebar-nav a').forEach(link => {
                 link.classList.remove('active');
             });
-            event.currentTarget.classList.add('active');
+            const activeLink = document.querySelector('.sidebar-nav a[data-tab="' + tabId + '"]');
+            if (activeLink) activeLink.classList.add('active');
+
+            // اسکرول نرم به بالای بخش محتوا (نشان‌دادن بهینه تب بعد از کلیک)
+            const content = document.querySelector('.main-content');
+            if (content && content.scrollIntoView) {
+                content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
         
         // نمایش/مخفی کردن رمز عبور
@@ -1357,11 +1370,8 @@ function format_date($date) {
                     document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
                     targetEl.classList.add('active');
                     document.querySelectorAll('.sidebar-nav a').forEach(function(l){ l.classList.remove('active'); });
-                    document.querySelectorAll('.sidebar-nav a').forEach(function(l){
-                        if (l.getAttribute('onclick') && l.getAttribute('onclick').indexOf("'" + target + "'") !== -1) {
-                            l.classList.add('active');
-                        }
-                    });
+                    const activeLink = document.querySelector('.sidebar-nav a[data-tab="' + target + '"]');
+                    if (activeLink) activeLink.classList.add('active');
                 }
             }
         }

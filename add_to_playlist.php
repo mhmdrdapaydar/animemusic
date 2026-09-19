@@ -4,20 +4,20 @@ header('Content-Type: application/json');
 
 // بررسی اینکه کاربر لاگین کرده است
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'لطفاً ابتدا وارد حساب کاربری خود شوید']);
+    echo json_encode(['success' => false, 'message' => am_t('login_required')]);
     exit;
 }
 
 // لیست‌های پخش فقط برای کاربران VIP
 $user = am_current_user();
 if (!$user || $user['subscription_status'] !== 'vip') {
-    echo json_encode(['success' => false, 'message' => 'لیست‌های پخش مخصوص کاربران VIP است']);
+    echo json_encode(['success' => false, 'message' => am_t('playlists_vip_only')]);
     exit;
 }
 
 // بررسی پارامترهای ورودی
 if (!isset($_POST['content_id']) || !isset($_POST['playlist_id'])) {
-    echo json_encode(['success' => false, 'message' => 'پارامترهای ورودی ناقص است']);
+    echo json_encode(['success' => false, 'message' => am_t('missing_params')]);
     exit;
 }
 
@@ -33,11 +33,11 @@ try {
     $stmt->execute([$playlistId, $userId]);
     
     if (!$stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'پلی‌لیست یافت نشد یا شما دسترسی ندارید']);
+        echo json_encode(['success' => false, 'message' => am_t('playlist_not_found_or_access')]);
         exit;
     }
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در بررسی پلی‌لیست']);
+    echo json_encode(['success' => false, 'message' => am_t('server_error')]);
     exit;
 }
 
@@ -49,11 +49,11 @@ try {
     $stmt->execute([$contentId]);
     
     if (!$stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'محتوا یافت نشد']);
+        echo json_encode(['success' => false, 'message' => am_t('not_found')]);
         exit;
     }
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در بررسی محتوا']);
+    echo json_encode(['success' => false, 'message' => am_t('server_error')]);
     exit;
 }
 
@@ -63,11 +63,11 @@ try {
     $stmt->execute([$playlistId, $contentId]);
     
     if ($stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'این محتوا قبلاً در این پلی‌لیست وجود دارد']);
+        echo json_encode(['success' => false, 'message' => am_t('content_already_in_playlist')]);
         exit;
     }
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در بررسی تکراری بودن محتوا']);
+    echo json_encode(['success' => false, 'message' => am_t('server_error')]);
     exit;
 }
 
@@ -82,9 +82,9 @@ try {
     $stmt = $db->prepare("INSERT INTO playlist_contents (playlist_id, content_id, sort_order) VALUES (?, ?, ?)");
     $stmt->execute([$playlistId, $contentId, $sortOrder]);
     
-    echo json_encode(['success' => true, 'message' => 'محتوا با موفقیت به پلی‌لیست اضافه شد']);
+    echo json_encode(['success' => true, 'message' => am_t('added_to_playlist_success')]);
     
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در افزودن به پلی‌لیست: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => am_t('add_to_playlist_error')]);
 }
 ?>

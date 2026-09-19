@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['last_name'] = $user['last_name'];
             $_SESSION['subscription_status'] = $user['subscription_status'];
             
-            // ریدایرکت به صفحه اصلی
-            header("Location: profile.php");
+            // ریدایرکت به پنل کاربریِ زبان جاری
+            header("Location: " . am_lang_url("profile.php"));
             exit;
         } else {
             $error = am_t('wrong_credentials');
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // اگر کاربر قبلا لاگین کرده، به صفحه اصلی ریدایرکت شود
 if (isset($_SESSION['user_id'])) {
-    header("Location: index.php");
+    header("Location: " . am_lang_url("index.php"));
     exit;
 }
 ?>
@@ -387,11 +387,11 @@ if (isset($_SESSION['user_id'])) {
             }
         }
     </style>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="assets/site.css?v=4" />
-    <script defer src="assets/site.js?v=1"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/assets/site.css?v=4" />
+    <script defer src="/assets/site.js?v=1"></script>
 </head>
 <body>
     <div class="header">
@@ -403,7 +403,7 @@ if (isset($_SESSION['user_id'])) {
     
     <div class="auth-container">
         <div class="logo">
-            <img src="image.png" alt="لوگو رسانه من">
+            <img src="/image.png" alt="لوگو رسانه من">
         </div>
         
         <div class="auth-card">

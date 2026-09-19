@@ -4,20 +4,20 @@ header('Content-Type: application/json');
 
 // بررسی اینکه کاربر لاگین کرده است
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'لطفاً ابتدا وارد حساب کاربری خود شوید']);
+    echo json_encode(['success' => false, 'message' => am_t('login_required')]);
     exit;
 }
 
 // علاقه‌مندی‌ها فقط برای کاربران VIP (باید در همه‌جا یکسان اجرا شود)
 $user = am_current_user();
 if (!$user || $user['subscription_status'] !== 'vip') {
-    echo json_encode(['success' => false, 'message' => 'مدیریت علاقه‌مندی‌ها مخصوص کاربران VIP است']);
+    echo json_encode(['success' => false, 'message' => am_t('favorites_vip_only')]);
     exit;
 }
 
 // بررسی پارامترهای ورودی
 if (!isset($_POST['content_id']) || !isset($_POST['action'])) {
-    echo json_encode(['success' => false, 'message' => 'پارامترهای ورودی ناقص است']);
+    echo json_encode(['success' => false, 'message' => am_t('missing_params')]);
     exit;
 }
 
@@ -35,11 +35,11 @@ try {
     $stmt->execute([$contentId]);
     
     if (!$stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'محتوا یافت نشد']);
+        echo json_encode(['success' => false, 'message' => am_t('not_found')]);
         exit;
     }
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در بررسی محتوا']);
+    echo json_encode(['success' => false, 'message' => am_t('server_error')]);
     exit;
 }
 
@@ -51,7 +51,7 @@ try {
         $stmt->execute([$userId, $contentId]);
         
         if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'این محتوا قبلاً به علاقه‌مندی‌ها اضافه شده است']);
+            echo json_encode(['success' => false, 'message' => am_t('content_already_favorite')]);
             exit;
         }
         
@@ -59,20 +59,20 @@ try {
         $stmt = $db->prepare("INSERT INTO user_favorites (user_id, content_id) VALUES (?, ?)");
         $stmt->execute([$userId, $contentId]);
         
-        echo json_encode(['success' => true, 'message' => 'محتوا به علاقه‌مندی‌ها اضافه شد']);
+        echo json_encode(['success' => true, 'message' => am_t('content_added_to_favorites')]);
         
     } elseif ($action === 'remove') {
         // حذف از علاقه‌مندی‌ها
         $stmt = $db->prepare("DELETE FROM user_favorites WHERE user_id = ? AND content_id = ?");
         $stmt->execute([$userId, $contentId]);
         
-        echo json_encode(['success' => true, 'message' => 'محتوا از علاقه‌مندی‌ها حذف شد']);
+        echo json_encode(['success' => true, 'message' => am_t('content_removed_from_favorites')]);
         
     } else {
-        echo json_encode(['success' => false, 'message' => 'عمل نامعتبر']);
+        echo json_encode(['success' => false, 'message' => am_t('invalid_action')]);
     }
     
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'خطا در انجام عملیات: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => am_t('server_error')]);
 }
 ?>

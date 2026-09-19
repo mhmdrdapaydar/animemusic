@@ -141,7 +141,7 @@ switch (strtolower($music_type)) {
         $music_type_fa = 'موسیقی متن';
         break;
 }
-$image_url = htmlspecialchars($content['image_url'] ?? 'assets/image/placeholder.jpg');
+$image_url = htmlspecialchars($content['image_url'] ?? '/assets/image/placeholder.jpg');
 $music_file = htmlspecialchars($content['music_file_url']);
 $video_file = !empty($content['video_file_url']) ? htmlspecialchars($content['video_file_url']) : null;
 $lyrics_text = !empty($content['lyrics_text']) ? nl2br(htmlspecialchars($content['lyrics_text'], ENT_QUOTES, 'UTF-8')) : null;
@@ -1370,7 +1370,7 @@ if (!empty($content['important_links'])) {
             <?php foreach ($relatedContents as $item): ?>
               <a href="<?= am_lang_url('content.php?id=' . $item['id']) ?>" class="related-item">
                 <div class="badge"><?= htmlspecialchars($item['music_type']) ?></div>
-                <img src="<?= htmlspecialchars($item['image_url'] ?? 'assets/image/placeholder.jpg') ?>" alt="<?= am_e($item['title']) ?>">
+                <img src="<?= htmlspecialchars($item['image_url'] ?? '/assets/image/placeholder.jpg') ?>" alt="<?= am_e($item['title']) ?>">
                 <div class="related-info">
                   <h4><?= htmlspecialchars($item['title']) ?></h4>
                   <p><?= htmlspecialchars($item['music_type']) ?></p>
@@ -1648,7 +1648,7 @@ if (!empty($content['important_links'])) {
       const isCurrentlyFavorite = this.classList.contains('active');
       const action = isCurrentlyFavorite ? 'remove' : 'add';
       
-      fetch('/manage_favorite.php', {
+      fetch(<?= json_encode(am_lang_url('manage_favorite.php')) ?>, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -1696,7 +1696,7 @@ if (!empty($content['important_links'])) {
       item.addEventListener('click', function() {
         const playlistId = this.getAttribute('data-id');
         
-        fetch('/add_to_playlist.php', {
+        fetch(<?= json_encode(am_lang_url('add_to_playlist.php')) ?>, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -1723,7 +1723,7 @@ if (!empty($content['important_links'])) {
     createPlaylistBtn.addEventListener('click', function() {
       const playlistName = prompt(<?= json_encode(am_t('enter_playlist_name')) ?>);
       if (playlistName && playlistName.trim() !== '') {
-        fetch('/create_playlist.php', {
+        fetch(<?= json_encode(am_lang_url('create_playlist.php')) ?>, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -1751,8 +1751,8 @@ if (!empty($content['important_links'])) {
     
     // نمایش پیام VIP برای کاربران غیر VIP
     function showVipMessage() {
-      alert('این قابلیت فقط برای کاربران VIP در دسترس است. لطفاً اشتراک VIP خریداری کنید.');
-      window.location.href = 'vip.php';
+      alert(<?= json_encode(am_t('vip_feature_prompt')) ?>);
+      window.location.href = <?= json_encode(am_lang_url('vip.php')) ?>;
     }
   </script>
 </body>
