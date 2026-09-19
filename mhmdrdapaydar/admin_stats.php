@@ -92,7 +92,8 @@ $langNames = [
       <?php if (empty($langTotals)): ?>
         <p style="color: var(--gray);">هنوز آماری بر اساس زبان ثبت نشده است.</p>
       <?php else: ?>
-        <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <canvas id="langChart" style="max-height:300px;"></canvas>
+        <table style="width:100%; border-collapse:collapse; font-size:13.5px; margin-top:10px;">
           <thead>
             <tr style="border-bottom:2px solid var(--border); text-align:right;">
               <th style="padding:8px;">زبان</th>
@@ -139,6 +140,33 @@ $langNames = [
   </div>
   
   <script>
+    // نمودار بازدید به تفکیک زبان
+    <?php if (!empty($langTotals)): ?>
+    (function(){
+      const langEl = document.getElementById('langChart');
+      if (!langEl) return;
+      const langData = <?= json_encode(array_values($langTotals)) ?>;
+      const langLabels = <?= json_encode(array_map(function($c){ global $langNames; return $langNames[$c] ?? $c; }, array_keys($langTotals))) ?>;
+      const colors = ['#00aa6f','#4361ee','#ffc107','#e63946','#9b5de5','#00b4d8','#ff6b6b','#06d6a0','#f77f00','#7209b7','#3a86ff'];
+      new Chart(langEl, {
+        type: 'bar',
+        data: {
+          labels: langLabels,
+          datasets: [{
+            label: 'بازدید',
+            data: langData,
+            backgroundColor: langLabels.map((_, i) => colors[i % colors.length])
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    })();
+    <?php endif; ?>
+
     // نمودار روزانه
     new Chart(document.getElementById('dailyChart'), {
       type: 'line',

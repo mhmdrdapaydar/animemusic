@@ -244,3 +244,82 @@ function am_ad_click_log($lang = 'fa') {
 
     @file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE));
 }
+
+/**
+ * صفر کردن شمارش کلیک‌های تبلیغ یک زبان.
+ * وقتی ادمین لینک تصویر یا لینک مقصد تبلیغ زبانی را تغییر می‌دهد،
+ * شمارش کلیک آن زبان باید از صفر شروع شود.
+ * @return bool
+ */
+function am_ad_reset_clicks($lang) {
+    $lang = (string)$lang;
+    if ($lang === '') return false;
+    $file = defined('AM_AD_CLICKS_FILE')
+        ? AM_AD_CLICKS_FILE
+        : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json');
+    $data = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'langs' => []];
+    if (file_exists($file)) {
+        $decoded = json_decode((string)file_get_contents($file), true);
+        if (is_array($decoded)) {
+            $data = array_merge($data, $decoded);
+        }
+    }
+    if (!isset($data['langs']) || !is_array($data['langs'])) {
+        $data['langs'] = [];
+    }
+    // مقدار قبلی زبان را برای کسر از مجموع سراسری به‌خاطر بسپار
+    $old = isset($data['langs'][$lang]) && is_array($data['langs'][$lang])
+        ? $data['langs'][$lang]
+        : ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+
+    // صفر کردن شمارنده‌ی زبان (کلیک‌های قبلی حذف می‌شوند)
+    $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+
+    // کسر سهم زبانِ صفرشده از مجموع سراسری (بدون از دست دادن آمار تاریخیِ بدون زبان)
+    $data['total'] = max(0, (int)($data['total'] ?? 0) - (int)($old['total'] ?? 0));
+    $sub = function (array $set, array $remove) {
+        foreach ($remove as $d => $v) {
+            $remaining = (int)($set[$d] ?? 0) - (int)$v;
+            if ($remaining <= 0) {
+                unset($set[$d]);
+            } else {
+                $set[$d] = $remaining;
+            }
+        }
+        return $set;
+    };
+    $data['daily']   = $sub(is_array($data['daily'] ?? null) ? $data['daily'] : [], is_array($old['daily'] ?? null) ? $old['daily'] : []);
+    $data['weekly']  = $sub(is_array($data['weekly'] ?? null) ? $data['weekly'] : [], is_array($old['weekly'] ?? null) ? $old['weekly'] : []);
+    $data['monthly'] = $sub(is_array($data['monthly'] ?? null) ? $data['monthly'] : [], is_array($old['monthly'] ?? null) ? $old['monthly'] : []);
+
+    return (bool)@file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE));
+}
+
+/**
+ * آمار کلیک‌های تبلیغ یک زبان مشخص (total + روند روزانه/هفتگی/ماهانه).
+ * اگر زبانی داده نشود، جمع کل همه‌ی زبان‌ها برمی‌گردد.
+ */
+function am_ad_clicks_stat($lang = null) {
+    $file = defined('AM_AD_CLICKS_FILE')
+        ? AM_AD_CLICKS_FILE
+        : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json');
+    $data = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'langs' => []];
+    if (file_exists($file)) {
+        $decoded = json_decode((string)file_get_contents($file), true);
+        if (is_array($decoded)) {
+            $data = array_merge($data, $decoded);
+        }
+    }
+    if ($lang !== null && $lang !== '') {
+        $lang = (string)$lang;
+        return isset($data['langs'][$lang]) && is_array($data['langs'][$lang])
+            ? $data['langs'][$lang]
+            : ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+    }
+    return [
+        'total'   => (int)($data['total'] ?? 0),
+        'daily'   => $data['daily']   ?? [],
+        'weekly'  => $data['weekly']  ?? [],
+        'monthly' => $data['monthly'] ?? [],
+    ];
+}

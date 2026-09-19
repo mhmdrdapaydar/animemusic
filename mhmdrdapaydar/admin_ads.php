@@ -118,7 +118,8 @@ $langNames = [
       <?php if (empty($langTotals)): ?>
         <p style="color: var(--gray);">هنوز آماری بر اساس زبان ثبت نشده است.</p>
       <?php else: ?>
-        <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <canvas id="langViewsChart" style="max-height:300px;"></canvas>
+        <table style="width:100%; border-collapse:collapse; font-size:13.5px; margin-top:10px;">
           <thead>
             <tr style="border-bottom:2px solid var(--border); text-align:right;">
               <th style="padding:8px;">زبان</th>
@@ -151,11 +152,12 @@ $langNames = [
     </div>
 
     <div class="chart-box">
-      <h3 class="chart-title"><i class="fas fa-mouse-pointer"></i> کلیک تبلیغ به تفکیک زبان</h3>
+      <h3 class="chart-title"><i class="fas fa-mouse-pointer"></i> کلیک روی «ادامه مطلب» تبلیغ به تفکیک زبان</h3>
       <?php if (empty($clickLangTotals)): ?>
         <p style="color: var(--gray);">هنوز کلیکی ثبت نشده است.</p>
       <?php else: ?>
-        <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <canvas id="langClicksChart" style="max-height:300px;"></canvas>
+        <table style="width:100%; border-collapse:collapse; font-size:13.5px; margin-top:10px;">
           <thead>
             <tr style="border-bottom:2px solid var(--border); text-align:right;">
               <th style="padding:8px;">زبان</th>
@@ -191,6 +193,50 @@ $langNames = [
   </div>
   
   <script>
+    // نمودار بازدید تبلیغ به تفکیک زبان
+    <?php if (!empty($langTotals)): ?>
+    (function(){
+      const el = document.getElementById('langViewsChart');
+      if (!el) return;
+      const colors = ['#00aa6f','#4361ee','#ffc107','#e63946','#9b5de5','#00b4d8','#ff6b6b','#06d6a0','#f77f00','#7209b7','#3a86ff'];
+      const labels = <?= json_encode(array_map(function($c){ global $langNames; return $langNames[$c] ?? $c; }, array_keys($langTotals))) ?>;
+      new Chart(el, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'بازدید',
+            data: <?= json_encode(array_values($langTotals)) ?>,
+            backgroundColor: labels.map((_, i) => colors[i % colors.length])
+          }]
+        },
+        options: { responsive: true, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true} } }
+      });
+    })();
+    <?php endif; ?>
+
+    // نمودار کلیک تبلیغ به تفکیک زبان
+    <?php if (!empty($clickLangTotals)): ?>
+    (function(){
+      const el = document.getElementById('langClicksChart');
+      if (!el) return;
+      const colors = ['#ff6b6b','#f77f00','#ffc107','#06d6a0','#00aa6f','#00b4d8','#4361ee','#9b5de5','#7209b7','#3a86ff','#e63946'];
+      const labels = <?= json_encode(array_map(function($c){ global $langNames; return $langNames[$c] ?? $c; }, array_keys($clickLangTotals))) ?>;
+      new Chart(el, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'کلیک',
+            data: <?= json_encode(array_values($clickLangTotals)) ?>,
+            backgroundColor: labels.map((_, i) => colors[i % colors.length])
+          }]
+        },
+        options: { responsive: true, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true} } }
+      });
+    })();
+    <?php endif; ?>
+
     // نمودار روزانه
     new Chart(document.getElementById('dailyChart'), {
       type: 'line',

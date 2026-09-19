@@ -63,6 +63,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
             }
         }
     }
+
+    // اگر لینک تصویر یا لینک مقصد یک زبان تغییر کرد، شمارش کلیک تبلیغ آن زبان از صفر شروع شود.
+    $oldConfig = is_array($adConfig) ? $adConfig : [];
+    foreach ($newConfig as $code => $cfg) {
+        if (!is_array($cfg)) continue;
+        $old = isset($oldConfig[$code]) && is_array($oldConfig[$code]) ? $oldConfig[$code] : [];
+        $oldUrl   = trim((string)($old['url'] ?? ''));
+        $oldImage = trim((string)($old['image'] ?? ''));
+        $newUrl   = trim((string)($cfg['url'] ?? ''));
+        $newImage = trim((string)($cfg['image'] ?? ''));
+        if ($oldUrl !== $newUrl || $oldImage !== $newImage) {
+            am_ad_reset_clicks($code);
+        }
+    }
+
     am_ad_config_save($newConfig);
     $adConfig = am_ad_config();
     $adConfigSaved = true;
@@ -196,12 +211,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <th style="padding:8px;">لینک آپارات (اختیاری)</th>
             <th style="padding:8px;">مسیر ویدیو (اختیاری)</th>
             <th style="padding:8px;">تصویر تبلیغ (اختیاری)</th>
+            <th style="padding:8px;">کلیک روی «ادامه مطلب»</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($langNames as $code => $name): ?>
             <?php
               $cfg = $adConfig[$code] ?? ['url' => '', 'aparat_url' => '', 'video' => '', 'image' => ''];
+              $langClicks = am_ad_clicks_stat($code);
+              $langClickTotal = (int)($langClicks['total'] ?? 0);
             ?>
             <tr style="border-bottom:1px solid var(--border); text-align:right;">
               <td style="padding:8px; white-space:nowrap;"><strong><?= htmlspecialchars($name) ?></strong> <span style="color:var(--gray);">(<?= $code ?>)</span></td>
@@ -213,6 +231,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if (!empty($cfg['image'])): ?>
                   <div style="margin-top:6px;"><img src="/<?= htmlspecialchars(ltrim($cfg['image'], '/')) ?>" alt="" style="max-width:120px; max-height:70px; border-radius:6px; border:1px solid var(--border);"></div>
                 <?php endif; ?>
+              </td>
+              <td style="padding:8px; text-align:center;">
+                <span class="status-pill st-pending" style="white-space:nowrap;"><?= number_format($langClickTotal) ?> کلیک</span>
               </td>
             </tr>
           <?php endforeach; ?>
