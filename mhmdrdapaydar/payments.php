@@ -124,6 +124,13 @@ $statusClass = ['pending' => 'st-pending', 'approved' => 'st-accepted', 'rejecte
         <?php if (!empty($p['tx_hash'])): ?>
           <div class="pay-detail"><strong>هش تراکنش:</strong> <span dir="ltr"><?= htmlspecialchars($p['tx_hash']) ?></span></div>
         <?php endif; ?>
+        <?php if (!empty($p['payer_name']) || !empty($p['payer_card'])): ?>
+          <div class="pay-detail" style="background:rgba(0,255,106,.06);border:1px solid rgba(0,255,106,.2);border-radius:8px;padding:8px 10px;">
+            <strong><i class="fas fa-user-check"></i> واریزکننده (برای تطبیق):</strong><br>
+            <?php if (!empty($p['payer_name'])): ?>نام: <strong><?= htmlspecialchars($p['payer_name']) ?></strong><br><?php endif; ?>
+            <?php if (!empty($p['payer_card'])): ?>شماره کارت: <strong dir="ltr"><?= htmlspecialchars($p['payer_card']) ?></strong><?php endif; ?>
+          </div>
+        <?php endif; ?>
         <?php if (!empty($p['receipt_path']) && file_exists($p['receipt_path'])): ?>
           <a href="receipt.php?id=<?= (int)$p['id'] ?>" target="_blank" rel="noopener" style="color:var(--secondary);font-size:12.5px;">
             <i class="fas fa-image"></i> مشاهده‌ی رسید

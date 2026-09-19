@@ -63,21 +63,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     switch ($action) {
-        /* --- کارت‌به‌کارت: ساخت پرداخت + ذخیره رسید --- */
+        /* --- کارت‌به‌کارت: ثبت نام/نام‌خانوادگی و شماره‌ی کارت واریزکننده (بدون آپلود عکس) --- */
         case 'card':
-            $receiptPath = am_save_receipt('receipt');
-            if ($receiptPath === null) {
-                $message = am_t('receipt_upload_error');
+            $payerName = trim($_POST['payer_name'] ?? '');
+            $payerCard = trim($_POST['payer_card'] ?? '');
+            // حذف فاصله و «-» از شماره کارت
+            $payerCardDigits = preg_replace('/[\s\-]/', '', $payerCard);
+            if ($payerName === '' || mb_strlen($payerName) < 3 || !preg_match('/^\d{8,20}$/', $payerCardDigits)) {
+                $message = am_t('payer_info_invalid');
                 $message_type = 'error';
             } else {
-                $pid = am_payment_create((int)$user['id'], $plan, 'card');
+                $pid = am_payment_create((int)$user['id'], $plan, 'card', [
+                    'payer_name' => $payerName,
+                    'payer_card' => $payerCardDigits,
+                ]);
                 if ($pid) {
-                    am_payment_attach_receipt($pid, $receiptPath);
                     $result = 'receipt_sent';
                     $message = am_t('receipt_sent');
                     $message_type = 'success';
                 } else {
-                    @unlink($receiptPath);
                     $message = am_t('signup_error');
                     $message_type = 'error';
                 }
@@ -645,13 +649,18 @@ $cryptoPending = am_payment_for_plan((int)$user['id'], $plan, 'crypto');
                                 <button type="button" class="copy-btn" onclick="copyCard()"><i class="bi bi-clipboard"></i> <?= am_te('copy_card') ?></button>
                             </div>
                             <div class="instruction-text"><?= am_te('settle_card_payment') ?></div>
-                            <form method="post" enctype="multipart/form-data">
+                            <form method="post">
                                 <input type="hidden" name="action" value="card">
                                 <div class="form-group">
-                                    <label for="receipt"><?= am_te('upload_receipt') ?> (JPG/PNG/WebP &le; 10MB)</label>
-                                    <input type="file" id="receipt" name="receipt" class="form-control" accept="image/*" required>
+                                    <label for="payer_name"><?= am_te('payer_full_name') ?></label>
+                                    <input type="text" id="payer_name" name="payer_name" class="form-control" placeholder="<?= am_te('payer_full_name_ph') ?>" required>
                                 </div>
-                                <button type="submit" class="btn"><i class="bi bi-cloud-upload"></i> <?= am_te('submit_receipt') ?></button>
+                                <div class="form-group">
+                                    <label for="payer_card"><?= am_te('payer_card_number') ?></label>
+                                    <input type="text" id="payer_card" name="payer_card" class="form-control" dir="ltr" style="direction:ltr;" placeholder="6037 9912 3456 7890" required>
+                                    <small style="color: var(--text-secondary); display:block; margin-top:5px;"><?= am_te('payer_card_hint') ?></small>
+                                </div>
+                                <button type="submit" class="btn"><i class="bi bi-send"></i> <?= am_te('submit_receipt') ?></button>
                             </form>
                             <?php else: ?>
                             <div class="instruction-text"><?= am_te('payment_pending') ?></div>

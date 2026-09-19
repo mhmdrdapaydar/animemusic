@@ -50,9 +50,19 @@ if (!defined('AM_PAYMENTS_LOADED')) {
                 tx_hash TEXT DEFAULT '',
                 crypto_amount TEXT DEFAULT '',
                 receipt_path TEXT DEFAULT '',
+                payer_name TEXT DEFAULT '',
+                payer_card TEXT DEFAULT '',
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             )");
+            // ستون‌های جدید برای تأیید کارت‌به‌کارت بدون آپلود رسید (نام و شماره کارت واریزکننده)
+            $cols = array_column($db->query("PRAGMA table_info(payments)")->fetchAll(PDO::FETCH_ASSOC), 'name');
+            if (!in_array('payer_name', $cols, true)) {
+                $db->exec("ALTER TABLE payments ADD COLUMN payer_name TEXT DEFAULT ''");
+            }
+            if (!in_array('payer_card', $cols, true)) {
+                $db->exec("ALTER TABLE payments ADD COLUMN payer_card TEXT DEFAULT ''");
+            }
             $db->exec("CREATE TABLE IF NOT EXISTS tickets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -137,6 +147,38 @@ if (!defined('AM_PAYMENTS_LOADED')) {
     }
 
     /**
+     * پاکسازی خودکار پرداخت‌های تأیید/رد شده‌ی قدیمی‌تر از یک هفته
+     * تا حجم داده‌ها (و رسیدهای آپلودشده) زیاد نشود.
+     * فقط رکوردهای resolved (approved/rejected) حذف می‌شوند؛ pending دست نمی‌خورد.
+     * @return int تعداد رکوردهای حذف‌شده
+     */
+    function am_payments_purge_resolved_old($days = 7) {
+        am_payments_migrate();
+        $days = max(1, (int)$days);
+        try {
+            $db = am_db_users();
+            $cutoff = date('Y-m-d H:i:s', strtotime('-' . $days . ' days'));
+            $stmt = $db->prepare("SELECT id, receipt_path FROM payments WHERE status IN ('approved','rejected') AND updated_at < ?");
+            $stmt->execute([$cutoff]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $count = 0;
+            foreach ($rows as $row) {
+                // حذف فایل رسید از دیسک در صورت وجود
+                $rp = (string)($row['receipt_path'] ?? '');
+                if ($rp !== '' && file_exists($rp)) {
+                    @unlink($rp);
+                }
+                $db->prepare("DELETE FROM payments WHERE id = ?")->execute([(int)$row['id']]);
+                $count++;
+            }
+            return $count;
+        } catch (PDOException $e) {
+            error_log('[payments] purge error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * آزادسازی مبلغ‌های یکتای کریپتو که رها شده‌اند:
      * اگر کاربری مبلغ یکتا رزرو کند ولی تا ۲۴ ساعت شناسه تراکنش ثبت نکند
      * و پرداخت هم تأیید/رد نشده باشد، آن پرداخت خودکار رد می‌شود تا اسلات آزاد گردد.
@@ -212,6 +254,8 @@ if (!defined('AM_PAYMENTS_LOADED')) {
             $priceLabel = am_plan_price_label($plan);
             $txHash = trim((string)($extra['tx_hash'] ?? ''));
             $cryptoAmount = trim((string)($extra['crypto_amount'] ?? ''));
+            $payerName = trim((string)($extra['payer_name'] ?? ''));
+            $payerCard = preg_replace('/[\s\-]/', '', trim((string)($extra['payer_card'] ?? '')));
 
             // برای کریپتو حتماً مبلغ یکتا تولید کن
             if ($method === 'crypto') {
@@ -227,12 +271,17 @@ if (!defined('AM_PAYMENTS_LOADED')) {
             $stmt->execute([(int)$userId, $plan, $method]);
             $dup = $stmt->fetch();
             if ($dup) {
+                // در صورت وجود، اطلاعات واریزکننده‌ی جدید را روی همان رکورد به‌روزرسانی کن
+                if ($method === 'card' && ($payerName !== '' || $payerCard !== '')) {
+                    $db->prepare("UPDATE payments SET payer_name = ?, payer_card = ?, updated_at = datetime('now') WHERE id = ?")
+                       ->execute([$payerName, $payerCard, (int)$dup['id']]);
+                }
                 return (int)$dup['id'];
             }
 
-            $stmt = $db->prepare("INSERT INTO payments (user_id, plan, method, price_label, tx_hash, crypto_amount)
-                                  VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([(int)$userId, $plan, $method, $priceLabel, $txHash, $cryptoAmount]);
+            $stmt = $db->prepare("INSERT INTO payments (user_id, plan, method, price_label, tx_hash, crypto_amount, payer_name, payer_card)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([(int)$userId, $plan, $method, $priceLabel, $txHash, $cryptoAmount, $payerName, $payerCard]);
             return (int)$db->lastInsertId();
         } catch (PDOException $e) {
             error_log('[payments] create error: ' . $e->getMessage());
@@ -352,7 +401,7 @@ if (!defined('AM_PAYMENTS_LOADED')) {
             $ext = 'jpg';
         }
         $name = 'receipt_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-        $target = str_replace('\\', '/', $private . '/' . $name);
+        $target = $dir . '/' . $name;
         if (@move_uploaded_file($file['tmp_name'], $target)) {
             return $target;
         }

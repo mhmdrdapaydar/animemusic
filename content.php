@@ -41,9 +41,11 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // تبلیغ مربوط به زبان جاری (برای کاربران غیر VIP)
-$currentAd  = am_ad_for_lang(am_current_lang());
-$adVideoUrl = am_lang_asset(isset($currentAd['video']) && $currentAd['video'] !== '' ? $currentAd['video'] : 'assets/ads/myad.mp4');
-$adClickUrl = '/ad_click.php?lang=' . rawurlencode(am_current_lang());
+$currentAd   = am_ad_for_lang(am_current_lang());
+$adVideoUrl  = am_lang_asset(isset($currentAd['video']) && $currentAd['video'] !== '' ? $currentAd['video'] : 'assets/ads/myad.mp4');
+$adImageUrl  = isset($currentAd['image']) && $currentAd['image'] !== '' ? am_lang_asset($currentAd['image']) : '';
+$adHasImage  = ($adImageUrl !== '');
+$adClickUrl  = '/ad_click.php?lang=' . rawurlencode(am_current_lang());
 
 // بررسی وضعیت علاقه‌مندی و پلی‌لیست‌ها
 $isFavorite = false;
@@ -467,6 +469,15 @@ if (!empty($content['important_links'])) {
       <?php if ($isVIP): ?>
         display: none;
       <?php endif; ?>
+    }
+
+    #ad-video,
+    #ad-image {
+      display: block;
+      width: 100%;
+      max-height: 460px;
+      object-fit: contain;
+      background: #000;
     }
 
     #skip-btn, #unmute-btn, #ad-link {
@@ -1162,7 +1173,10 @@ if (!empty($content['important_links'])) {
     <!-- تبلیغ - فقط برای کاربران غیر VIP نمایش داده شود -->
     <?php if (!$isVIP): ?>
     <div id="ad-section">
-      <video id="ad-video" src="<?= am_e($adVideoUrl) ?>" muted playsinline preload="metadata"></video>
+      <video id="ad-video" src="<?= am_e($adVideoUrl) ?>" muted playsinline preload="metadata"<?= $adHasImage ? ' poster="' . am_e($adImageUrl) . '"' : '' ?>></video>
+      <?php if ($adHasImage): ?>
+      <img id="ad-image" src="<?= am_e($adImageUrl) ?>" alt="<?= am_te('more_info') ?>" />
+      <?php endif; ?>
       <a id="ad-link" href="<?= am_e($adClickUrl) ?>" target="_blank" rel="noopener noreferrer"><?= am_te('more_info') ?></a>
       <button id="skip-btn" class="button" disabled><?= am_te('skip_ad') ?> (10)</button>
       <button id="unmute-btn" class="button"><?= am_te('enable_sound') ?></button>
@@ -1447,6 +1461,7 @@ if (!empty($content['important_links'])) {
     // --- تبلیغ - فقط برای کاربران غیر VIP اجرا شود ---
     <?php if (!$isVIP): ?>
     const adVideo = document.getElementById("ad-video");
+    const adImage = document.getElementById("ad-image");
     const skipBtn = document.getElementById("skip-btn");
     const skipLabel = <?= json_encode(am_t('skip_ad')) ?>;
     const unmuteBtn = document.getElementById("unmute-btn");
@@ -1480,22 +1495,45 @@ if (!empty($content['important_links'])) {
     adVideo.addEventListener("ended", skipAd);
     
     function skipAd() {
-      adVideo.pause();
+      try { adVideo.pause(); } catch (e) {}
       adSection.style.display = "none";
       mainContent.style.display = "block";
       clearInterval(timer); // توقف تایمر
     }
     
     // شروع پخش تبلیغ پس از لود صفحه
-    window.addEventListener('DOMContentLoaded', () => {
+    // اگر تصویر تبلیغ تنظیم شده باشد، ابتدا پوستر جدید نمایش داده می‌شود و
+    // ویدیو با کلیک کاربر روی صفحه‌ی تبلیغ پخش می‌شود (بدون از دست رفتن ویدیو).
+    function startAdPlayback() {
+      if (adImage) adImage.style.display = "none";
+      adVideo.style.display = "block";
       try {
         adVideo.play().catch(e => {
           console.log("پخش خودکار تبلیغ ممکن نیست:", e);
-          skipAd();
         });
       } catch (e) {
         console.log("خطا در پخش تبلیغ:", e);
-        skipAd();
+      }
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      if (adImage) {
+        // حالت پوستر: ویدیو پنهان و تصویر نمایان؛ پخش با کلیک کاربر
+        adVideo.style.display = "none";
+        adVideo.addEventListener("click", startAdPlayback);
+        if (adImage) {
+          adImage.addEventListener("click", startAdPlayback);
+        }
+      } else {
+        try {
+          adVideo.play().catch(e => {
+            console.log("پخش خودکار تبلیغ ممکن نیست:", e);
+            skipAd();
+          });
+        } catch (e) {
+          console.log("خطا در پخش تبلیغ:", e);
+          skipAd();
+        }
       }
     });
     <?php else: ?>

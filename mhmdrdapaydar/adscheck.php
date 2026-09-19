@@ -24,6 +24,7 @@ $langNames = [
 // ============================================================
 $adConfig = am_ad_config();
 $adConfigSaved = false;
+$adUploadMessage = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_lang_ads') {
     $newConfig = is_array($adConfig) ? $adConfig : [];
     foreach ((array)($_POST['langs'] ?? []) as $code => $fields) {
@@ -33,7 +34,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
             'url'        => trim((string)($fields['url'] ?? '')),
             'aparat_url' => trim((string)($fields['aparat_url'] ?? '')),
             'video'      => trim((string)($fields['video'] ?? '')),
+            'image'      => trim((string)($fields['image'] ?? '')),
         ];
+    }
+    // آپلود اختیاری تصویر تبلیغ برای یک زبان مشخص
+    if (isset($_FILES['ad_image']) && ($_FILES['ad_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        $uploadLang = (string)($_POST['image_lang'] ?? '');
+        if (isset($newConfig[$uploadLang]) && preg_match('/^[a-z]{2}$/', $uploadLang)) {
+            $file = $_FILES['ad_image'];
+            $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $info = @getimagesize($file['tmp_name']);
+            $mime = $info ? ($info['mime'] ?? '') : '';
+            if ($info && in_array($mime, $allowed, true) && $file['size'] <= 5 * 1024 * 1024) {
+                $dir = __DIR__ . '/../assets/ads';
+                if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) $ext = 'jpg';
+                $name = 'ad_' . $uploadLang . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $target = $dir . '/' . $name;
+                if (@move_uploaded_file($file['tmp_name'], $target)) {
+                    $newConfig[$uploadLang]['image'] = 'assets/ads/' . $name;
+                    $adUploadMessage = 'تصویر تبلیغ برای زبان «' . htmlspecialchars($uploadLang) . '» ذخیره شد.';
+                } else {
+                    $adUploadMessage = 'خطا در ذخیره تصویر تبلیغ.';
+                }
+            } else {
+                $adUploadMessage = 'تصویر نامعتبر است (فقط JPG/PNG/GIF/WebP تا ۵ مگابایت).';
+            }
+        }
     }
     am_ad_config_save($newConfig);
     $adConfig = am_ad_config();
@@ -155,9 +183,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div class="card" style="padding:20px; margin-bottom:20px;">
     <h3 style="font-size:16px; color:var(--dark); margin-bottom:6px;"><i class="fas fa-globe" style="color:var(--primary);"></i> تنظیم تبلیغ برای هر زبان</h3>
-    <p style="font-size:13px; color:var(--gray); margin-bottom:16px;">برای هر زبان می‌توانید لینک مقصد و ویدیوی تبلیغ اختصاصی بگذارید. اگر زبانی خالی بماند، تبلیغ فارسی برایش نمایش داده می‌شود.</p>
+    <p style="font-size:13px; color:var(--gray); margin-bottom:16px;">برای هر زبان می‌توانید لینک مقصد، ویدیوی تبلیغ و یک تصویر پوستری اختصاصی بگذارید. اگر زبانی خالی بماند، تبلیغ فارسی برایش نمایش داده می‌شود.</p>
     <?php if ($adConfigSaved): ?><div class="done-box" style="background:#e3f6ea;color:#1e7e34;padding:10px;border-radius:8px;margin-bottom:14px;"><i class="fas fa-check"></i> تنظیمات تبلیغ ذخیره شد.</div><?php endif; ?>
-    <form method="POST">
+    <?php if ($adUploadMessage !== ''): ?><div class="done-box" style="background:#fff4d6;color:#9a6b00;padding:10px;border-radius:8px;margin-bottom:14px;"><i class="fas fa-image"></i> <?= $adUploadMessage ?></div><?php endif; ?>
+    <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="save_lang_ads">
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead>
@@ -166,22 +195,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <th style="padding:8px;">لینک مقصد (url)</th>
             <th style="padding:8px;">لینک آپارات (اختیاری)</th>
             <th style="padding:8px;">مسیر ویدیو (اختیاری)</th>
+            <th style="padding:8px;">تصویر تبلیغ (اختیاری)</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($langNames as $code => $name): ?>
             <?php
-              $cfg = $adConfig[$code] ?? ['url' => '', 'aparat_url' => '', 'video' => ''];
+              $cfg = $adConfig[$code] ?? ['url' => '', 'aparat_url' => '', 'video' => '', 'image' => ''];
             ?>
             <tr style="border-bottom:1px solid var(--border); text-align:right;">
               <td style="padding:8px; white-space:nowrap;"><strong><?= htmlspecialchars($name) ?></strong> <span style="color:var(--gray);">(<?= $code ?>)</span></td>
               <td style="padding:6px;"><input type="url" name="langs[<?= $code ?>][url]" class="form-control" placeholder="https://..." value="<?= htmlspecialchars($cfg['url'] ?? '') ?>" style="width:100%;"></td>
               <td style="padding:6px;"><input type="url" name="langs[<?= $code ?>][aparat_url]" class="form-control" placeholder="https://www.aparat.com/v/..." value="<?= htmlspecialchars($cfg['aparat_url'] ?? '') ?>" style="width:100%;"></td>
               <td style="padding:6px;"><input type="text" name="langs[<?= $code ?>][video]" class="form-control" placeholder="assets/ads/myad.mp4" value="<?= htmlspecialchars($cfg['video'] ?? '') ?>" style="width:100%;"></td>
+              <td style="padding:6px; white-space:nowrap;">
+                <input type="text" name="langs[<?= $code ?>][image]" class="form-control" placeholder="assets/ads/ad_<?= $code ?>.jpg" value="<?= htmlspecialchars($cfg['image'] ?? '') ?>" style="width:100%; min-width:180px;">
+                <?php if (!empty($cfg['image'])): ?>
+                  <div style="margin-top:6px;"><img src="/<?= htmlspecialchars(ltrim($cfg['image'], '/')) ?>" alt="" style="max-width:120px; max-height:70px; border-radius:6px; border:1px solid var(--border);"></div>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border);">
+        <label style="font-weight:700; font-size:13px;"><i class="fas fa-image" style="color:var(--primary);"></i> آپلود تصویر تبلیغ برای زبان:</label>
+        <select name="image_lang" class="form-control" style="width:auto; min-width:140px;">
+          <?php foreach ($langNames as $code => $name): ?>
+            <option value="<?= $code ?>"><?= htmlspecialchars($name) ?> (<?= $code ?>)</option>
+          <?php endforeach; ?>
+        </select>
+        <input type="file" name="ad_image" accept="image/*" class="form-control" style="width:auto;">
+        <small style="color:var(--gray);">JPG/PNG/GIF/WebP تا ۵MB — تصویر در assets/ads ذخیره می‌شود.</small>
+      </div>
       <button type="submit" class="btn btn-primary" style="margin-top:14px;"><i class="fas fa-save"></i> ذخیره تنظیمات تبلیغ زبان‌ها</button>
     </form>
   </div>
