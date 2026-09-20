@@ -206,6 +206,8 @@ if ($cur) {
     <div class="progress-stats">
       <div class="stat-mini new"><div class="v" id="s-new">0</div><div class="t">جدید اضافه شد</div></div>
       <div class="stat-mini dup"><div class="v" id="s-dup">0</div><div class="t">تکراری (رد شد)</div></div>
+      <div class="stat-mini"><div class="v" id="s-upd">0</div><div class="t">صدا تکمیل شد</div></div>
+      <div class="stat-mini"><div class="v" id="s-skip">0</div><div class="t">رد شد (بدون صدا)</div></div>
       <div class="stat-mini"><div class="v" id="s-total">0</div><div class="t">کل</div></div>
       <div class="stat-mini"><div class="v" id="s-proc">0</div><div class="t">پردازش شده</div></div>
       <div class="stat-mini"><div class="v" id="s-rem">0</div><div class="t">در حال بررسی</div></div>
@@ -228,14 +230,27 @@ if ($cur) {
       <li>هر فصل می‌تواند چندین تم (موزیک) داشته باشد</li>
       <li>هر تم دارای نوع (OP/ED/IN)، عنوان، هنرمند و ویدیوها است</li>
     </ul>
-    <h3 style="margin-top:14px;"><i class="fas fa-shield-alt"></i> محافظت در برابر تکراری‌ها</h3>
+    <h3 style="margin-top:14px;"><i class="fas fa-shield-alt"></i> محافظت در برابر تکراری‌ها و تکمیل صدا</h3>
     <p>
       موزیک‌هایی که از قبل در سایت وجود دارند (انیمه + نوع + عنوان + فصل/قسمت یا لینک یکسان)
       دوباره اضافه نمی‌شوند و در گزارش زنده به‌صورت «تکراری» شمارش می‌شوند.
     </p>
     <p style="margin-top:8px;">
+      اگر رکوردی از قبل هست ولی <b>صدا (لینک ویدیو) ندارد</b> و در این فایل برای همان
+      (انیمه + نوع + عنوان) لینک ویدیو پیدا شود، همان رکوردِ قبلی <b>در جای خودش</b> تکمیل می‌شود
+      و رکورد جدید ساخته نمی‌شود — در گزارش زنده به‌صورت «صدا تکمیل شد» شمرده می‌شود.
+    </p>
+    <p style="margin-top:8px;">
+      موردهایی که در فایل هم هیچ ویدیو/صدایی ندارند، <b>اصلاً اضافه نمی‌شوند</b>
+      (به‌صورت «رد شد — بدون صدا» شمارش می‌شوند) تا دیتابیس پر از رکورد بی‌صدا نشود.
+    </p>
+    <p style="margin-top:8px;">
       پاکسازی تکراری‌های به‌جا مانده از واردات‌های قبلی:
       <a href="clean_duplicates.php" style="color:var(--danger); font-weight:700;"><i class="fas fa-broom"></i> پاکسازی تکراری‌ها</a>
+    </p>
+    <p style="margin-top:8px;">
+      حذف موزیک‌هایی که هنوز صدا (لینک ویدیو) ندارند:
+      <a href="admin_all_content.php?type=music" style="color:var(--danger); font-weight:700;"><i class="fas fa-volume-mute"></i> مدیریت موزیک‌های بدون صدا</a>
     </p>
   </div>
 
@@ -380,6 +395,8 @@ if ($cur) {
     if (d.total > 0) {
       setVal('s-new', (d.new_music || 0) + (d.new_anime || 0) + (d.new_singers || 0));
       setVal('s-dup', (d.dup_music || 0) + (d.dup_anime || 0) + (d.dup_singers || 0));
+      setVal('s-upd', d.upd_music || 0);
+      setVal('s-skip', d.skip_music || 0);
       setVal('s-total', d.total || 0);
       setVal('s-proc', d.processed || 0);
       setVal('s-rem', Math.max(0, (d.total || 0) - (d.processed || 0)));

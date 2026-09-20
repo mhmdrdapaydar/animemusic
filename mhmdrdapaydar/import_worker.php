@@ -39,7 +39,7 @@ function out(array $payload) {
 function am_worker_idle() {
     return ['status' => 'idle', 'done' => false, 'failed' => false, 'busy' => false,
             'total' => 0, 'processed' => 0, 'progress' => 0,
-            'new_anime' => 0, 'dup_anime' => 0, 'new_music' => 0, 'dup_music' => 0,
+            'new_anime' => 0, 'dup_anime' => 0, 'new_music' => 0, 'dup_music' => 0, 'upd_music' => 0, 'skip_music' => 0,
             'new_singers' => 0, 'dup_singers' => 0, 'errors' => 0, 'message' => ''];
 }
 
@@ -116,7 +116,7 @@ if ($action === 'step') {
     if (!empty($reqJob) && $reqJob !== $job) {
         out(['status' => 'failed', 'message' => 'پروژه جاری نیست', 'done' => true, 'failed' => true, 'busy' => false,
              'total' => 0, 'processed' => 0, 'progress' => 100,
-             'new_anime' => 0, 'dup_anime' => 0, 'new_music' => 0, 'dup_music' => 0,
+             'new_anime' => 0, 'dup_anime' => 0, 'new_music' => 0, 'dup_music' => 0, 'upd_music' => 0, 'skip_music' => 0,
              'new_singers' => 0, 'dup_singers' => 0, 'errors' => 0]);
     }
 }

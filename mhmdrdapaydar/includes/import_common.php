@@ -89,6 +89,8 @@ function am_import_output(array $st) {
         'dup_anime'    => (int)($st['dup_anime'] ?? 0),
         'new_music'    => (int)($st['new_music'] ?? 0),
         'dup_music'    => (int)($st['dup_music'] ?? 0),
+        'upd_music'    => (int)($st['upd_music'] ?? 0),
+        'skip_music'   => (int)($st['skip_music'] ?? 0),
         'new_singers'  => (int)($st['new_singers'] ?? 0),
         'dup_singers'  => (int)($st['dup_singers'] ?? 0),
         'errors'       => (int)($st['errors'] ?? 0),

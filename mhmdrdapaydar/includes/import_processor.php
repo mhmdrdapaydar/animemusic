@@ -68,6 +68,37 @@ function am_import_translate_fa($text) {
 }
 
 /**
+ * انتخاب بهترین ویدیو (لینک صدا) از بین ویدیوهای یک تم.
+ * اول resolution بالاتر، سپس نسخه‌ی بدون برش‌خوردگی (nc=false) ترجیح داده می‌شود.
+ * @return array|null
+ */
+function am_import_best_video(array $theme) {
+    if (!isset($theme['videos']) || !is_array($theme['videos'])) {
+        return null;
+    }
+    $best = null;
+    foreach ($theme['videos'] as $video) {
+        if (!is_array($video) || trim((string)($video['url'] ?? '')) === '') {
+            continue;
+        }
+        if ($best === null) {
+            $best = $video;
+            continue;
+        }
+        $bestRes  = (int)($best['resolution'] ?? 0);
+        $thisRes  = (int)($video['resolution'] ?? 0);
+        $bestNc   = !empty($best['nc']) ? true : false;
+        $thisNc   = !empty($video['nc']) ? true : false;
+        if ($thisRes > $bestRes) {
+            $best = $video;
+        } elseif ($thisRes === $bestRes && !$thisNc && $bestNc) {
+            $best = $video;
+        }
+    }
+    return $best;
+}
+
+/**
  * اجرای «یک قدم» از فرآیند واردات.
  * @return array وضعیت به‌روز (برای پاسخ JSON)
  */
@@ -103,6 +134,8 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
 
     $newA = (int)($st['new_anime'] ?? 0);   $dupA = (int)($st['dup_anime'] ?? 0);
     $newM = (int)($st['new_music'] ?? 0);   $dupM = (int)($st['dup_music'] ?? 0);
+    $updM = (int)($st['upd_music'] ?? 0);
+    $skipM = (int)($st['skip_music'] ?? 0);
     $newS = (int)($st['new_singers'] ?? 0); $dupS = (int)($st['dup_singers'] ?? 0);
     $errs = (int)($st['errors'] ?? 0);
 
@@ -205,16 +238,7 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
                     }
 
                     // انتخاب بهترین ویدیو
-                    $best_video = null;
-                    if (isset($theme['videos']) && is_array($theme['videos'])) {
-                        foreach ($theme['videos'] as $video) {
-                            if (!$best_video ||
-                                ((int)$video['resolution'] > (int)$best_video['resolution']) ||
-                                (isset($video['nc']) && $video['nc'] === false)) {
-                                $best_video = $video;
-                            }
-                        }
-                    }
+                    $best_video = am_import_best_video($theme);
 
                     $season_number = $season_index + 1;
                     $episode_number = 1;
@@ -227,12 +251,22 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
                             $episode_number = (int)$episodes ?: 1;
                         }
                     }
-                    $video_url = $best_video ? $best_video['url'] : '';
+                    $video_url = $best_video ? (string)$best_video['url'] : '';
 
-                    // اثر انگشت تکراری (انیمه + نوع + عنوان + فصل/قسمت)
-                    $exists = false;
+                    // محتوایی که در فایل هم صدا (ویدیو) ندارد، اصلاً درج نمی‌شود؛
+                    // قرار نیست رکوردِ بی‌صدا بسازیم که بعداً ادمین مجبور به پاک کردنش شود.
+                    if ($video_url === '') {
+                        $skipM++;
+                        continue;
+                    }
+
+                    /**
+                     * ۱) سمت موجودی: اگر رکوردی با همین مشخصات (انیمه + نوع + عنوان + فصل/قسمت)
+                     * از قبل در دیتابیس هست، دوباره درجش نمی‌کنیم؛ فقط وقتی که رکورد صدا/لینک ندارد
+                     * و حالا لینک پیدا شده، همان سلول‌های خالی را پر می‌کنیم.
+                     */
                     $stm = $db->prepare("
-                        SELECT id FROM anime_contents
+                        SELECT id, music_file_url FROM anime_contents
                         WHERE anime_id = ? AND music_type_id = ?
                           AND title = ? COLLATE NOCASE
                           AND season_number = ?
@@ -240,13 +274,99 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
                         LIMIT 1
                     ");
                     $stm->execute([$anime_id, $music_type_id, $theme_title, $season_number, (int)$episode_number]);
-                    if ($stm->fetchColumn()) $exists = true;
+                    $existing = $stm->fetch(PDO::FETCH_ASSOC);
+                    if ($existing) {
+                        if (
+                            (empty($existing['music_file_url']) || trim((string)$existing['music_file_url']) === '')
+                            && $video_url !== ''
+                        ) {
+                            try {
+                                $stm = $db->prepare("UPDATE anime_contents SET music_file_url = ?, video_file_url = ? WHERE id = ?");
+                                $stm->execute([$video_url, $video_url, (int)$existing['id']]);
+                                $updM++;
+                                // تکمیل پیوند خواننده‌ها (فقط آنهایی که هنوز نیستند)
+                                foreach ($singer_ids as $sid) {
+                                    $stm = $db->prepare("SELECT 1 FROM content_singers WHERE content_id = ? AND singer_id = ? LIMIT 1");
+                                    $stm->execute([(int)$existing['id'], $sid]);
+                                    if (!$stm->fetchColumn()) {
+                                        $stm = $db->prepare("INSERT INTO content_singers (content_id, singer_id) VALUES (?, ?)");
+                                        try {
+                                            $stm->execute([(int)$existing['id'], $sid]);
+                                        } catch (PDOException $e) { /* تکراری مشکلی نیست */ }
+                                    }
+                                }
+                            } catch (PDOException $e) {
+                                $errs++;
+                                error_log('[IMPORT] backfill error: ' . $e->getMessage());
+                            }
+                        } else {
+                            $dupM++;
+                        }
+                        continue;
+                    }
 
-                    // اثر انگشت تکراری (لینک یکسان)
-                    if (!$exists && $video_url !== '') {
+                    // ۲) اگر لینک یکسانی با رکورد فعلیِ دیگری دارد، تکراری است
+                    $exists = false;
+                    if ($video_url !== '') {
                         $stm = $db->prepare("SELECT id FROM anime_contents WHERE music_file_url = ? OR video_file_url = ? LIMIT 1");
                         $stm->execute([$video_url, $video_url]);
                         if ($stm->fetchColumn()) $exists = true;
+                    }
+
+                    // ۳) رکورد موجودِ بدون صدا را پیدا کن و صدا را همان‌جا قرار بده.
+                    //    اول‌ویت با همان فصل است؛ اگر با فصل مطابق نشد (یا episode تهی بود)،
+                    //    بر اساس «انیمه + نوع + عنوان» رکورد خالی را بیاب.
+                    if (!$exists && $video_url !== '') {
+                        $existingEl = null;
+                        $stm = $db->prepare("
+                            SELECT id FROM anime_contents
+                            WHERE anime_id = ? AND music_type_id = ?
+                              AND title = ? COLLATE NOCASE
+                              AND season_number = ?
+                              AND (music_file_url IS NULL OR music_file_url = '')
+                            LIMIT 1
+                        ");
+                        $stm->execute([$anime_id, $music_type_id, $theme_title, $season_number]);
+                        $existingEl = $stm->fetchColumn();
+
+                        if (!$existingEl) {
+                            $stm = $db->prepare("
+                                SELECT id FROM anime_contents
+                                WHERE anime_id = ? AND music_type_id = ?
+                                  AND title = ? COLLATE NOCASE
+                                  AND (music_file_url IS NULL OR music_file_url = '')
+                                LIMIT 1
+                            ");
+                            $stm->execute([$anime_id, $music_type_id, $theme_title]);
+                            $existingEl = $stm->fetchColumn();
+                        }
+
+                        if ($existingEl) {
+                            try {
+                                $stm = $db->prepare("
+                                    UPDATE anime_contents
+                                    SET music_file_url = ?, video_file_url = ?, season_number = ?, episode_number = ?
+                                    WHERE id = ?
+                                ");
+                                $stm->execute([$video_url, $video_url, (int)$season_number, (int)$episode_number, (int)$existingEl]);
+                                $updM++;
+                                // تکمیل پیوند خواننده‌ها (فقط آنهایی که هنوز نیستند)
+                                foreach ($singer_ids as $sid) {
+                                    $stm = $db->prepare("SELECT 1 FROM content_singers WHERE content_id = ? AND singer_id = ? LIMIT 1");
+                                    $stm->execute([(int)$existingEl, $sid]);
+                                    if (!$stm->fetchColumn()) {
+                                        $stm = $db->prepare("INSERT INTO content_singers (content_id, singer_id) VALUES (?, ?)");
+                                        try {
+                                            $stm->execute([(int)$existingEl, $sid]);
+                                        } catch (PDOException $e) { /* تکراری مشکلی نیست */ }
+                                    }
+                                }
+                            } catch (PDOException $e) {
+                                $errs++;
+                                error_log('[IMPORT] backfill error: ' . $e->getMessage());
+                            }
+                            continue;
+                        }
                     }
 
                     if ($exists) { $dupM++; continue; }
@@ -289,7 +409,7 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
                 'status' => 'running', 'busy' => true,
                 'total' => $total, 'cursor' => $i + 1, 'processed' => $i + 1,
                 'new_anime' => $newA, 'dup_anime' => $dupA,
-                'new_music' => $newM, 'dup_music' => $dupM,
+                'new_music' => $newM, 'dup_music' => $dupM, 'upd_music' => $updM, 'skip_music' => $skipM,
                 'new_singers' => $newS, 'dup_singers' => $dupS,
                 'errors' => $errs, 'message' => ''
             ]);
@@ -308,7 +428,7 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
         @unlink(am_import_lock_file($job));
         return am_import_output(['status' => 'idle', 'done' => false, 'failed' => false, 'busy' => false,
                                  'total' => 0, 'processed' => 0, 'progress' => 0,
-                                 'new_anime' => $newA, 'dup_anime' => $dupA, 'new_music' => $newM, 'dup_music' => $dupM,
+                                 'new_anime' => $newA, 'dup_anime' => $dupA, 'new_music' => $newM, 'dup_music' => $dupM, 'upd_music' => $updM, 'skip_music' => $skipM,
                                  'new_singers' => $newS, 'dup_singers' => $dupS, 'errors' => $errs, 'message' => '']);
     }
 
@@ -318,10 +438,10 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
             'status' => 'done', 'busy' => false,
             'total' => $total, 'cursor' => $total, 'processed' => $total,
             'new_anime' => $newA, 'dup_anime' => $dupA,
-            'new_music' => $newM, 'dup_music' => $dupM,
+            'new_music' => $newM, 'dup_music' => $dupM, 'upd_music' => $updM, 'skip_music' => $skipM,
             'new_singers' => $newS, 'dup_singers' => $dupS,
             'errors' => $errs,
-            'message' => "پردازش کامل شد: $newM جدید، $dupM تکراری رد شد"
+            'message' => "پردازش کامل شد: $newM جدید، $updM صدا تکمیل شد، $dupM تکراری رد شد، $skipM بدون صدا رد شد"
         ]);
     } else {
         // پایان قدم: پردازنده دوباره آزاد شده تا قدم بعدی اجرا شود
@@ -329,7 +449,7 @@ function am_import_step($job, $secondsBudget = 15, $chunk = 60) {
             'status' => 'running', 'busy' => false,
             'total' => $total, 'cursor' => $nextCursor, 'processed' => $nextCursor,
             'new_anime' => $newA, 'dup_anime' => $dupA,
-            'new_music' => $newM, 'dup_music' => $dupM,
+            'new_music' => $newM, 'dup_music' => $dupM, 'upd_music' => $updM, 'skip_music' => $skipM,
             'new_singers' => $newS, 'dup_singers' => $dupS,
             'errors' => $errs, 'message' => ''
         ]);

@@ -6,6 +6,45 @@ am_admin_guard();
 $page_title = 'مدیریت همه محتوا - پنل مدیریت انیمه موزیک';
 $error = '';
 
+// کد تأیید حذفِ بدون صدا (در هر دو حالت GET و POST لازم است)
+$confirm_hash = substr(hash('sha256', date('Y-m-d') . ':' . AM_ADMIN_USER), 0, 12);
+
+// حذف موزیک‌هایی که صدا (لینک ویدیو) ندارند — با تأیید ادمین
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_no_audio') {
+    if (($t = trim((string)($_POST['confirm'] ?? ''))) !== '' && hash_equals($confirm_hash, $t)) {
+        try {
+            $tmpDb = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
+            $tmpDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            // شناسه‌ی خالی‌ها (کل جدول — تعداد آن‌ها کم است)
+            $emptyIds = $tmpDb->query("SELECT id FROM anime_contents WHERE music_file_url IS NULL OR music_file_url = ''")
+                              ->fetchAll(PDO::FETCH_COLUMN);
+
+            $tmpDb->beginTransaction();
+            $deleted = 0;
+            if (!empty($emptyIds)) {
+                $stmDel = $tmpDb->prepare("DELETE FROM content_singers WHERE content_id = ?");
+                $stmCon = $tmpDb->prepare("DELETE FROM anime_contents WHERE id = ?");
+                foreach ($emptyIds as $did) {
+                    $stmDel->execute([(int)$did]);
+                    $stmCon->execute([(int)$did]);
+                    $deleted += $stmCon->rowCount();
+                }
+            }
+            $tmpDb->commit();
+
+            // چند موردِ بدون صدا دیگر باقی مانده؟
+            $remain = (int)$tmpDb->query("SELECT COUNT(*) FROM anime_contents WHERE music_file_url IS NULL OR music_file_url = ''")->fetchColumn();
+            header('Location: admin_all_content.php?type=music&clean=1&deleted=' . $deleted . '&remain=' . $remain);
+            exit;
+        } catch (Exception $e) {
+            $error = 'خطا در حذف محتوای بدون صدا: ' . $e->getMessage();
+        }
+    } else {
+        $error = 'کد تأیید نادرست است. حذف انجام نشد.';
+    }
+}
+
 try {
     $db_content = new PDO('sqlite:' . __DIR__ . '/../db/content.db');
     $db_content->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -19,6 +58,7 @@ try {
         'singer' => (int)$db_content->query("SELECT COUNT(*) FROM singers")->fetchColumn(),
         'user'   => (int)$db_users->query("SELECT COUNT(*) FROM users")->fetchColumn(),
     ];
+    $noAudioCount = (int)$db_content->query("SELECT COUNT(*) FROM anime_contents WHERE music_file_url IS NULL OR music_file_url = ''")->fetchColumn();
 
     $type = $_GET['type'] ?? 'anime';
     if (!in_array($type, ['anime', 'music', 'singer', 'user'], true)) {
@@ -227,6 +267,24 @@ try {
     <div class="message error-message"><i class="fas fa-exclamation-circle"></i><div><?= htmlspecialchars($error) ?></div></div>
   <?php endif; ?>
 
+  <?php if (isset($_GET['clean'])): ?>
+    <?php
+      $cleanDeleted = (int)($_GET['deleted'] ?? 0);
+      $cleanRemain  = isset($_GET['remain']) ? (int)$_GET['remain'] : -1;
+    ?>
+    <div class="message success-message">
+      <i class="fas fa-check-circle"></i>
+      <div>
+        <?= number_format($cleanDeleted) ?> محتوای بدون صدا حذف شد
+        <?php if ($cleanRemain > 0): ?>
+          — <?= number_format($cleanRemain) ?> مورد دیگرِ بدون صدا باقی مانده است (هیچ نمونه‌ی دارای صدایی از آن‌ها نیست).
+        <?php elseif ($cleanRemain === 0): ?>
+          — هیچ محتوای بدون صدایی باقی نمانده است.
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+
   <div class="tabs">
     <?php foreach (['anime' => 'film', 'music' => 'music', 'singer' => 'microphone', 'user' => 'users'] as $k => $icon): ?>
       <a class="tab <?= $type === $k ? 'active' : '' ?>" href="?type=<?= $k ?>">
@@ -237,6 +295,40 @@ try {
 
   <div class="card" style="padding:20px;">
     <h3 class="section-title"><i class="fas fa-list"></i> لیست <?= $typeNames[$type] ?></h3>
+
+    <?php if ($type === 'music'): ?>
+    <div class="danger-zone" style="background: #fff1f1; border:1px solid #f5c6c6; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:220px;">
+        <strong style="color:#c0392b;"><i class="fas fa-volume-mute"></i> موزیک‌های بدون صدا: <?= number_format($noAudioCount) ?></strong>
+        <p style="margin:4px 0 0; color:#8a4a44; font-size:12.5px;">
+          این موارد بدون فایل صدا (ویدیو) ثبت شده‌اند و برای کاربر پخش نمی‌شوند.
+          حذف، فقط رکوردهایی را پاک می‌کند که هیچ نمونه‌ی دارای صدایی از همان انیمه/عنوان ندارند.
+        </p>
+      </div>
+      <?php if ($noAudioCount > 0): ?>
+      <form method="post" style="margin:0;" onsubmit="return confirmDeleteNoAudio();">
+        <input type="hidden" name="action" value="delete_no_audio">
+        <input type="hidden" name="confirm" value="">
+        <button type="submit" class="btn btn-outline btn-delete"><i class="fas fa-trash"></i> حذف محتوای بدون صدا</button>
+      </form>
+      <?php endif; ?>
+    </div>
+    <script>
+      var AM_DELETE_CONFIRM = "<?= htmlspecialchars($confirm_hash ?? '', ENT_QUOTES) ?>";
+      function confirmDeleteNoAudio() {
+        var code = prompt('برای تأیید حذف، این کد را وارد کنید:\n\n' + AM_DELETE_CONFIRM);
+        if (code === null) return false;
+        if (code !== AM_DELETE_CONFIRM) {
+          alert('کد نادرست است. حذف انجام نشد.');
+          return false;
+        }
+        var ok = confirm('هشدار: رکوردهای بی‌صدا (بدون هم‌تای دارای صدا) برای همیشه حذف می‌شوند. ادامه می‌دهید؟');
+        if (!ok) return false;
+        this.querySelector('input[name="confirm"]').value = code;
+        return true;
+      }
+    </script>
+    <?php endif; ?>
 
     <form method="get" action="admin_all_content.php" class="search-inline">
       <input type="hidden" name="type" value="<?= $type ?>">
