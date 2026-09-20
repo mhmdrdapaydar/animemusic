@@ -306,25 +306,25 @@ try {
         </p>
       </div>
       <?php if ($noAudioCount > 0): ?>
-      <form method="post" style="margin:0;" onsubmit="return confirmDeleteNoAudio();">
+      <form method="post" style="margin:0;" id="noaudio-form" onsubmit="return confirmDeleteNoAudio(event);">
         <input type="hidden" name="action" value="delete_no_audio">
-        <input type="hidden" name="confirm" value="">
+        <input type="hidden" name="confirm" id="noaudio-confirm" value="">
         <button type="submit" class="btn btn-outline btn-delete"><i class="fas fa-trash"></i> حذف محتوای بدون صدا</button>
       </form>
       <?php endif; ?>
     </div>
     <script>
-      var AM_DELETE_CONFIRM = "<?= htmlspecialchars($confirm_hash ?? '', ENT_QUOTES) ?>";
-      function confirmDeleteNoAudio() {
-        var code = prompt('برای تأیید حذف، این کد را وارد کنید:\n\n' + AM_DELETE_CONFIRM);
-        if (code === null) return false;
-        if (code !== AM_DELETE_CONFIRM) {
-          alert('کد نادرست است. حذف انجام نشد.');
+      // کد تأیید مستقیماً از سرور روی صفحه رندر می‌شود؛ پس بین سرور و مرورگر
+      // (نیمه‌شب یا اختلاف ساعت) ناهماهنگی پیش نمی‌آید.
+      var AM_DELETE_CONFIRM = <?= json_encode($confirm_hash ?? '') ?>;
+      var AM_NO_AUDIO_COUNT = <?= (int)$noAudioCount ?>;
+      function confirmDeleteNoAudio(ev) {
+        var ok = confirm('هشدار: ' + AM_NO_AUDIO_COUNT + ' موزیکِ بدون صدا برای همیشه حذف می‌شوند (' + AM_DELETE_CONFIRM + '). ادامه می‌دهید؟');
+        if (!ok) {
+          ev.preventDefault();
           return false;
         }
-        var ok = confirm('هشدار: رکوردهای بی‌صدا (بدون هم‌تای دارای صدا) برای همیشه حذف می‌شوند. ادامه می‌دهید؟');
-        if (!ok) return false;
-        this.querySelector('input[name="confirm"]').value = code;
+        document.getElementById('noaudio-confirm').value = AM_DELETE_CONFIRM;
         return true;
       }
     </script>
