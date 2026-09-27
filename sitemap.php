@@ -2,7 +2,7 @@
 require_once __DIR__ . '/includes/headless.php';
 
 // دامنه از پیکربندی مرکزی
-$base_url = defined('AM_SITE_URL') ? rtrim(AM_SITE_URL, '/') : 'https://anime-music.ct.ws';
+$base_url = defined('AM_SITE_URL') ? rtrim(AM_SITE_URL, '/') : 'https://anime-music.ir';
 $per_page = 1000;
 
 // صفحات ایستای اصلی (آدرس داخلی بدون زبان)

@@ -1,0 +1,11 @@
+# ============================================================
+#  دسترسی مستقیم مرورگر به دیتابیس‌ها ممنوع
+#  (users.db هش رمز کاربران را دارد — فقط PHP اجازه‌ی خواندن دارد)
+# ============================================================
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

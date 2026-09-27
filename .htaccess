@@ -20,3 +20,32 @@ ErrorDocument 403 /assets/Eror/403.html
 ErrorDocument 404 /assets/Eror/404.html
 ErrorDocument 500 /assets/Eror/500.html
 ErrorDocument 503 /assets/Eror/503.html
+
+# --- جلوگیری از دانلود مستقیم فایل‌های حساس از مرورگر ---
+# (دیتابیس‌ها، تنظیمات پرداخت و آمارها فقط توسط PHP خوانده می‌شوند)
+<FilesMatch "\.(db|sqlite|db-shm|db-wal)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<FilesMatch "^(pay_config|ad_config|ad_clicks|visits|visits_ads|ads)\.json$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# --- فعال‌سازی HTTPS اجباری روی هاست جدید (اختیاری) ---
+# بعد از انتقال به anime-music.ir و صدور گواهی SSL، دو خط زیر را از کامنت خارج کنید:
+# RewriteEngine On
+# RewriteCond %{HTTPS} !=on [OR]
+# RewriteCond %{HTTP_HOST} ^www\.
+# RewriteRule ^(.*)$ https://anime-music.ir/$1 [R=301,L]
+

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /mhmdrdapaydar/
+Disallow: /db/
+Disallow: /includes/
+
+Sitemap: https://anime-music.ir/sitemap.php

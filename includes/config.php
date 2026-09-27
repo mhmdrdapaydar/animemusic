@@ -37,4 +37,10 @@ date_default_timezone_set('Asia/Tehran');
 define('AM_STRICT_VIP', true);
 
 // آدرس پایه سایت (برای سایت‌مپ و لینک‌های اشتراک‌گذاری)
-define('AM_SITE_URL', 'https://anime-music.ct.ws');
+// ⚠️ دامنه‌ی جدید: anime-music.ir — در صورت تغییر دامنه فقط همین خط را عوض کنید.
+define('AM_SITE_URL', 'https://anime-music.ir');
+
+// دامنه‌های قدیمی سایت — برای مهاجرت.
+// لینک‌های مطلقی که ادمین با دامنه‌ی قدیمی ذخیره کرده، بعد از انتقال هم
+// «دامنه‌ی خودی» شناخته می‌شوند و درست زبان‌دار/محلی می‌شوند (نه لینک خارجی).
+define('AM_SITE_OLD_URLS', "https://anime-music.ct.ws\nhttp://anime-music.ct.ws");

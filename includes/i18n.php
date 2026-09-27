@@ -94,7 +94,7 @@ if (!defined('AM_I18N_DEFINED')) {
 
     /**
      * زبان‌دار کردن خودکار یک URL داخلی — هرچه فرمتش باشد:
-     *   - مطلق با دامنه‌ی خودمان: https://anime-music.ct.ws/categories.php?anime=404
+     *   - مطلق با دامنه‌ی خودمان (جدید یا قدیمی): https://anime-music.ir/categories.php?anime=404
      *   - ریشه‌ای: /categories.php?anime=404
      *   - نسبی: categories.php?anime=404
      * لینک‌های دامنه‌ی خارجی، javascript:/mailto:/# بدون تغییر برمی‌گردند.
@@ -122,8 +122,22 @@ if (!defined('AM_I18N_DEFINED')) {
                 $own = parse_url(AM_SITE_URL);
                 $ownHost = isset($own['host']) ? $own['host'] : '';
             }
+            // دامنه‌های قدیمی (مهاجرت) هم «خودی» حساب می‌شوند تا لینک‌های
+            // ذخیره‌شده با دامنه‌ی قبل، بعد از انتقال هم درست زبان‌دار شوند.
+            $oldHosts = array();
+            if (defined('AM_SITE_OLD_URLS')) {
+                foreach (preg_split('/\s+/', trim((string)AM_SITE_OLD_URLS)) as $oldUrl) {
+                    if ($oldUrl === '') continue;
+                    $op = parse_url($oldUrl);
+                    if (!empty($op['host'])) $oldHosts[] = $op['host'];
+                }
+            }
             // دامنه‌ی خارجی: بدون تغییر
-            if ($ownHost !== '' && strcasecmp($host, $ownHost) !== 0) {
+            $isOwn = strcasecmp($host, $ownHost) === 0;
+            foreach ($oldHosts as $oh) {
+                if (strcasecmp($host, $oh) === 0) { $isOwn = true; break; }
+            }
+            if (!$isOwn) {
                 return $url;
             }
             $path  = isset($parts['path']) && $parts['path'] !== '' ? $parts['path'] : '/';
