@@ -495,9 +495,9 @@ function am_ad_click_url($lang, $slot = 'display', $extra = []) {
  *  صادر و دانلود برای ۳۰ دقیقه فعال می‌شود.
  * ============================================================ */
 
-/** مدت اعتبار دانلود پس از کلیک روی تبلیغ (ثانیه) */
+/** مدت اعتبار دانلود پس از کلیک روی تبلیغ (ثانیه) — ۲۴ ساعت برای همان یک موزیک */
 function am_gate_ttl() {
-    return 1800;
+    return 86400;
 }
 
 function am_gate_secret() {
@@ -505,40 +505,46 @@ function am_gate_secret() {
     return hash('sha256', $key . '|' . (defined('AM_SITE_URL') ? AM_SITE_URL : ''));
 }
 
-function am_gate_cookie() {
-    return 'am_dl_gate';
+/** نام کوکی دروازه — برای هر موزیک جدا (قفل فقط برای همان محتوا باز می‌شود) */
+function am_gate_cookie($contentId) {
+    return 'am_dl_gate_' . (int)$contentId;
 }
 
-/** صدور کوکی امضاشده فعال‌سازی دانلود */
-function am_gate_issue($userId = null) {
+/** صدور کوکی امضاشده فعال‌سازی دانلود — فقط برای همان محتوا، به مدت ۲۴ ساعت */
+function am_gate_issue($userId = null, $contentId = null) {
+    $cid = (int)$contentId;
     $uid = $userId !== null && $userId !== '' ? 'u' . (int)$userId : 'guest';
     $exp = time() + am_gate_ttl();
-    $sig = hash_hmac('sha256', $uid . '|' . $exp, am_gate_secret());
+    $sig = hash_hmac('sha256', $uid . '|' . $exp . '|' . $cid, am_gate_secret());
     $token = $exp . '.' . $uid . '.' . $sig;
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-    setcookie(am_gate_cookie(), $token, [
+    setcookie(am_gate_cookie($cid), $token, [
         'expires'  => $exp,
         'path'     => '/',
         'samesite' => 'Lax',
         'httponly' => true,
         'secure'   => $secure,
     ]);
-    $_COOKIE[am_gate_cookie()] = $token;
+    $_COOKIE[am_gate_cookie($cid)] = $token;
     if (session_status() === PHP_SESSION_ACTIVE) {
-        $_SESSION['am_gate'] = ['exp' => $exp];
+        $_SESSION['am_gate'][$cid] = ['exp' => $exp];
     }
     return true;
 }
 
-/** آیا دانلود کاربر (پس از کلیک روی تبلیغ) فعال است؟ */
-function am_gate_valid($userId = null) {
+/**
+ * آیا دانلودِ همین محتوا (پس از کلیک روی تبلیغ) فعال است؟
+ * قفل برای هر موزیک جدا باز می‌شود و ۲۴ ساعت اعتبار دارد.
+ */
+function am_gate_valid($userId = null, $contentId = null) {
+    $cid = (int)$contentId;
     if (session_status() === PHP_SESSION_ACTIVE
-        && isset($_SESSION['am_gate'])
-        && (int)($_SESSION['am_gate']['exp'] ?? 0) >= time()) {
+        && isset($_SESSION['am_gate'][$cid])
+        && (int)($_SESSION['am_gate'][$cid]['exp'] ?? 0) >= time()) {
         return true;
     }
-    $token = (string)($_COOKIE[am_gate_cookie()] ?? '');
+    $token = (string)($_COOKIE[am_gate_cookie($cid)] ?? '');
     $parts = explode('.', $token);
     if (count($parts) !== 3) {
         return false;
@@ -547,7 +553,7 @@ function am_gate_valid($userId = null) {
     if (!ctype_digit($exp) || (int)$exp < time()) {
         return false;
     }
-    $expect = hash_hmac('sha256', $uid . '|' . $exp, am_gate_secret());
+    $expect = hash_hmac('sha256', $uid . '|' . $exp . '|' . $cid, am_gate_secret());
     return hash_equals($expect, (string)$sig);
 }
 
