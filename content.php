@@ -56,6 +56,12 @@ $adCodeHtml      = $displayIsCode ? $displaySlot['code'] : '';
 // دروازه دانلود: آیا دانلودِ همین موزیک (پس از مشاهده تبلیغ) فعال است؟
 // قفل برای هر موزیک جدا است و ۲۴ ساعت اعتبار دارد
 $amGateOk = $isVIP ? true : am_gate_valid($userId, $id);
+
+// ثبت «بازدید جایگاه نمایش تبلیغ» — فقط وقتی تبلیغ واقعاً به کاربر نشان داده می‌شود (غیر VIP)
+if (!$isVIP) {
+    am_ad_view_log($amLang, 'display');
+}
+
 $dlGateInfo = [
     'slot'    => 'download',
     'lang'    => $amLang,
@@ -65,6 +71,7 @@ $dlGateInfo = [
     'click'   => am_ad_click_url($amLang, 'download', ['cid' => (int)$id]),
     'beacon'  => am_ad_click_url($amLang, 'download', ['beacon' => 1, 'cid' => (int)$id]),
     'gate'    => am_ad_click_url($amLang, 'download', ['beacon' => 1, 'gate' => 1, 'cid' => (int)$id]),
+    'view'    => am_ad_click_url($amLang, 'download', ['beacon' => 1, 'view' => 1, 'cid' => (int)$id]),
     'target'  => am_ad_target_url($downloadSlot['normal']['url'] !== '' ? $downloadSlot['normal']['url'] : ($downloadSlot['normal']['aparat_url'] ?? '')),
     'image'   => $downloadSlot['normal']['image'] !== '' ? am_lang_asset($downloadSlot['normal']['image']) : '',
     'video'   => $downloadSlot['normal']['video'] !== '' ? am_lang_asset($downloadSlot['normal']['video']) : '',
@@ -1386,9 +1393,9 @@ if (!empty($content['important_links'])) {
                 <button type="button" class="download-btn" id="open-adgate-btn">
                   <i class="bi bi-play-btn-fill"></i> <?= am_te('download_watch_ad') ?>
                 </button>
-                <a href="<?= am_lang_url('vip.php') ?>" class="download-btn" id="dl-vip-link">
-                  <i class="bi bi-gem"></i> <?= am_te('download_vip') ?>
-                </a>
+              <a href="<?= am_lang_url('vip.php') ?>" class="download-btn" id="dl-vip-link">
+                <i class="bi bi-gem"></i> <?= am_te('download_vip') ?> <span class="vip-badge">VIP</span>
+              </a>
               </span>
               <!-- دکمه دانلود مستقیم — پس از فعال‌سازی با تبلیغ نمایان می‌شود -->
               <a href="<?= $music_file ?>" download class="download-btn" id="dl-direct" style="display:none;">
@@ -1904,6 +1911,8 @@ if (!empty($content['important_links'])) {
       openBtn.addEventListener('click', () => {
         modal.classList.add('open');
         modal.setAttribute('aria-hidden', 'false');
+        // ثبت «بازدید جایگاه دانلود» (Impression) — هر بار باز شدن پنجره = یک نمایش تبلیغ
+        try { fetch(G.view, { method: 'GET', keepalive: true, credentials: 'same-origin' }); } catch (e) {}
         if (G.type === 'code') {
           const wrap = document.getElementById('adgate-code-wrap');
           if (wrap && !wrap.dataset.injected) {

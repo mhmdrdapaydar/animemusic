@@ -39,15 +39,45 @@ $clicksTotal = $clicks['total'] ?? 0;
 $clicksToday = ($clicks['daily'] ?? [])[date('Y-m-d')] ?? 0;
 $clickLangTotals = [];
 $clickLangSlots = [];
-foreach (($clicks['langs'] ?? []) as $code => $lng) {
-    if (!is_array($lng)) continue;
-    $clickLangTotals[$code] = $lng['total'] ?? 0;
-    $clickLangSlots[$code] = [
-        'display'  => (int)($lng['slots']['display']['total'] ?? 0),
-        'download' => (int)($lng['slots']['download']['total'] ?? 0),
-    ];
+$allLangStats = am_ad_clicks_stat()['langs'] ?? [];
+$agg = [
+    'views'   => ['display' => 0, 'download' => 0],
+    'clicks'  => ['display' => 0, 'download' => 0],
+    'unlocks' => 0,
+    'lifetime_views' => 0, 'lifetime_clicks' => 0, 'lifetime_unlocks' => 0,
+];
+// روند ۷ روز اخیر برای نمودار (جمع همه زبان‌ها، تفکیک جایگاه)
+$last7 = [];
+for ($i = 6; $i >= 0; $i--) {
+    $last7[] = date('Y-m-d', strtotime("-$i days"));
+}
+$chart = [
+    'display'  => ['views' => array_fill_keys($last7, 0), 'clicks' => array_fill_keys($last7, 0)],
+    'download' => ['views' => array_fill_keys($last7, 0), 'clicks' => array_fill_keys($last7, 0)],
+];
+foreach ($allLangStats as $code => $g) {
+    if (!is_array($g)) continue;
+    $d = $g['slots']['display'];
+    $l = $g['slots']['download'];
+    $clickLangTotals[$code] = (int)$g['total'];
+    $clickLangSlots[$code] = ['display' => $d, 'download' => $l];
+    foreach (['display' => $d, 'download' => $l] as $sl => $st) {
+        $agg['views'][$sl]  += (int)$st['views']['total'];
+        $agg['clicks'][$sl] += (int)$st['clicks']['total'];
+        $agg['lifetime_views']  += (int)$st['lifetime']['views'];
+        $agg['lifetime_clicks'] += (int)$st['lifetime']['clicks'];
+        foreach ($last7 as $day) {
+            $chart[$sl]['views'][$day]  += (int)($st['views']['daily'][$day] ?? 0);
+            $chart[$sl]['clicks'][$day] += (int)($st['clicks']['daily'][$day] ?? 0);
+        }
+    }
+    $agg['unlocks'] += (int)$l['unlocks'];
+    $agg['lifetime_unlocks'] += (int)$l['lifetime']['unlocks'];
 }
 arsort($clickLangTotals);
+$aggViews  = $agg['views']['display'] + $agg['views']['download'];
+$aggClicks = $agg['clicks']['display'] + $agg['clicks']['download'];
+$aggCtr    = $aggViews > 0 ? round(100 * $aggClicks / $aggViews, 1) : 0;
 
 // نام‌های نمایشی زبان‌ها
 $langNames = [
@@ -104,11 +134,27 @@ $langNames = [
     <div class="stats-grid" style="margin-top:20px;">
       <div class="stat-card">
         <div class="stat-icon"><i class="fas fa-mouse-pointer"></i></div>
-        <div class="stat-body"><div class="stat-value"><?= number_format($clicksTotal) ?></div><div class="stat-title">کل کلیک روی تبلیغ‌ها (همه جایگاه‌ها)</div></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($clicksTotal) ?></div><div class="stat-title">کل کلیک تبلیغ (تاریخی)</div></div>
       </div>
       <div class="stat-card">
         <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
         <div class="stat-body"><div class="stat-value"><?= number_format($clicksToday) ?></div><div class="stat-title">کلیک امروز تبلیغ</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-eye"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($aggViews) ?></div><div class="stat-title">بازدید جایگاه‌ها (از بروزرسانی) — نمایش <?= number_format($agg['views']['display']) ?> · دانلود <?= number_format($agg['views']['download']) ?></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= $aggCtr ?>%</div><div class="stat-title">نرخ کلیک (CTR) از بروزرسانی</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-unlock-alt"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($agg['unlocks']) ?></div><div class="stat-title">فعال‌سازی دانلود با تبلیغ (از بروزرسانی)</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-infinity"></i></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($agg['lifetime_views']) ?> / <?= number_format($agg['lifetime_clicks']) ?></div><div class="stat-title">مادام‌العمر: بازدید / کلیک (فعال‌سازی: <?= number_format($agg['lifetime_unlocks']) ?>)</div></div>
       </div>
     </div>
 
@@ -151,34 +197,57 @@ $langNames = [
     </div>
 
     <div class="chart-box">
-      <h3 class="chart-title"><i class="fas fa-mouse-pointer"></i> کلیک روی تبلیغ به تفکیک زبان و جایگاه</h3>
+      <h3 class="chart-title"><i class="fas fa-mouse-pointer"></i> آمار تفکیکی هر زبان و جایگاه (از آخرین بروزرسانی همان جایگاه)</h3>
       <?php if (empty($clickLangTotals)): ?>
-        <p style="color: var(--gray);">هنوز کلیکی ثبت نشده است.</p>
+        <p style="color: var(--gray);">هنوز آماری ثبت نشده است.</p>
       <?php else: ?>
         <canvas id="langClicksChart" style="max-height:300px;"></canvas>
-        <table style="width:100%; border-collapse:collapse; font-size:13.5px; margin-top:10px;">
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; min-width:860px;">
           <thead>
             <tr style="border-bottom:2px solid var(--border); text-align:right;">
               <th style="padding:8px;">زبان</th>
-              <th style="padding:8px;">کد</th>
-              <th style="padding:8px;">جایگاه نمایش</th>
-              <th style="padding:8px;">جایگاه دانلود</th>
-              <th style="padding:8px;">کل کلیک</th>
+              <th style="padding:8px;">جایگاه</th>
+              <th style="padding:8px;">از بروزرسانی</th>
+              <th style="padding:8px;">بازدید</th>
+              <th style="padding:8px;">کلیک</th>
+              <th style="padding:8px;">CTR</th>
+              <th style="padding:8px;">فعال‌سازی دانلود</th>
+              <th style="padding:8px;">میانگین/روز</th>
+              <th style="padding:8px;">مادام‌العمر (بازدید/کلیک)</th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($clickLangTotals as $code => $cnt): ?>
-              <tr style="border-bottom:1px solid var(--border); text-align:right;">
-                <td style="padding:8px;"><?= htmlspecialchars($langNames[$code] ?? $code) ?></td>
-                <td style="padding:8px; color:var(--gray);"><?= htmlspecialchars($code) ?></td>
-                <td style="padding:8px;"><?= number_format($clickLangSlots[$code]['display'] ?? 0) ?></td>
-                <td style="padding:8px;"><?= number_format($clickLangSlots[$code]['download'] ?? 0) ?></td>
-                <td style="padding:8px;"><?= number_format($cnt) ?></td>
-              </tr>
+              <?php foreach (['display' => 'نمایش تبلیغ', 'download' => 'دانلود'] as $sl => $slName): ?>
+                <?php $st = $clickLangSlots[$code][$sl] ?? null; if (!$st) continue; ?>
+                <tr style="border-bottom:1px solid var(--border); text-align:right;">
+                  <td style="padding:8px;"><?= htmlspecialchars($langNames[$code] ?? $code) ?> <span style="color:var(--gray);">(<?= htmlspecialchars($code) ?>)</span></td>
+                  <td style="padding:8px;"><span class="status-pill <?= $sl === 'display' ? 'st-accepted' : 'st-completed' ?>" style="white-space:nowrap;"><?= $slName ?></span></td>
+                  <td style="padding:8px; color:var(--gray); white-space:nowrap;"><?= htmlspecialchars($st['since']) ?></td>
+                  <td style="padding:8px;"><?= number_format((int)$st['views']['total']) ?></td>
+                  <td style="padding:8px;"><?= number_format((int)$st['clicks']['total']) ?></td>
+                  <td style="padding:8px;"><?= $st['ctr'] ?>%</td>
+                  <td style="padding:8px;"><?= $sl === 'download' ? number_format((int)$st['unlocks']) : '—' ?></td>
+                  <td style="padding:8px; color:var(--gray); white-space:nowrap;"><?= $st['views_per_day'] ?> بازدید / <?= $st['clicks_per_day'] ?> کلیک</td>
+                  <td style="padding:8px; color:var(--gray); white-space:nowrap;"><?= number_format((int)$st['lifetime']['views']) ?> / <?= number_format((int)$st['lifetime']['clicks']) ?></td>
+                </tr>
+              <?php endforeach; ?>
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
+        <p style="color:var(--gray); font-size:12px; margin-top:8px;">
+          <i class="fas fa-info-circle"></i>
+          «از بروزرسانی» = زمانی که تنظیمات همان جایگاه را ذخیره کردید؛ با بروزرسانی یک جایگاه فقط آمار همان جایگاه صفر می‌شود و مادام‌العمر همیشه حفظ می‌شود.
+          «فعال‌سازی دانلود» = دفعاتی که کاربر با کلیک روی تبلیغ جایگاه دانلود، قفل دانلود یک موزیک را باز کرده است.
+        </p>
       <?php endif; ?>
+
+      <div class="chart-box" style="margin-top:18px;">
+        <h3 class="chart-title"><i class="fas fa-chart-line"></i> روند ۷ روز اخیر — بازدید و کلیک هر جایگاه</h3>
+        <canvas id="slotTrendChart" style="max-height:300px;"></canvas>
+      </div>
     </div>
 
     <div class="chart-box">
@@ -239,6 +308,25 @@ $langNames = [
       });
     })();
     <?php endif; ?>
+
+    // نمودار روند ۷ روز اخیر: بازدید و کلیک هر جایگاه (جمع همه زبان‌ها)
+    (function(){
+      const el = document.getElementById('slotTrendChart');
+      if (!el) return;
+      new Chart(el, {
+        type: 'line',
+        data: {
+          labels: <?= json_encode(array_map(function($d){ return substr($d, 5); }, $last7)) ?>,
+          datasets: [
+            { label: 'بازدید جایگاه نمایش', data: <?= json_encode(array_values($chart['display']['views'])) ?>, borderColor: '#00aa6f', backgroundColor: 'rgba(0,170,111,.12)', tension: .3, fill: true },
+            { label: 'کلیک جایگاه نمایش',  data: <?= json_encode(array_values($chart['display']['clicks'])) ?>, borderColor: '#f77f00', backgroundColor: 'rgba(247,127,0,.12)', tension: .3, fill: true },
+            { label: 'بازدید جایگاه دانلود', data: <?= json_encode(array_values($chart['download']['views'])) ?>, borderColor: '#4361ee', backgroundColor: 'rgba(67,97,238,.12)', tension: .3, fill: true },
+            { label: 'کلیک جایگاه دانلود',  data: <?= json_encode(array_values($chart['download']['clicks'])) ?>, borderColor: '#9b5de5', backgroundColor: 'rgba(155,93,229,.12)', tension: .3, fill: true }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+      });
+    })();
 
     // نمودار روزانه
     new Chart(document.getElementById('dailyChart'), {

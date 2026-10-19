@@ -303,14 +303,17 @@ function am_stats_update($file, callable $mutator) {
 
 /** هرس کلیدهای قدیمی daily/weekly/monthly (نگه‌داشتن پنجره‌های متعارف) */
 function am_stats_prune(array &$data) {
-    $pruneSet = function (array &$set, $keep) {
+    $pruneSet = function (&$set, $keep) {
         if (!is_array($set) || count($set) <= $keep) {
             return;
         }
         ksort($set, SORT_STRING);
         $set = array_slice($set, -$keep, null, true);
     };
-    $pruneGroup = function (array &$g) use ($pruneSet) {
+    $pruneGroup = function (&$g) use ($pruneSet) {
+        if (!is_array($g)) {
+            return;
+        }
         $pruneSet($g['daily'], 120);
         $pruneSet($g['weekly'], 30);
         $pruneSet($g['monthly'], 24);
@@ -322,7 +325,15 @@ function am_stats_prune(array &$data) {
             $pruneGroup($lg);
             if (isset($lg['slots']) && is_array($lg['slots'])) {
                 foreach ($lg['slots'] as &$sg) {
-                    if (is_array($sg)) $pruneGroup($sg);
+                    if (!is_array($sg)) continue;
+                    if (isset($sg['clicks']) || isset($sg['views'])) {
+                        // ساختار جدید: گروه‌های کلیک/بازدید
+                        $pruneGroup($sg['clicks']);
+                        $pruneGroup($sg['views']);
+                    } else {
+                        // ساختار قدیمی: کلیک‌ها در خودِ سطح
+                        $pruneGroup($sg);
+                    }
                 }
                 unset($sg);
             }
@@ -557,7 +568,143 @@ function am_gate_valid($userId = null, $contentId = null) {
     return hash_equals($expect, (string)$sig);
 }
 
-/** ثبت کلیک روی تبلیغ (برای آمار کلیک) — با تفکیک زبان و جایگاه */
+/* ============================================================
+ *  آمار تفکیکی جایگاه‌های تبلیغ (بازدید / کلیک / فعال‌سازی دانلود)
+ *  برای هر زبان و هر جایگاه (display|download) جدا:
+ *   - «پنجره» (clicks/views/unlocks): از زمان آخرین بروزرسانی همان جایگاه صفر می‌شود
+ *   - «مادام‌العمر» (lifetime): هرگز صفر نمی‌شود
+ *  بروزرسانی یک جایگاه، آمار جایگاه دیگر را صفر نمی‌کند.
+ * ============================================================ */
+
+/** ساختار خالی آمار یک جایگاه */
+function am_ad_slot_stats_blank($since = null) {
+    return [
+        'since'    => $since !== null && $since !== '' ? (string)$since : date('Y-m-d H:i:s'),
+        'clicks'   => ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []],
+        'views'    => ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []],
+        'unlocks'  => 0,
+        'lifetime' => ['clicks' => 0, 'views' => 0, 'unlocks' => 0],
+    ];
+}
+
+/** نرمال‌سازی آمار یک جایگاه (سازگاری با ساختار قدیمی کلیک‌ها) */
+function am_ad_slot_stats_normalize($entry) {
+    if (!is_array($entry)) {
+        return am_ad_slot_stats_blank();
+    }
+    if (isset($entry['clicks']) || isset($entry['views']) || isset($entry['lifetime'])) {
+        $blank = am_ad_slot_stats_blank(isset($entry['since']) ? $entry['since'] : null);
+        $out = [
+            'since'   => (string)($entry['since'] ?? $blank['since']),
+            'clicks'  => array_merge($blank['clicks'], is_array($entry['clicks'] ?? null) ? $entry['clicks'] : []),
+            'views'   => array_merge($blank['views'], is_array($entry['views'] ?? null) ? $entry['views'] : []),
+            'unlocks' => (int)($entry['unlocks'] ?? 0),
+            'lifetime'=> array_merge($blank['lifetime'], is_array($entry['lifetime'] ?? null) ? $entry['lifetime'] : []),
+        ];
+        foreach (['clicks', 'views'] as $g) {
+            $out[$g]['total'] = (int)($out[$g]['total'] ?? 0);
+            foreach (['daily', 'weekly', 'monthly'] as $k) {
+                if (!is_array($out[$g][$k])) $out[$g][$k] = [];
+            }
+        }
+        foreach (['clicks', 'views', 'unlocks'] as $k) {
+            $out['lifetime'][$k] = (int)($out['lifetime'][$k] ?? 0);
+        }
+        return $out;
+    }
+    // ساختار قدیمی: total/daily/... در خودِ سطح = کلیک‌ها
+    $out = am_ad_slot_stats_blank();
+    $out['clicks'] = [
+        'total'   => (int)($entry['total'] ?? 0),
+        'daily'   => is_array($entry['daily'] ?? null) ? $entry['daily'] : [],
+        'weekly'  => is_array($entry['weekly'] ?? null) ? $entry['weekly'] : [],
+        'monthly' => is_array($entry['monthly'] ?? null) ? $entry['monthly'] : [],
+    ];
+    $out['lifetime']['clicks'] = (int)($entry['total'] ?? 0);
+    return $out;
+}
+
+/** آمار خام یک جایگاه (خواندن از فایل کلیک‌ها) — خروجی نرمال‌شده */
+function am_ad_slot_stats_raw($lang, $slot) {
+    $lang = (string)$lang;
+    $slot = in_array($slot, ['display', 'download'], true) ? $slot : 'display';
+    $file = defined('AM_AD_CLICKS_FILE')
+        ? AM_AD_CLICKS_FILE
+        : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json');
+    $data = am_json_read($file, []);
+    $entry = $data['langs'][$lang]['slots'][$slot] ?? null;
+    return am_ad_slot_stats_normalize($entry);
+}
+
+/**
+ * آمار کامل یک جایگاه برای نمایش: since + clicks + views + unlocks + lifetime
+ * + نرخ کلیک (CTR) و میانگین روزانه از زمان بروزرسانی
+ */
+function am_ad_slot_stats($lang, $slot) {
+    $s = am_ad_slot_stats_raw($lang, $slot);
+    $views = (int)$s['views']['total'];
+    $clicks = (int)$s['clicks']['total'];
+    $sinceTs = strtotime($s['since']) ?: time();
+    $days = max(1, (int)ceil((time() - $sinceTs) / 86400));
+    $s['ctr'] = $views > 0 ? round(100 * $clicks / $views, 1) : 0.0;
+    $s['days_since'] = $days;
+    $s['views_per_day'] = round($views / $days, 1);
+    $s['clicks_per_day'] = round($clicks / $days, 1);
+    return $s;
+}
+
+/** افزایش یک شمارنده گروه آمار (total/daily/weekly/monthly) */
+function am_stats_group_incr(&$g, $today, $week, $month) {
+    if (!is_array($g)) $g = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+    am_visit_incr($g, $today, $week, $month);
+}
+
+/** ثبت «بازدید» (Impression) یک جایگاه تبلیغ — تفکیک زبان و جایگاه */
+function am_ad_view_log($lang, $slot) {
+    $lang = (string)$lang;
+    $slot = in_array($slot, ['display', 'download'], true) ? $slot : 'display';
+    am_stats_update(
+        defined('AM_AD_CLICKS_FILE') ? AM_AD_CLICKS_FILE : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json'),
+        function (&$data) use ($lang, $slot) {
+            if (!isset($data['langs'][$lang]) || !is_array($data['langs'][$lang])) {
+                $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'slots' => []];
+            }
+            if (!isset($data['langs'][$lang]['slots'][$slot])) {
+                $data['langs'][$lang]['slots'][$slot] = [];
+            }
+            $data['langs'][$lang]['slots'][$slot] = am_ad_slot_stats_normalize($data['langs'][$lang]['slots'][$slot]);
+            $today = date('Y-m-d');
+            $week  = date('Y-W');
+            $month = date('Y-m');
+            am_stats_group_incr($data['langs'][$lang]['slots'][$slot]['views'], $today, $week, $month);
+            $data['langs'][$lang]['slots'][$slot]['lifetime']['views'] =
+                (int)($data['langs'][$lang]['slots'][$slot]['lifetime']['views'] ?? 0) + 1;
+        }
+    );
+}
+
+/** ثبت «فعال‌سازی دانلود» (باز شدن قفل دانلود پس از تبلیغ) — برای جایگاه دانلود */
+function am_ad_unlock_log($lang) {
+    $lang = (string)$lang;
+    am_stats_update(
+        defined('AM_AD_CLICKS_FILE') ? AM_AD_CLICKS_FILE : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json'),
+        function (&$data) use ($lang) {
+            if (!isset($data['langs'][$lang]) || !is_array($data['langs'][$lang])) {
+                $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'slots' => []];
+            }
+            if (!isset($data['langs'][$lang]['slots']['download'])) {
+                $data['langs'][$lang]['slots']['download'] = [];
+            }
+            $data['langs'][$lang]['slots']['download'] = am_ad_slot_stats_normalize($data['langs'][$lang]['slots']['download']);
+            $data['langs'][$lang]['slots']['download']['unlocks'] =
+                (int)($data['langs'][$lang]['slots']['download']['unlocks'] ?? 0) + 1;
+            $data['langs'][$lang]['slots']['download']['lifetime']['unlocks'] =
+                (int)($data['langs'][$lang]['slots']['download']['lifetime']['unlocks'] ?? 0) + 1;
+        }
+    );
+}
+
+/** ثبت کلیک روی تبلیغ — تفکیک زبان و جایگاه + آمار مادام‌العمر */
 function am_ad_click_log($lang = 'fa', $slot = null) {
     $lang = (string)$lang;
     $slot = ($slot !== null && in_array($slot, ['display', 'download'], true)) ? $slot : null;
@@ -576,36 +723,43 @@ function am_ad_click_log($lang = 'fa', $slot = null) {
             }
             am_visit_incr($data['langs'][$lang], $today, $week, $month);
             if ($slot !== null) {
-                if (!isset($data['langs'][$lang]['slots'][$slot]) || !is_array($data['langs'][$lang]['slots'][$slot])) {
-                    $data['langs'][$lang]['slots'][$slot] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
+                if (!isset($data['langs'][$lang]['slots'][$slot])) {
+                    $data['langs'][$lang]['slots'][$slot] = [];
                 }
-                am_visit_incr($data['langs'][$lang]['slots'][$slot], $today, $week, $month);
+                $data['langs'][$lang]['slots'][$slot] = am_ad_slot_stats_normalize($data['langs'][$lang]['slots'][$slot]);
+                am_stats_group_incr($data['langs'][$lang]['slots'][$slot]['clicks'], $today, $week, $month);
+                $data['langs'][$lang]['slots'][$slot]['lifetime']['clicks'] =
+                    (int)($data['langs'][$lang]['slots'][$slot]['lifetime']['clicks'] ?? 0) + 1;
             }
         }
     );
 }
 
 /**
- * صفر کردن شمارش کلیک‌های تبلیغ یک زبان.
- * وقتی ادمین تنظیمات تبلیغ زبانی را تغییر می‌دهد، شمارش کلیک آن زبان از صفر شروع می‌شود.
+ * صفر کردن آمار «پنجره» یک جایگاه مشخص (مثلاً فقط جایگاه نمایش).
+ * وقتی ادمین تنظیمات همان جایگاه را تغییر می‌دهد؛ جایگاه دیگر دست‌نخورده می‌ماند.
+ * آمار مادام‌العمر حفظ می‌شود.
  */
-function am_ad_reset_clicks($lang) {
+function am_ad_reset_slot($lang, $slot) {
     $lang = (string)$lang;
-    if ($lang === '') return false;
+    $slot = in_array($slot, ['display', 'download'], true) ? $slot : null;
+    if ($lang === '' || $slot === null) return false;
     return am_stats_update(
         defined('AM_AD_CLICKS_FILE') ? AM_AD_CLICKS_FILE : (defined('AM_ROOT') ? AM_ROOT . '/ad_clicks.json' : __DIR__ . '/../ad_clicks.json'),
-        function (&$data) use ($lang) {
+        function (&$data) use ($lang, $slot) {
             if (!isset($data['langs']) || !is_array($data['langs'])) {
                 $data['langs'] = [];
             }
-            $old = isset($data['langs'][$lang]) && is_array($data['langs'][$lang])
-                ? $data['langs'][$lang]
-                : ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
-            $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'slots' => []];
-            $data['total'] = max(0, (int)($data['total'] ?? 0) - (int)($old['total'] ?? 0));
+            if (!isset($data['langs'][$lang]) || !is_array($data['langs'][$lang])) {
+                $data['langs'][$lang] = ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => [], 'slots' => []];
+            }
+            $old = am_ad_slot_stats_normalize($data['langs'][$lang]['slots'][$slot] ?? null);
+
+            // کسر سهم کلیک‌های این جایگاه از مجموع سراسری/زبان (بدون از دست رفتن آمار بدون جایگاه)
+            $data['total'] = max(0, (int)($data['total'] ?? 0) - (int)$old['clicks']['total']);
             $sub = function (array $set, array $remove) {
                 foreach ($remove as $d => $v) {
-                    if (!is_int($v)) continue;
+                    if (!is_int($v) && !is_numeric($v)) continue;
                     $remaining = (int)($set[$d] ?? 0) - (int)$v;
                     if ($remaining <= 0) {
                         unset($set[$d]);
@@ -615,15 +769,38 @@ function am_ad_reset_clicks($lang) {
                 }
                 return $set;
             };
-            $data['daily']  = $sub(is_array($data['daily'] ?? null) ? $data['daily'] : [], is_array($old['daily'] ?? null) ? $old['daily'] : []);
-            $data['weekly'] = $sub(is_array($data['weekly'] ?? null) ? $data['weekly'] : [], is_array($old['weekly'] ?? null) ? $old['weekly'] : []);
-            $data['monthly'] = $sub(is_array($data['monthly'] ?? null) ? $data['monthly'] : [], is_array($old['monthly'] ?? null) ? $old['monthly'] : []);
+            $data['daily']   = $sub(is_array($data['daily'] ?? null) ? $data['daily'] : [], is_array($old['clicks']['daily'] ?? null) ? $old['clicks']['daily'] : []);
+            $data['weekly']  = $sub(is_array($data['weekly'] ?? null) ? $data['weekly'] : [], is_array($old['clicks']['weekly'] ?? null) ? $old['clicks']['weekly'] : []);
+            $data['monthly'] = $sub(is_array($data['monthly'] ?? null) ? $data['monthly'] : [], is_array($old['clicks']['monthly'] ?? null) ? $old['clicks']['monthly'] : []);
+
+            $lg = &$data['langs'][$lang];
+            $lg['total'] = max(0, (int)($lg['total'] ?? 0) - (int)$old['clicks']['total']);
+            $lg['daily']   = $sub(is_array($lg['daily'] ?? null) ? $lg['daily'] : [], is_array($old['clicks']['daily'] ?? null) ? $old['clicks']['daily'] : []);
+            $lg['weekly']  = $sub(is_array($lg['weekly'] ?? null) ? $lg['weekly'] : [], is_array($old['clicks']['weekly'] ?? null) ? $old['clicks']['weekly'] : []);
+            $lg['monthly'] = $sub(is_array($lg['monthly'] ?? null) ? $lg['monthly'] : [], is_array($old['clicks']['monthly'] ?? null) ? $old['clicks']['monthly'] : []);
+
+            // پنجره جدید؛ مادام‌العمر حفظ می‌شود
+            $fresh = am_ad_slot_stats_blank();
+            $fresh['lifetime'] = $old['lifetime'];
+            $lg['slots'][$slot] = $fresh;
         }
     );
 }
 
 /**
- * آمار کلیک‌های تبلیغ یک زبان مشخص (total + روند + تفکیک جایگاه).
+ * (سازگاری با کد قدیمی) صفر کردن همه جایگاه‌های یک زبان.
+ * توصیه: به‌جای این، am_ad_reset_slot را برای هر جایگاه جدا صدا بزنید.
+ */
+function am_ad_reset_clicks($lang) {
+    $lang = (string)$lang;
+    if ($lang === '') return false;
+    $ok = am_ad_reset_slot($lang, 'display');
+    $ok = am_ad_reset_slot($lang, 'download') && $ok;
+    return $ok;
+}
+
+/**
+ * آمار کلیک‌های تبلیغ یک زبان (total + روند + تفکیک جایگاه‌ها با آمار کامل).
  * اگر زبانی داده نشود، جمع کل همه‌ی زبان‌ها برمی‌گردد.
  */
 function am_ad_clicks_stat($lang = null) {
@@ -636,15 +813,37 @@ function am_ad_clicks_stat($lang = null) {
         $g = isset($data['langs'][$lang]) && is_array($data['langs'][$lang])
             ? $data['langs'][$lang]
             : ['total' => 0, 'daily' => [], 'weekly' => [], 'monthly' => []];
-        $g['slots'] = isset($g['slots']) && is_array($g['slots']) ? $g['slots'] : [];
-        return $g;
+        return [
+            'total'   => (int)($g['total'] ?? 0),
+            'daily'   => $g['daily']   ?? [],
+            'weekly'  => $g['weekly']  ?? [],
+            'monthly' => $g['monthly'] ?? [],
+            'slots'   => [
+                'display'  => am_ad_slot_stats_normalize($g['slots']['display'] ?? null),
+                'download' => am_ad_slot_stats_normalize($g['slots']['download'] ?? null),
+            ],
+        ];
+    }
+    $langs = [];
+    foreach (($data['langs'] ?? []) as $code => $g) {
+        if (!is_array($g)) continue;
+        $langs[$code] = [
+            'total'   => (int)($g['total'] ?? 0),
+            'daily'   => $g['daily']   ?? [],
+            'weekly'  => $g['weekly']  ?? [],
+            'monthly' => $g['monthly'] ?? [],
+            'slots'   => [
+                'display'  => am_ad_slot_stats_normalize($g['slots']['display'] ?? null),
+                'download' => am_ad_slot_stats_normalize($g['slots']['download'] ?? null),
+            ],
+        ];
     }
     return [
         'total'   => (int)($data['total'] ?? 0),
         'daily'   => $data['daily']   ?? [],
         'weekly'  => $data['weekly']  ?? [],
         'monthly' => $data['monthly'] ?? [],
-        'langs'   => $data['langs']   ?? [],
+        'langs'   => $langs,
     ];
 }
 

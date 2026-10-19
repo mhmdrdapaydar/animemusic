@@ -95,20 +95,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
         }
     }
 
-    // اگر تنظیمات هر جایگاهِ زبانی تغییر کرد، شمارش کلیک آن زبان از صفر شروع شود
-    $adFp = function ($cfg) {
+    // اگر تنظیمات یک جایگاه تغییر کرد، فقط آمار «همان جایگاه» از صفر شروع می‌شود؛
+    // جایگاه دیگر و آمار مادام‌العمر دست‌نخورده می‌مانند.
+    $adSlotFp = function ($cfg, $slotName) {
         if (!is_array($cfg)) $cfg = [];
-        return md5((string)json_encode([
-            $cfg['url'] ?? '', $cfg['aparat_url'] ?? '', $cfg['video'] ?? '', $cfg['image'] ?? '',
-            $cfg['slots'] ?? null,
-        ], JSON_UNESCAPED_UNICODE));
+        $slots = is_array($cfg['slots'] ?? null) ? $cfg['slots'] : [];
+        $extra = $slotName === 'display'
+            ? [$cfg['url'] ?? '', $cfg['aparat_url'] ?? '', $cfg['video'] ?? '', $cfg['image'] ?? '']
+            : [];
+        return md5((string)json_encode([$slots[$slotName] ?? null, $extra], JSON_UNESCAPED_UNICODE));
     };
     $oldConfig = is_array($adConfig) ? $adConfig : [];
     foreach ($newConfig as $code => $cfg) {
         if (!is_array($cfg)) continue;
         $old = isset($oldConfig[$code]) && is_array($oldConfig[$code]) ? $oldConfig[$code] : [];
-        if ($adFp($old) !== $adFp($cfg)) {
-            am_ad_reset_clicks($code);
+        foreach (['display', 'download'] as $slotName) {
+            if ($adSlotFp($old, $slotName) !== $adSlotFp($cfg, $slotName)) {
+                am_ad_reset_slot($code, $slotName);
+            }
         }
     }
 
@@ -264,18 +268,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php
           $dSlot = am_ad_slot($code, 'display');
           $lSlot = am_ad_slot($code, 'download');
-          $langClicks = am_ad_clicks_stat($code);
-          $cDisp = (int)(($langClicks['slots']['display']['total'] ?? 0));
-          $cDl   = (int)(($langClicks['slots']['download']['total'] ?? 0));
-          $cAll  = (int)($langClicks['total'] ?? 0);
+          $dStat = am_ad_slot_stats($code, 'display');
+          $lStat = am_ad_slot_stats($code, 'download');
+          $cDisp = (int)$dStat['clicks']['total'];
+          $cDl   = (int)$lStat['clicks']['total'];
+          $cAll  = $cDisp + $cDl;
           $renderSlot = function ($slotName, $slotData, $code) {
               $isCode = ($slotData['type'] === 'code');
               $n = $slotData['normal'];
               $nm = $slotName === 'display' ? 'نمایش تبلیغ' : 'دانلود';
               $f = "langs[{$code}][slots][{$slotName}]";
+              $st = am_ad_slot_stats($code, $slotName);
               ?>
               <fieldset class="am-slot">
                 <legend>جایگاه <?= $nm ?></legend>
+                <div class="am-slot-stats" style="background:var(--primary-soft,#eef6ff); border-radius:6px; padding:8px 10px; font-size:12px; margin-bottom:10px; line-height:2;">
+                  <strong><i class="fas fa-chart-line"></i> آمار از آخرین بروزرسانی</strong>
+                  (<?= htmlspecialchars($st['since']) ?> — <?= number_format((int)$st['days_since']) ?> روز پیش):
+                  <br>
+                  <i class="fas fa-eye"></i> <?= number_format((int)$st['views']['total']) ?> بازدید ·
+                  <i class="fas fa-mouse-pointer"></i> <?= number_format((int)$st['clicks']['total']) ?> کلیک ·
+                  CTR: <strong><?= $st['ctr'] ?>%</strong>
+                  <?php if ($slotName === 'download'): ?> ·
+                  <i class="fas fa-unlock"></i> <?= number_format((int)$st['unlocks']) ?> فعال‌سازی دانلود
+                  (نرخ تبدیل: <?= (int)$st['clicks']['total'] > 0 ? round(100 * (int)$st['unlocks'] / max(1, (int)$st['clicks']['total']), 1) : 0 ?>%)
+                  <?php endif; ?>
+                  <br>
+                  <small style="color:var(--gray);">
+                    میانگین روزانه: <?= $st['views_per_day'] ?> بازدید / <?= $st['clicks_per_day'] ?> کلیک —
+                    مادام‌العمر: <?= number_format((int)$st['lifetime']['views']) ?> بازدید ·
+                    <?= number_format((int)$st['lifetime']['clicks']) ?> کلیک
+                    <?php if ($slotName === 'download'): ?> · <?= number_format((int)$st['lifetime']['unlocks']) ?> فعال‌سازی<?php endif; ?>
+                    <br>
+                    با تغییر و ذخیره تنظیمات این جایگاه، آمار «از آخرین بروزرسانی» فقط برای همین جایگاه صفر می‌شود.
+                  </small>
+                </div>
                 <div class="am-type-row">
                   <label>
                     <input type="radio" name="<?= $f ?>[type]" value="normal" <?= !$isCode ? 'checked' : '' ?>>
@@ -310,9 +337,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <summary>
             <i class="fas fa-language" style="color:var(--primary);"></i>
             <?= htmlspecialchars($name) ?> <span style="color:var(--gray); font-weight:400;">(<?= $code ?>)</span>
-            <span class="am-clicks-pill">کلیک نمایش: <?= number_format($cDisp) ?></span>
-            <span class="am-clicks-pill">کلیک دانلود: <?= number_format($cDl) ?></span>
-            <span class="am-clicks-pill">مجموع: <?= number_format($cAll) ?></span>
+            <span class="am-clicks-pill">نمایش: <?= number_format((int)$dStat['views']['total']) ?> بازدید · <?= number_format($cDisp) ?> کلیک · CTR <?= $dStat['ctr'] ?>%</span>
+            <span class="am-clicks-pill">دانلود: <?= number_format((int)$lStat['views']['total']) ?> بازدید · <?= number_format($cDl) ?> کلیک · <?= number_format((int)$lStat['unlocks']) ?> فعال‌سازی</span>
           </summary>
           <div class="am-slots-grid">
             <?php $renderSlot('display', $dSlot, $code); ?>

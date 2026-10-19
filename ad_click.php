@@ -6,6 +6,7 @@
  *   lang=xx      زبان تبلیغ (اختیاری — پیش‌فرض: زبان جاری)
  *   slot=display|download    جایگاه تبلیغ (پیش‌فرض: display)
  *   beacon=1     حالت AJAX: بدون ریدایرکت، JSON برمی‌گرداند (برای کلیک تبلیغات کدی)
+ *   view=1       ثبت «بازدید تبلیغ» (Impression) — فقط آمار بازدید، بدون کلیک/ریدایرکت
  *   gate=1       صدور کوکی فعال‌سازی دانلود (پس از کلیک کاربر روی تبلیغ دروازه دانلود)
  *   cid=N        شناسه محتوا (موزیک) — برای باز شدن قفل دانلودِ فقط همان موزیک
  *
@@ -30,6 +31,16 @@ $slot = isset($_GET['slot']) && $_GET['slot'] === 'download' ? 'download' : 'dis
 
 $beacon = isset($_GET['beacon']) && (string)$_GET['beacon'] !== '0';
 $gate   = isset($_GET['gate'])   && (string)$_GET['gate']   !== '0';
+$view   = isset($_GET['view'])   && (string)$_GET['view']   !== '0';
+
+// ثبت «بازدید تبلیغ» (Impression) — بدون شمارش کلیک و بدون ریدایرکت
+if ($view) {
+    am_ad_view_log($lang, $slot);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode(['ok' => true, 'view' => 1]);
+    exit;
+}
 
 // ثبت کلیک در آمار (تفکیک‌شده بر اساس زبان و جایگاه) — با قفل و بدون ریست
 $dedupeKey = $lang . '|' . $slot;
@@ -43,6 +54,7 @@ if (time() - $last > 90) {
 if ($gate) {
     $cid = isset($_GET['cid']) ? (int)$_GET['cid'] : 0;
     am_gate_issue(isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null, $cid);
+    am_ad_unlock_log($lang);
 }
 
 if ($beacon) {
