@@ -2,6 +2,29 @@
     "fa": {
         "url": "https://anime-music.ir/ads.php",
         "aparat_url": "",
-        "video": "assets/ads/myad.mp4"
+        "video": "assets/ads/myad.mp4",
+        "image": "",
+        "slots": {
+            "display": {
+                "type": "normal",
+                "normal": {
+                    "url": "https://anime-music.ir/ads.php",
+                    "aparat_url": "",
+                    "video": "assets/ads/myad.mp4",
+                    "image": ""
+                },
+                "code": ""
+            },
+            "download": {
+                "type": "normal",
+                "normal": {
+                    "url": "https://anime-music.ir/ads.php",
+                    "aparat_url": "",
+                    "video": "assets/ads/myad.mp4",
+                    "image": ""
+                },
+                "code": ""
+            }
+        }
     }
 }

@@ -1,16 +1,13 @@
 <?php
 session_start();
 require_once __DIR__ . '/includes/admin_auth.php';
+require_once __DIR__ . '/../includes/helpers.php';
 am_admin_guard();
 
 // مسیر دقیق فایل JSON (یک سطح بالاتر از پوشه admin)
+// خواندن مقاوم: اگر فایل خراب شده باشد از نسخه پشتیبان (.bak) بازیابی می‌شود
 $dataFile = __DIR__ . '/../visits_ads.json';
-$data = [];
-
-if (file_exists($dataFile)) {
-    $json = file_get_contents($dataFile);
-    $data = json_decode($json, true) ?: [];
-}
+$data = am_json_read($dataFile, []);
 
 // محاسبه آمار جاری
 $today = date('Y-m-d');
@@ -37,16 +34,18 @@ arsort($langTotals);
 
 // آمار کلیک روی تبلیغ (ad_clicks.json)
 $clicksFile = __DIR__ . '/../ad_clicks.json';
-$clicks = [];
-if (file_exists($clicksFile)) {
-    $clicks = json_decode((string)file_get_contents($clicksFile), true) ?: [];
-}
+$clicks = am_json_read($clicksFile, []);
 $clicksTotal = $clicks['total'] ?? 0;
 $clicksToday = ($clicks['daily'] ?? [])[date('Y-m-d')] ?? 0;
 $clickLangTotals = [];
+$clickLangSlots = [];
 foreach (($clicks['langs'] ?? []) as $code => $lng) {
     if (!is_array($lng)) continue;
     $clickLangTotals[$code] = $lng['total'] ?? 0;
+    $clickLangSlots[$code] = [
+        'display'  => (int)($lng['slots']['display']['total'] ?? 0),
+        'download' => (int)($lng['slots']['download']['total'] ?? 0),
+    ];
 }
 arsort($clickLangTotals);
 
@@ -105,7 +104,7 @@ $langNames = [
     <div class="stats-grid" style="margin-top:20px;">
       <div class="stat-card">
         <div class="stat-icon"><i class="fas fa-mouse-pointer"></i></div>
-        <div class="stat-body"><div class="stat-value"><?= number_format($clicksTotal) ?></div><div class="stat-title">کل کلیک روی «ادامه مطلب» تبلیغ</div></div>
+        <div class="stat-body"><div class="stat-value"><?= number_format($clicksTotal) ?></div><div class="stat-title">کل کلیک روی تبلیغ‌ها (همه جایگاه‌ها)</div></div>
       </div>
       <div class="stat-card">
         <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
@@ -152,7 +151,7 @@ $langNames = [
     </div>
 
     <div class="chart-box">
-      <h3 class="chart-title"><i class="fas fa-mouse-pointer"></i> کلیک روی «ادامه مطلب» تبلیغ به تفکیک زبان</h3>
+      <h3 class="chart-title"><i class="fas fa-mouse-pointer"></i> کلیک روی تبلیغ به تفکیک زبان و جایگاه</h3>
       <?php if (empty($clickLangTotals)): ?>
         <p style="color: var(--gray);">هنوز کلیکی ثبت نشده است.</p>
       <?php else: ?>
@@ -162,7 +161,9 @@ $langNames = [
             <tr style="border-bottom:2px solid var(--border); text-align:right;">
               <th style="padding:8px;">زبان</th>
               <th style="padding:8px;">کد</th>
-              <th style="padding:8px;">کلیک</th>
+              <th style="padding:8px;">جایگاه نمایش</th>
+              <th style="padding:8px;">جایگاه دانلود</th>
+              <th style="padding:8px;">کل کلیک</th>
             </tr>
           </thead>
           <tbody>
@@ -170,6 +171,8 @@ $langNames = [
               <tr style="border-bottom:1px solid var(--border); text-align:right;">
                 <td style="padding:8px;"><?= htmlspecialchars($langNames[$code] ?? $code) ?></td>
                 <td style="padding:8px; color:var(--gray);"><?= htmlspecialchars($code) ?></td>
+                <td style="padding:8px;"><?= number_format($clickLangSlots[$code]['display'] ?? 0) ?></td>
+                <td style="padding:8px;"><?= number_format($clickLangSlots[$code]['download'] ?? 0) ?></td>
                 <td style="padding:8px;"><?= number_format($cnt) ?></td>
               </tr>
             <?php endforeach; ?>

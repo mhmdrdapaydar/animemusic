@@ -21,25 +21,52 @@ $langNames = [
 
 // ============================================================
 // تنظیم تبلیغ برای هر زبان (ad_config.json)
+// هر زبان ۲ جایگاه (نمایش/دانلود) × ۲ نوع (معمولی/کد) دارد
 // ============================================================
 $adConfig = am_ad_config();
 $adConfigSaved = false;
 $adUploadMessage = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_lang_ads') {
     $newConfig = is_array($adConfig) ? $adConfig : [];
+    $buildSlot = function ($src) {
+        $src  = is_array($src) ? $src : [];
+        $type = (($src['type'] ?? '') === 'code') ? 'code' : 'normal';
+        $n    = is_array($src['normal'] ?? null) ? $src['normal'] : [];
+        return [
+            'type'   => $type,
+            'normal' => [
+                'url'        => trim((string)($n['url'] ?? '')),
+                'aparat_url' => trim((string)($n['aparat_url'] ?? '')),
+                'video'      => trim((string)($n['video'] ?? '')),
+                'image'      => trim((string)($n['image'] ?? '')),
+            ],
+            'code'   => (string)($src['code'] ?? ''),
+        ];
+    };
     foreach ((array)($_POST['langs'] ?? []) as $code => $fields) {
         $code = (string)$code;
         if ($code === '' || !preg_match('/^[a-z]{2}$/', $code)) continue;
+        $fields = (array)$fields;
+        $slotSrc = is_array($fields['slots'] ?? null) ? $fields['slots'] : [];
+        $slots = [
+            'display'  => $buildSlot((array)($slotSrc['display'] ?? [])),
+            'download' => $buildSlot((array)($slotSrc['download'] ?? [])),
+        ];
         $newConfig[$code] = [
-            'url'        => trim((string)($fields['url'] ?? '')),
-            'aparat_url' => trim((string)($fields['aparat_url'] ?? '')),
-            'video'      => trim((string)($fields['video'] ?? '')),
-            'image'      => trim((string)($fields['image'] ?? '')),
+            // فیلدهای قدیمی برای سازگاری با کدهای موجود = جایگاه نمایش / نوع معمولی
+            'url'        => $slots['display']['normal']['url'],
+            'aparat_url' => $slots['display']['normal']['aparat_url'],
+            'video'      => $slots['display']['normal']['video'],
+            'image'      => $slots['display']['normal']['image'],
+            'slots'      => $slots,
         ];
     }
-    // آپلود اختیاری تصویر تبلیغ برای یک زبان مشخص
+
+    // آپلود اختیاری تصویر تبلیغ برای یک زبان/جایگاه مشخص
     if (isset($_FILES['ad_image']) && ($_FILES['ad_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
         $uploadLang = (string)($_POST['image_lang'] ?? '');
+        $uploadSlot = (string)($_POST['image_slot'] ?? 'display');
+        if (!in_array($uploadSlot, ['display', 'download'], true)) $uploadSlot = 'display';
         if (isset($newConfig[$uploadLang]) && preg_match('/^[a-z]{2}$/', $uploadLang)) {
             $file = $_FILES['ad_image'];
             $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -50,11 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
                 if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
                 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) $ext = 'jpg';
-                $name = 'ad_' . $uploadLang . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $name = 'ad_' . $uploadLang . '_' . $uploadSlot . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
                 $target = $dir . '/' . $name;
                 if (@move_uploaded_file($file['tmp_name'], $target)) {
-                    $newConfig[$uploadLang]['image'] = 'assets/ads/' . $name;
-                    $adUploadMessage = 'تصویر تبلیغ برای زبان «' . htmlspecialchars($uploadLang) . '» ذخیره شد.';
+                    $rel = 'assets/ads/' . $name;
+                    $newConfig[$uploadLang]['slots'][$uploadSlot]['normal']['image'] = $rel;
+                    if ($uploadSlot === 'display') {
+                        $newConfig[$uploadLang]['image'] = $rel;
+                    }
+                    $adUploadMessage = 'تصویر تبلیغ برای زبان «' . htmlspecialchars($uploadLang) . '» (جایگاه ' . ($uploadSlot === 'display' ? 'نمایش' : 'دانلود') . ') ذخیره شد.';
                 } else {
                     $adUploadMessage = 'خطا در ذخیره تصویر تبلیغ.';
                 }
@@ -64,16 +95,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
         }
     }
 
-    // اگر لینک تصویر یا لینک مقصد یک زبان تغییر کرد، شمارش کلیک تبلیغ آن زبان از صفر شروع شود.
+    // اگر تنظیمات هر جایگاهِ زبانی تغییر کرد، شمارش کلیک آن زبان از صفر شروع شود
+    $adFp = function ($cfg) {
+        if (!is_array($cfg)) $cfg = [];
+        return md5((string)json_encode([
+            $cfg['url'] ?? '', $cfg['aparat_url'] ?? '', $cfg['video'] ?? '', $cfg['image'] ?? '',
+            $cfg['slots'] ?? null,
+        ], JSON_UNESCAPED_UNICODE));
+    };
     $oldConfig = is_array($adConfig) ? $adConfig : [];
     foreach ($newConfig as $code => $cfg) {
         if (!is_array($cfg)) continue;
         $old = isset($oldConfig[$code]) && is_array($oldConfig[$code]) ? $oldConfig[$code] : [];
-        $oldUrl   = trim((string)($old['url'] ?? ''));
-        $oldImage = trim((string)($old['image'] ?? ''));
-        $newUrl   = trim((string)($cfg['url'] ?? ''));
-        $newImage = trim((string)($cfg['image'] ?? ''));
-        if ($oldUrl !== $newUrl || $oldImage !== $newImage) {
+        if ($adFp($old) !== $adFp($cfg)) {
             am_ad_reset_clicks($code);
         }
     }
@@ -198,53 +232,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div class="card" style="padding:20px; margin-bottom:20px;">
     <h3 style="font-size:16px; color:var(--dark); margin-bottom:6px;"><i class="fas fa-globe" style="color:var(--primary);"></i> تنظیم تبلیغ برای هر زبان</h3>
-    <p style="font-size:13px; color:var(--gray); margin-bottom:16px;">برای هر زبان می‌توانید لینک مقصد، ویدیوی تبلیغ و یک تصویر پوستری اختصاصی بگذارید. اگر زبانی خالی بماند، تبلیغ فارسی برایش نمایش داده می‌شود.</p>
+    <p style="font-size:13px; color:var(--gray); margin-bottom:16px;">
+      برای هر زبان <strong>دو جایگاه</strong> تبلیغ دارید: «نمایش تبلیغ» (بالای صفحه محتوا) و «دانلود» (دروازه دانلود با مشاهده تبلیغ).
+      برای هر جایگاه می‌توانید نوع تبلیغ را <strong>«تبلیغ معمولی»</strong> (تصویر/ویدیو + لینک) یا <strong>«کد تبلیغ»</strong> (مثل mediaad) انتخاب کنید.
+      برای جایگاه «کد تبلیغ»، از شبکه تبلیغاتی برای هر جایگاه یک کد جدا (با شناسه متفاوت) بگیرید تا شمارش کلیک درست بماند.
+      اگر زبانی خالی بماند، تبلیغ فارسی برایش نمایش داده می‌شود.
+    </p>
     <?php if ($adConfigSaved): ?><div class="done-box" style="background:#e3f6ea;color:#1e7e34;padding:10px;border-radius:8px;margin-bottom:14px;"><i class="fas fa-check"></i> تنظیمات تبلیغ ذخیره شد.</div><?php endif; ?>
     <?php if ($adUploadMessage !== ''): ?><div class="done-box" style="background:#fff4d6;color:#9a6b00;padding:10px;border-radius:8px;margin-bottom:14px;"><i class="fas fa-image"></i> <?= $adUploadMessage ?></div><?php endif; ?>
+    <style>
+      .am-lang-card { border:1px solid var(--border); border-radius:10px; margin-bottom:12px; background:var(--surface); overflow:hidden; }
+      .am-lang-card summary { cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      .am-lang-card summary::marker { color:var(--primary); }
+      .am-lang-card[open] summary { border-bottom:1px solid var(--border); background:var(--primary-soft); }
+      .am-clicks-pill { font-size:11.5px; font-weight:600; background:var(--light-gray); color:var(--gray); border-radius:20px; padding:3px 10px; }
+      .am-slots-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:14px; }
+      .am-slot { border:1px solid var(--border); border-radius:8px; padding:12px; margin:0; }
+      .am-slot legend { font-size:12.5px; font-weight:800; color:var(--primary-dark, var(--primary)); padding:0 6px; }
+      .am-type-row { display:flex; gap:14px; margin-bottom:10px; font-size:13px; }
+      .am-type-row label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+      .am-slot textarea { width:100%; min-height:110px; font-family:monospace; font-size:12px; direction:ltr; text-align:left; }
+      .am-slot input[type="url"], .am-slot input[type="text"] { direction:ltr; text-align:left; }
+      .am-slot .form-control { margin-bottom:8px; }
+      .am-slot small { color:var(--gray); display:block; margin-bottom:8px; }
+      .am-code-note { background:var(--primary-soft, #eef6ff); border-radius:6px; padding:8px 10px; font-size:12px; margin-bottom:8px; }
+      @media (max-width: 860px) { .am-slots-grid { grid-template-columns:1fr; } }
+    </style>
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="save_lang_ads">
-      <table style="width:100%; border-collapse:collapse; font-size:13px;">
-        <thead>
-          <tr style="border-bottom:2px solid var(--border); text-align:right;">
-            <th style="padding:8px;">زبان</th>
-            <th style="padding:8px;">لینک مقصد (url)</th>
-            <th style="padding:8px;">لینک آپارات (اختیاری)</th>
-            <th style="padding:8px;">مسیر ویدیو (اختیاری)</th>
-            <th style="padding:8px;">تصویر تبلیغ (اختیاری)</th>
-            <th style="padding:8px;">کلیک روی «ادامه مطلب»</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($langNames as $code => $name): ?>
-            <?php
-              $cfg = $adConfig[$code] ?? ['url' => '', 'aparat_url' => '', 'video' => '', 'image' => ''];
-              $langClicks = am_ad_clicks_stat($code);
-              $langClickTotal = (int)($langClicks['total'] ?? 0);
-            ?>
-            <tr style="border-bottom:1px solid var(--border); text-align:right;">
-              <td style="padding:8px; white-space:nowrap;"><strong><?= htmlspecialchars($name) ?></strong> <span style="color:var(--gray);">(<?= $code ?>)</span></td>
-              <td style="padding:6px;"><input type="url" name="langs[<?= $code ?>][url]" class="form-control" placeholder="https://..." value="<?= htmlspecialchars($cfg['url'] ?? '') ?>" style="width:100%;"></td>
-              <td style="padding:6px;"><input type="url" name="langs[<?= $code ?>][aparat_url]" class="form-control" placeholder="https://www.aparat.com/v/..." value="<?= htmlspecialchars($cfg['aparat_url'] ?? '') ?>" style="width:100%;"></td>
-              <td style="padding:6px;"><input type="text" name="langs[<?= $code ?>][video]" class="form-control" placeholder="assets/ads/myad.mp4" value="<?= htmlspecialchars($cfg['video'] ?? '') ?>" style="width:100%;"></td>
-              <td style="padding:6px; white-space:nowrap;">
-                <input type="text" name="langs[<?= $code ?>][image]" class="form-control" placeholder="assets/ads/ad_<?= $code ?>.jpg" value="<?= htmlspecialchars($cfg['image'] ?? '') ?>" style="width:100%; min-width:180px;">
-                <?php if (!empty($cfg['image'])): ?>
-                  <div style="margin-top:6px;"><img src="/<?= htmlspecialchars(ltrim($cfg['image'], '/')) ?>" alt="" style="max-width:120px; max-height:70px; border-radius:6px; border:1px solid var(--border);"></div>
-                <?php endif; ?>
-              </td>
-              <td style="padding:8px; text-align:center;">
-                <span class="status-pill st-pending" style="white-space:nowrap;"><?= number_format($langClickTotal) ?> کلیک</span>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+      <?php foreach ($langNames as $code => $name): ?>
+        <?php
+          $dSlot = am_ad_slot($code, 'display');
+          $lSlot = am_ad_slot($code, 'download');
+          $langClicks = am_ad_clicks_stat($code);
+          $cDisp = (int)(($langClicks['slots']['display']['total'] ?? 0));
+          $cDl   = (int)(($langClicks['slots']['download']['total'] ?? 0));
+          $cAll  = (int)($langClicks['total'] ?? 0);
+          $renderSlot = function ($slotName, $slotData, $code) {
+              $isCode = ($slotData['type'] === 'code');
+              $n = $slotData['normal'];
+              $nm = $slotName === 'display' ? 'نمایش تبلیغ' : 'دانلود';
+              $f = "langs[{$code}][slots][{$slotName}]";
+              ?>
+              <fieldset class="am-slot">
+                <legend>جایگاه <?= $nm ?></legend>
+                <div class="am-type-row">
+                  <label>
+                    <input type="radio" name="<?= $f ?>[type]" value="normal" <?= !$isCode ? 'checked' : '' ?>>
+                    تبلیغ معمولی
+                  </label>
+                  <label>
+                    <input type="radio" name="<?= $f ?>[type]" value="code" <?= $isCode ? 'checked' : '' ?>>
+                    کد تبلیغ
+                  </label>
+                </div>
+                <div class="am-normal-fields" style="<?= $isCode ? 'display:none;' : '' ?>">
+                  <input type="url" name="<?= $f ?>[normal][url]" class="form-control" placeholder="لینک مقصد — https://..." value="<?= htmlspecialchars($n['url']) ?>">
+                  <input type="url" name="<?= $f ?>[normal][aparat_url]" class="form-control" placeholder="لینک آپارات (اختیاری)" value="<?= htmlspecialchars($n['aparat_url']) ?>">
+                  <input type="text" name="<?= $f ?>[normal][video]" class="form-control" placeholder="مسیر ویدیو (اختیاری) — assets/ads/myad.mp4" value="<?= htmlspecialchars($n['video']) ?>">
+                  <input type="text" name="<?= $f ?>[normal][image]" class="form-control" placeholder="مسیر تصویر (اختیاری) — assets/ads/ad_<?= $code ?>.jpg" value="<?= htmlspecialchars($n['image']) ?>">
+                  <?php if ($n['image'] !== ''): ?>
+                    <div style="margin-bottom:8px;"><img src="/<?= htmlspecialchars(ltrim($n['image'], '/')) ?>" alt="" style="max-width:120px; max-height:70px; border-radius:6px; border:1px solid var(--border);"></div>
+                  <?php endif; ?>
+                </div>
+                <div class="am-code-fields" style="<?= $isCode ? '' : 'display:none;' ?>">
+                  <div class="am-code-note">
+                    <i class="fas fa-code"></i> کد شبکه تبلیغاتی (اسکریپت + تگ div) را اینجا بگذارید. برای هر جایگاه از شبکه تبلیغاتی،
+                    <strong>جایگاه (پلیسمنت) جدا با شناسه متفاوت</strong> بسازید تا شمارش کلیک‌ها با هم قاطی نشود.
+                  </div>
+                  <textarea name="<?= $f ?>[code]" class="form-control" placeholder='&lt;script ...&gt;&lt;/script&gt;&#10;&lt;div id="..."&gt;&lt;/div&gt;' spellcheck="false"><?= htmlspecialchars($slotData['code']) ?></textarea>
+                </div>
+              </fieldset>
+              <?php
+          };
+        ?>
+        <details class="am-lang-card" <?= $code === 'fa' ? 'open' : '' ?>>
+          <summary>
+            <i class="fas fa-language" style="color:var(--primary);"></i>
+            <?= htmlspecialchars($name) ?> <span style="color:var(--gray); font-weight:400;">(<?= $code ?>)</span>
+            <span class="am-clicks-pill">کلیک نمایش: <?= number_format($cDisp) ?></span>
+            <span class="am-clicks-pill">کلیک دانلود: <?= number_format($cDl) ?></span>
+            <span class="am-clicks-pill">مجموع: <?= number_format($cAll) ?></span>
+          </summary>
+          <div class="am-slots-grid">
+            <?php $renderSlot('display', $dSlot, $code); ?>
+            <?php $renderSlot('download', $lSlot, $code); ?>
+          </div>
+        </details>
+      <?php endforeach; ?>
+
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border);">
-        <label style="font-weight:700; font-size:13px;"><i class="fas fa-image" style="color:var(--primary);"></i> آپلود تصویر تبلیغ برای زبان:</label>
+        <label style="font-weight:700; font-size:13px;"><i class="fas fa-image" style="color:var(--primary);"></i> آپلود تصویر تبلیغ:</label>
         <select name="image_lang" class="form-control" style="width:auto; min-width:140px;">
           <?php foreach ($langNames as $code => $name): ?>
             <option value="<?= $code ?>"><?= htmlspecialchars($name) ?> (<?= $code ?>)</option>
           <?php endforeach; ?>
+        </select>
+        <select name="image_slot" class="form-control" style="width:auto; min-width:130px;">
+          <option value="display">جایگاه نمایش</option>
+          <option value="download">جایگاه دانلود</option>
         </select>
         <input type="file" name="ad_image" accept="image/*" class="form-control" style="width:auto;">
         <small style="color:var(--gray);">JPG/PNG/GIF/WebP تا ۵MB — تصویر در assets/ads ذخیره می‌شود.</small>
@@ -393,6 +479,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
   function closeModal(id) { document.getElementById(id).style.display = 'none'; }
   window.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('modal-mask')) e.target.style.display = 'none'; });
+
+  // تعویض فیلدهای «تبلیغ معمولی / کد تبلیغ» در هر جایگاه
+  document.querySelectorAll('.am-type-row input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const fieldset = radio.closest('.am-slot');
+      if (!fieldset) return;
+      const isCode = radio.value === 'code' && radio.checked;
+      const normal = fieldset.querySelector('.am-normal-fields');
+      const code = fieldset.querySelector('.am-code-fields');
+      if (normal) normal.style.display = isCode ? 'none' : '';
+      if (code) code.style.display = isCode ? '' : 'none';
+    });
+  });
 </script>
 </body>
 </html>

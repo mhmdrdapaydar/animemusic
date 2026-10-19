@@ -1,16 +1,13 @@
 <?php
 session_start();
 require_once __DIR__ . '/includes/admin_auth.php';
+require_once __DIR__ . '/../includes/helpers.php';
 am_admin_guard();
 
 // مسیر دقیق فایل JSON (یک سطح بالاتر از پوشه admin)
+// خواندن مقاوم: اگر فایل خراب شده باشد از نسخه پشتیبان (.bak) بازیابی می‌شود
 $dataFile = __DIR__ . '/../visits.json';
-$data = [];
-
-if (file_exists($dataFile)) {
-    $json = file_get_contents($dataFile);
-    $data = json_decode($json, true) ?: [];
-}
+$data = am_json_read($dataFile, []);
 
 // محاسبه آمار جاری
 $today = date('Y-m-d');

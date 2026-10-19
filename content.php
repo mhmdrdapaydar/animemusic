@@ -40,12 +40,33 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
-// تبلیغ مربوط به زبان جاری (برای کاربران غیر VIP)
-$currentAd   = am_ad_for_lang(am_current_lang());
-$adVideoUrl  = am_lang_asset(isset($currentAd['video']) && $currentAd['video'] !== '' ? $currentAd['video'] : 'assets/ads/myad.mp4');
-$adImageUrl  = isset($currentAd['image']) && $currentAd['image'] !== '' ? am_lang_asset($currentAd['image']) : '';
-$adHasImage  = ($adImageUrl !== '');
-$adClickUrl  = '/ad_click.php?lang=' . rawurlencode(am_current_lang());
+// تبلیغ مربوط به زبان جاری (برای کاربران غیر VIP) — با سیستم جایگاه و نوع
+$amLang          = am_current_lang();
+$displaySlot     = am_ad_slot($amLang, 'display');     // جایگاه نمایش تبلیغ
+$downloadSlot    = am_ad_slot($amLang, 'download');    // جایگاه دروازه دانلود
+$displayIsCode   = ($displaySlot['type'] === 'code');
+$downloadIsCode  = ($downloadSlot['type'] === 'code');
+$currentAd       = $displaySlot['normal'];
+$adVideoUrl      = am_lang_asset(isset($currentAd['video']) && $currentAd['video'] !== '' ? $currentAd['video'] : 'assets/ads/myad.mp4');
+$adImageUrl      = isset($currentAd['image']) && $currentAd['image'] !== '' ? am_lang_asset($currentAd['image']) : '';
+$adHasImage      = ($adImageUrl !== '');
+$adClickUrl      = am_ad_click_url($amLang, 'display');
+$adCodeHtml      = $displayIsCode ? $displaySlot['code'] : '';
+
+// دروازه دانلود: آیا دانلودِ بدون VIP این کاربر فعال است؟
+$amGateOk = $isVIP ? true : am_gate_valid($userId);
+$dlGateInfo = [
+    'slot'    => 'download',
+    'lang'    => $amLang,
+    'type'    => $downloadSlot['type'],
+    'code'    => $downloadIsCode ? $downloadSlot['code'] : '',
+    'click'   => am_ad_click_url($amLang, 'download'),
+    'beacon'  => am_ad_click_url($amLang, 'download', ['beacon' => 1]),
+    'gate'    => am_ad_click_url($amLang, 'download', ['beacon' => 1, 'gate' => 1]),
+    'target'  => am_ad_target_url($downloadSlot['normal']['url'] !== '' ? $downloadSlot['normal']['url'] : ($downloadSlot['normal']['aparat_url'] ?? '')),
+    'image'   => $downloadSlot['normal']['image'] !== '' ? am_lang_asset($downloadSlot['normal']['image']) : '',
+    'video'   => $downloadSlot['normal']['video'] !== '' ? am_lang_asset($downloadSlot['normal']['video']) : '',
+];
 
 // بررسی وضعیت علاقه‌مندی و پلی‌لیست‌ها
 $isFavorite = false;
@@ -527,6 +548,103 @@ if (!empty($content['important_links'])) {
       background: #ff8c00;
       transform: translateY(-2px);
     }
+
+    /* جعبه کد تبلیغ (نوع code در جایگاه نمایش) */
+    #ad-code-box {
+      min-height: 120px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--bg-card);
+    }
+    #ad-code-box .am-ad-code-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100px;
+    }
+
+    /* مودال دروازه دانلود (مشاهده تبلیغ → فعال‌سازی دانلود) */
+    .adgate-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .adgate-mask.open { display: flex; }
+    .adgate-card {
+      background: var(--bg-card);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 22px;
+      position: relative;
+      text-align: center;
+    }
+    .adgate-card h3 { margin: 0 0 8px; font-size: 1.15rem; color: var(--primary-color); }
+    .adgate-card .adgate-info { font-size: 0.92rem; line-height: 1.9; margin: 6px 0 14px; opacity: 0.92; }
+    .adgate-close {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      background: none;
+      border: none;
+      color: var(--text-color);
+      font-size: 1.5rem;
+      cursor: pointer;
+      opacity: 0.7;
+      line-height: 1;
+    }
+    .adgate-close:hover { opacity: 1; }
+    .adgate-ad-box {
+      border: 2px dashed var(--border-color);
+      border-radius: 10px;
+      min-height: 130px;
+      padding: 12px;
+      margin: 10px 0;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .adgate-ad-box:hover { border-color: var(--primary-color); }
+    .adgate-ad-box img,
+    .adgate-ad-box video { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; margin: 0 auto; }
+    .adgate-ad-box .adgate-code-wrap { min-height: 110px; display: flex; align-items: center; justify-content: center; }
+    .adgate-status {
+      font-size: 0.95rem;
+      font-weight: bold;
+      margin: 12px 0;
+      min-height: 1.6em;
+      color: var(--secondary-color);
+    }
+    .adgate-status.err { color: #ff6b6b; }
+    .adgate-status.ok { color: var(--primary-color); }
+    .adgate-dl-btn {
+      display: none;
+      margin: 10px auto 0;
+      padding: 12px 26px;
+      background: var(--primary-color);
+      color: #111;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .adgate-dl-btn.show { display: inline-block; }
 
     .button-group {
       display: flex;
@@ -1173,13 +1291,21 @@ if (!empty($content['important_links'])) {
     <!-- تبلیغ - فقط برای کاربران غیر VIP نمایش داده شود -->
     <?php if (!$isVIP): ?>
     <div id="ad-section">
-      <video id="ad-video" src="<?= am_e($adVideoUrl) ?>" muted playsinline preload="metadata"<?= $adHasImage ? ' poster="' . am_e($adImageUrl) . '"' : '' ?>></video>
-      <?php if ($adHasImage): ?>
-      <img id="ad-image" src="<?= am_e($adImageUrl) ?>" alt="<?= am_te('more_info') ?>" />
+      <?php if ($displayIsCode): ?>
+        <!-- نوع «کد تبلیغ»: کد شبکه تبلیغاتی (مثلاً mediaad) مستقیماً اینجا اجرا می‌شود -->
+        <div id="ad-code-box" title="<?= am_te('more_info') ?>">
+          <div class="am-ad-code-wrap" id="ad-code-wrap"><?= $adCodeHtml ?></div>
+        </div>
+      <?php else: ?>
+        <!-- نوع «تبلیغ معمولی»: ویدیو/تصویر + لینک «اطلاعات بیشتر» -->
+        <video id="ad-video" src="<?= am_e($adVideoUrl) ?>" muted playsinline preload="metadata"<?= $adHasImage ? ' poster="' . am_e($adImageUrl) . '"' : '' ?>></video>
+        <?php if ($adHasImage): ?>
+        <img id="ad-image" src="<?= am_e($adImageUrl) ?>" alt="<?= am_te('more_info') ?>" />
+        <?php endif; ?>
+        <a id="ad-link" href="<?= am_e($adClickUrl) ?>" target="_blank" rel="noopener noreferrer"><?= am_te('more_info') ?></a>
+        <button id="unmute-btn" class="button"><?= am_te('enable_sound') ?></button>
       <?php endif; ?>
-      <a id="ad-link" href="<?= am_e($adClickUrl) ?>" target="_blank" rel="noopener noreferrer"><?= am_te('more_info') ?></a>
       <button id="skip-btn" class="button" disabled><?= am_te('skip_ad') ?> (10)</button>
-      <button id="unmute-btn" class="button"><?= am_te('enable_sound') ?></button>
     </div>
     <?php endif; ?>
     
@@ -1247,16 +1373,19 @@ if (!empty($content['important_links'])) {
               <option value="2">2x</option>
             </select>
             
-            <?php if ($isVIP): ?>
+            <?php if ($isVIP || $amGateOk): ?>
+              <!-- دانلود مستقیم: VIP یا فعال‌شده از طریق مشاهده تبلیغ -->
               <a href="<?= $music_file ?>" download class="download-btn">
                 <i class="bi bi-download"></i> <?= am_te("download_music") ?>
               </a>
             <?php else: ?>
-              <div class="vip-only">
-                <a href="<?= am_lang_url('vip.php') ?>" class="download-btn">
-                  <i class="bi bi-download"></i> <?= am_te('download_vip') ?>
-                </a>
-              </div>
+              <!-- دانلود با مشاهده تبلیغ یا خرید VIP -->
+              <button type="button" class="download-btn" id="open-adgate-btn">
+                <i class="bi bi-play-btn-fill"></i> <?= am_te('download_watch_ad') ?>
+              </button>
+              <a href="<?= am_lang_url('vip.php') ?>" class="download-btn">
+                <i class="bi bi-gem"></i> <?= am_te('download_vip') ?>
+              </a>
             <?php endif; ?>
             
             <!-- دکمه مورد علاقه -->
@@ -1441,6 +1570,35 @@ if (!empty($content['important_links'])) {
     <a href="<?= am_lang_url('search/search.php') ?>" class="nav-item"><i class="bi bi-search"></i><?= am_te('search') ?></a>
     <a href="<?= am_lang_url('about.php') ?>" class="nav-item"><i class="bi bi-info-circle"></i><?= am_te('about') ?></a>
   </div>
+
+  <?php if (!$isVIP && !$amGateOk): ?>
+  <!-- مودال دروازه دانلود: مشاهده تبلیغ + کلیک روی آن + بازگشت → فعال‌سازی دانلود -->
+  <div class="adgate-mask" id="adgate-modal" aria-hidden="true">
+    <div class="adgate-card" role="dialog" aria-modal="true">
+      <button class="adgate-close" id="adgate-close" aria-label="&times;">&times;</button>
+      <h3><i class="bi bi-shield-check"></i> <?= am_te('ad_gate_title') ?></h3>
+      <p class="adgate-info"><?= am_te('ad_gate_info') ?></p>
+      <div class="adgate-ad-box" id="adgate-ad-box">
+        <?php if ($downloadIsCode): ?>
+          <div class="adgate-code-wrap" id="adgate-code-wrap"><!-- کد تبلیغ هنگام باز شدن مودال تزریق می‌شود --></div>
+        <?php else: ?>
+          <a id="adgate-link" href="<?= am_e($dlGateInfo['click']) ?>" target="_blank" rel="noopener noreferrer" style="display:block;">
+            <?php if ($dlGateInfo['image'] !== ''): ?>
+              <img src="<?= am_e($dlGateInfo['image']) ?>" alt="<?= am_te('more_info') ?>" />
+            <?php elseif ($dlGateInfo['video'] !== ''): ?>
+              <video src="<?= am_e($dlGateInfo['video']) ?>" muted playsinline loop autoplay preload="metadata"></video>
+            <?php endif; ?>
+            <span class="button" style="margin-top:10px; display:inline-block;"><?= am_te('more_info') ?></span>
+          </a>
+        <?php endif; ?>
+      </div>
+      <div class="adgate-status" id="adgate-status"><?= am_te('ad_gate_click_ad') ?></div>
+      <a class="adgate-dl-btn" id="adgate-dl" href="<?= am_e($music_file) ?>" download>
+        <i class="bi bi-download"></i> <?= am_te('download_now') ?>
+      </a>
+    </div>
+  </div>
+  <?php endif; ?>
   
   <script>
     // --- سیستم تغییر تم ---
@@ -1460,85 +1618,207 @@ if (!empty($content['important_links'])) {
     
     // --- تبلیغ - فقط برای کاربران غیر VIP اجرا شود ---
     <?php if (!$isVIP): ?>
-    const adVideo = document.getElementById("ad-video");
-    const adImage = document.getElementById("ad-image");
     const skipBtn = document.getElementById("skip-btn");
     const skipLabel = <?= json_encode(am_t('skip_ad')) ?>;
-    const unmuteBtn = document.getElementById("unmute-btn");
     const adSection = document.getElementById("ad-section");
     const mainContent = document.getElementById("main-content");
-    
-    // لینک تبلیغ مستقیماً به ad_click.php اشاره می‌کند که کلیک را ثبت و سپس هدایت می‌کند.
-    
-    // مدیریت صدا
-    unmuteBtn.onclick = () => {
-      adVideo.muted = false;
-      unmuteBtn.textContent = <?= json_encode(am_t('sound_on')) ?>;
-      setTimeout(() => {
-        unmuteBtn.style.opacity = "0.5";
-      }, 2000);
-    };
-    
-    // تایمر رد کردن تبلیغ
-    let t = 10; // زمان تبلیغ 10 ثانیه
-    const timer = setInterval(() => {
+    const adType = <?= json_encode($displaySlot['type']) ?>;
+    const displayBeaconUrl = <?= json_encode(am_ad_click_url($amLang, 'display', ['beacon' => 1])) ?>;
+
+    let adTimer = null;
+    function startSkipCountdown() {
+      let t = 10;
+      if (adTimer) clearInterval(adTimer);
       skipBtn.textContent = `${skipLabel} (${t})`;
-      if (--t < 0) {
-        clearInterval(timer);
-        skipBtn.disabled = false;
-        skipBtn.textContent = skipLabel;
-      }
-    }, 1000);
-    
-    // مدیریت رد کردن تبلیغ
-    skipBtn.onclick = skipAd;
-    adVideo.addEventListener("ended", skipAd);
-    
+      adTimer = setInterval(() => {
+        skipBtn.textContent = `${skipLabel} (${t})`;
+        if (--t < 0) {
+          clearInterval(adTimer);
+          skipBtn.disabled = false;
+          skipBtn.textContent = skipLabel;
+        }
+      }, 1000);
+    }
+
     function skipAd() {
-      try { adVideo.pause(); } catch (e) {}
       adSection.style.display = "none";
       mainContent.style.display = "block";
-      clearInterval(timer); // توقف تایمر
+      if (adTimer) clearInterval(adTimer);
     }
-    
-    // شروع پخش تبلیغ پس از لود صفحه
-    // اگر تصویر تبلیغ تنظیم شده باشد، ابتدا پوستر جدید نمایش داده می‌شود و
-    // ویدیو با کلیک کاربر روی صفحه‌ی تبلیغ پخش می‌شود (بدون از دست رفتن ویدیو).
-    function startAdPlayback() {
-      if (adImage) adImage.style.display = "none";
-      adVideo.style.display = "block";
-      try {
-        adVideo.play().catch(e => {
-          console.log("پخش خودکار تبلیغ ممکن نیست:", e);
-        });
-      } catch (e) {
-        console.log("خطا در پخش تبلیغ:", e);
+
+    if (adType === 'code') {
+      // جایگاه «کد تبلیغ»: شمارش کلیک با بیکن (کلیک‌های داخل iframe با best-effort ثبت می‌شود)
+      const codeBox = document.getElementById("ad-code-box");
+      let codeClicked = false;
+      function logCodeClick() {
+        if (codeClicked) return;
+        codeClicked = true;
+        try { fetch(displayBeaconUrl, { method: 'GET', keepalive: true, credentials: 'same-origin' }); } catch (e) {}
       }
-    }
-    
-    window.addEventListener('DOMContentLoaded', () => {
-      if (adImage) {
-        // حالت پوستر: ویدیو پنهان و تصویر نمایان؛ پخش با کلیک کاربر
-        adVideo.style.display = "none";
-        adVideo.addEventListener("click", startAdPlayback);
-        if (adImage) {
-          adImage.addEventListener("click", startAdPlayback);
-        }
-      } else {
+      if (codeBox) {
+        codeBox.addEventListener('click', logCodeClick, true);
+        codeBox.addEventListener('pointerdown', logCodeClick, true);
+      }
+      window.addEventListener('DOMContentLoaded', startSkipCountdown);
+    } else {
+      // جایگاه «تبلیغ معمولی»: ویدیو/تصویر + لینک «اطلاعات بیشتر» (کلیک از طریق ad_click.php شمرده می‌شود)
+      const adVideo = document.getElementById("ad-video");
+      const adImage = document.getElementById("ad-image");
+      const unmuteBtn = document.getElementById("unmute-btn");
+
+      unmuteBtn.onclick = () => {
+        adVideo.muted = false;
+        unmuteBtn.textContent = <?= json_encode(am_t('sound_on')) ?>;
+        setTimeout(() => { unmuteBtn.style.opacity = "0.5"; }, 2000);
+      };
+
+      skipBtn.onclick = skipAd;
+      if (adVideo) adVideo.addEventListener("ended", skipAd);
+
+      function startAdPlayback() {
+        if (adImage) adImage.style.display = "none";
+        adVideo.style.display = "block";
         try {
-          adVideo.play().catch(e => {
-            console.log("پخش خودکار تبلیغ ممکن نیست:", e);
-            skipAd();
-          });
+          adVideo.play().catch(e => { console.log("پخش خودکار تبلیغ ممکن نیست:", e); });
         } catch (e) {
           console.log("خطا در پخش تبلیغ:", e);
-          skipAd();
         }
       }
-    });
+
+      window.addEventListener('DOMContentLoaded', () => {
+        startSkipCountdown();
+        if (adImage) {
+          adVideo.style.display = "none";
+          adVideo.addEventListener("click", startAdPlayback);
+          adImage.addEventListener("click", startAdPlayback);
+        } else {
+          try {
+            adVideo.play().catch(e => { console.log("پخش خودکار تبلیغ ممکن نیست:", e); skipAd(); });
+          } catch (e) {
+            console.log("خطا در پخش تبلیغ:", e);
+            skipAd();
+          }
+        }
+      });
+    }
     <?php else: ?>
     // برای کاربران VIP، محتوای اصلی مستقیماً نمایش داده می‌شود
     document.getElementById('main-content').style.display = 'block';
+    <?php endif; ?>
+
+    // --- دروازه دانلود: مشاهده تبلیغ + کلیک روی آن + بازگشت → فعال‌سازی دانلود ---
+    <?php if (!$isVIP && !$amGateOk): ?>
+    (function () {
+      const modal = document.getElementById('adgate-modal');
+      const openBtn = document.getElementById('open-adgate-btn');
+      const closeBtn = document.getElementById('adgate-close');
+      const statusEl = document.getElementById('adgate-status');
+      const dlBtn = document.getElementById('adgate-dl');
+      const adBox = document.getElementById('adgate-ad-box');
+      if (!modal || !openBtn) return;
+
+      const G = <?= json_encode($dlGateInfo, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+      const TXT = {
+        clickAd: <?= json_encode(am_t('ad_gate_click_ad')) ?>,
+        waitReturn: <?= json_encode(am_t('ad_gate_wait_return')) ?>,
+        unlocked: <?= json_encode(am_t('ad_gate_unlocked')) ?>,
+        fail: <?= json_encode(am_t('ad_gate_fail')) ?>
+      };
+
+      let clicked = false;      // آیا کاربر روی تبلیغ کلیک کرده است؟
+      let leftAfterClick = false; // آیا پس از کلیک، پنجره/تب را ترک کرده (به تبلیغ رفته)؟
+      let blurredAt = 0;        // زمان ترک تب (برای تشخیص رفتن به تبلیغِ iframe دار)
+      let unlocked = false;
+
+      function injectAdCode(container, code) {
+        container.innerHTML = code;
+        container.querySelectorAll('script').forEach(old => {
+          const s = document.createElement('script');
+          for (const a of old.attributes) s.setAttribute(a.name, a.value);
+          s.textContent = old.textContent;
+          old.parentNode.replaceChild(s, old);
+        });
+      }
+
+      function setStatus(msg, cls) {
+        statusEl.textContent = msg;
+        statusEl.className = 'adgate-status' + (cls ? ' ' + cls : '');
+      }
+
+      function markClicked() {
+        if (unlocked) return;
+        if (!clicked) {
+          clicked = true;
+          // ثبت کلیک در آمار (بیکن — برای تبلیغ معمولی، لینک هم همین را ثبت می‌کند و جلوی شمارش دوباره گرفته می‌شود)
+          try { fetch(G.beacon, { method: 'GET', keepalive: true, credentials: 'same-origin' }); } catch (e) {}
+          setStatus(TXT.waitReturn, '');
+        }
+        // اگر پنجره‌ای باز نشد (بلاک پاپ‌آپ) یا کاربر همان‌جا ماند، پس از لحظاتی «بازگشت» فرض می‌شود
+        window.setTimeout(() => {
+          if (clicked && !leftAfterClick && !unlocked) tryUnlock();
+        }, 2500);
+      }
+
+      function tryUnlock() {
+        if (unlocked) return;
+        unlocked = true;
+        // صدور کوکی فعال‌سازی دانلود روی سرور (پس از اطمینان از کلیک و بازگشت)
+        fetch(G.gate, { method: 'GET', keepalive: true, credentials: 'same-origin' })
+          .catch(() => {})
+          .then(() => {
+            setStatus(TXT.unlocked, 'ok');
+            dlBtn.classList.add('show');
+          });
+      }
+
+      // کلیک روی بدنه تبلیغ (لایه‌ی بیرونی — کلیک‌های داخل iframe با pointerdown سطح بالا تا حدی گرفته می‌شود)
+      adBox.addEventListener('click', markClicked, true);
+      adBox.addEventListener('pointerdown', markClicked, true);
+
+      // «بازگشت به سایت»: وقتی پس از رفتن به تبلیغ (blur)، دوباره تمرکز پنجره برگشت
+      window.addEventListener('blur', () => {
+        if (!unlocked && modal.classList.contains('open')) {
+          blurredAt = Date.now();
+          if (clicked) leftAfterClick = true;
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (unlocked || !modal.classList.contains('open') || !blurredAt) return;
+        const dwell = Date.now() - blurredAt;
+        // رفتن به تبلیغ و بازگشت (کلیک روی تبلیغِ iframe دار هم این الگو را دارد)
+        if (clicked && leftAfterClick) {
+          tryUnlock();
+          return;
+        }
+        if (!clicked && G.type === 'code' && dwell >= 1200) {
+          // تبلیغ کدی داخل iframe: کلیک قابل شنیدن نیست؛ رفتنِ بیش از ۱.۲ ثانیه
+          // و بازگشت = کلیک روی تبلیغ و برگشتن کاربر
+          clicked = true;
+          try { fetch(G.beacon, { method: 'GET', keepalive: true, credentials: 'same-origin' }); } catch (e) {}
+          tryUnlock();
+        }
+      });
+
+      openBtn.addEventListener('click', () => {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        if (G.type === 'code') {
+          const wrap = document.getElementById('adgate-code-wrap');
+          if (wrap && !wrap.dataset.injected) {
+            wrap.dataset.injected = '1';
+            injectAdCode(wrap, G.code || '');
+          }
+        }
+        setStatus(TXT.clickAd, '');
+      });
+
+      function closeModal() {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    })();
     <?php endif; ?>
     
     // --- مدیریت پخش‌کننده موزیک ---
